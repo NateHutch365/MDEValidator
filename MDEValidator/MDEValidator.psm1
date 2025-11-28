@@ -580,8 +580,9 @@ function Test-MDESmartScreen {
         foreach ($policy in $policyPaths) {
             if (Test-Path $policy.Path) {
                 $value = Get-ItemProperty -Path $policy.Path -Name $policy.Name -ErrorAction SilentlyContinue
-                if ($null -ne $value -and $null -ne $value.SmartScreenEnabled) {
-                    $smartScreenEnabled = $value.SmartScreenEnabled
+                $propertyValue = $value.($policy.Name)
+                if ($null -ne $value -and $null -ne $propertyValue) {
+                    $smartScreenEnabled = $propertyValue
                     $smartScreenSource = $policy.Source
                     break
                 }
