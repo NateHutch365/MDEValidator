@@ -260,21 +260,21 @@ function Test-MDESampleSubmission {
         $mpPreference = Get-MpPreference -ErrorAction Stop
         
         # SubmitSamplesConsent: 0 = Always Prompt, 1 = Send safe samples, 2 = Never send, 3 = Send all samples
-        if ($mpPreference.SubmitSamplesConsent -eq 1 -or $mpPreference.SubmitSamplesConsent -eq 3) {
-            $level = switch ($mpPreference.SubmitSamplesConsent) {
-                1 { 'Safe samples only' }
-                3 { 'All samples' }
-            }
+        if ($mpPreference.SubmitSamplesConsent -eq 3) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
-                -Message "Automatic sample submission is enabled: '$level'."
+                -Message "Automatic sample submission is enabled: 'Send all samples automatically'."
+        } elseif ($mpPreference.SubmitSamplesConsent -eq 1) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Automatic sample submission is set to 'Safe samples only'." `
+                -Recommendation "Consider enabling 'Send all samples automatically' for better threat detection via 'Set-MpPreference -SubmitSamplesConsent 3'."
         } elseif ($mpPreference.SubmitSamplesConsent -eq 0) {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "Automatic sample submission is set to 'Always Prompt'." `
-                -Recommendation "Consider enabling automatic sample submission for better threat detection."
+                -Recommendation "Consider enabling automatic sample submission for better threat detection via 'Set-MpPreference -SubmitSamplesConsent 3'."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Automatic sample submission is disabled." `
-                -Recommendation "Enable automatic sample submission via Group Policy or 'Set-MpPreference -SubmitSamplesConsent 1'."
+                -Recommendation "Enable automatic sample submission via Group Policy or 'Set-MpPreference -SubmitSamplesConsent 3'."
         }
     }
     catch {
