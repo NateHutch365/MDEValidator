@@ -14,6 +14,25 @@
 
 #region Helper Functions
 
+function ConvertTo-HtmlEncodedString {
+    <#
+    .SYNOPSIS
+        HTML-encodes a string to prevent XSS vulnerabilities.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [AllowEmptyString()]
+        [string]$InputString
+    )
+    
+    if ([string]::IsNullOrEmpty($InputString)) {
+        return $InputString
+    }
+    
+    return [System.Net.WebUtility]::HtmlEncode($InputString)
+}
+
 function Write-ValidationResult {
     <#
     .SYNOPSIS
@@ -67,7 +86,12 @@ function Test-IsElevated {
     
     # On non-Windows platforms, check if running as root
     if ($IsLinux -or $IsMacOS) {
-        return (id -u) -eq 0
+        try {
+            return (& id -u) -eq 0
+        }
+        catch {
+            return $false
+        }
     }
     
     return $false
@@ -770,7 +794,7 @@ function Get-MDEValidationReport {
     <div class="container">
         <h1>MDE Configuration Validation Report</h1>
         <div class="meta">
-            <p><strong>Computer:</strong> $env:COMPUTERNAME</p>
+            <p><strong>Computer:</strong> $(ConvertTo-HtmlEncodedString $env:COMPUTERNAME)</p>
             <p><strong>Generated:</strong> $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
         </div>
         
@@ -799,15 +823,18 @@ function Get-MDEValidationReport {
             
             foreach ($result in $results) {
                 $statusClass = $result.Status.ToLower()
+                $encodedTestName = ConvertTo-HtmlEncodedString $result.TestName
+                $encodedMessage = ConvertTo-HtmlEncodedString $result.Message
+                $encodedRecommendation = ConvertTo-HtmlEncodedString $result.Recommendation
                 $recommendation = if ($result.Recommendation -and $result.Status -ne 'Pass') {
-                    "<div class='recommendation'><strong>Recommendation:</strong> $($result.Recommendation)</div>"
+                    "<div class='recommendation'><strong>Recommendation:</strong> $encodedRecommendation</div>"
                 } else { '' }
                 
                 $htmlContent += @"
             <tr>
-                <td>$($result.TestName)</td>
+                <td>$encodedTestName</td>
                 <td><span class="status $statusClass">$($result.Status.ToUpper())</span></td>
-                <td>$($result.Message)$recommendation</td>
+                <td>$encodedMessage$recommendation</td>
             </tr>
 "@
             }
