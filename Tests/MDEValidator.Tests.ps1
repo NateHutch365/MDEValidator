@@ -135,6 +135,19 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDESmartScreen' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESmartScreen
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Edge SmartScreen'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDESmartScreen function' {
+            Get-Command -Name 'Test-MDESmartScreen' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+    }
+    
     Context 'Test-MDEConfiguration' {
         It 'Should return an array of results' {
             $results = Test-MDEConfiguration
@@ -152,6 +165,7 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Behavior Monitoring'
             $testNames | Should -Contain 'Network Protection'
             $testNames | Should -Contain 'Attack Surface Reduction Rules'
+            $testNames | Should -Contain 'Edge SmartScreen'
         }
         
         It 'Should include onboarding test when -IncludeOnboarding is specified' {

@@ -1,0 +1,10 @@
+# Test output files
+*.html
+
+# Temp files
+*.tmp
+*.temp
+
+# IDE files
+.vscode/
+.idea/
