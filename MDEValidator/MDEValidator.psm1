@@ -554,9 +554,9 @@ function Test-MDEThreatDefaultActions {
     
     .NOTES
         Threat action values:
-        1 = Clean (Remove)
+        1 = Clean (repairs infected files)
         2 = Quarantine
-        3 = Remove
+        3 = Remove (deletes the file)
         6 = Allow (Ignore)
         8 = UserDefined
         9 = NoAction
@@ -580,10 +580,10 @@ function Test-MDEThreatDefaultActions {
     
     # Recommended actions for each threat level
     $recommendedActions = @{
-        'LowThreatDefaultAction' = @(2, 3)      # Quarantine or Remove
-        'ModerateThreatDefaultAction' = @(2, 3) # Quarantine or Remove
-        'HighThreatDefaultAction' = @(2, 3)     # Quarantine or Remove
-        'SevereThreatDefaultAction' = @(2, 3)   # Quarantine or Remove
+        'LowThreatDefaultAction' = @(1, 2, 3)      # Clean, Quarantine or Remove
+        'ModerateThreatDefaultAction' = @(1, 2, 3) # Clean, Quarantine or Remove
+        'HighThreatDefaultAction' = @(1, 2, 3)     # Clean, Quarantine or Remove
+        'SevereThreatDefaultAction' = @(1, 2, 3)   # Clean, Quarantine or Remove
     }
     
     try {
@@ -604,7 +604,7 @@ function Test-MDEThreatDefaultActions {
             $actionName = if ($actionNames.ContainsKey([int]$actionValue)) { $actionNames[[int]$actionValue] } else { 'Unknown' }
             $levelName = $threatLevel -replace 'ThreatDefaultAction', ''
             
-            $details += "$levelName`: $actionValue ($actionName)"
+            $details += "${levelName}: $actionValue ($actionName)"
             
             # Check if the action is recommended
             if ($actionValue -notin $recommendedActions[$threatLevel]) {
