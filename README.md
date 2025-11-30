@@ -16,6 +16,8 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 - **MDE Onboarding Status**: Verifies device onboarding to Microsoft Defender for Endpoint
 - **Network Protection**: Checks network protection configuration
 - **Attack Surface Reduction (ASR) Rules**: Validates ASR rules configuration
+- **Threat Default Actions**: Checks default actions for threat severity levels (Low, Moderate, High, Severe) showing both registry values and settings (e.g., 2 (Quarantine))
+- **Exclusion Visibility**: Validates settings that control whether local users and administrators can view exclusions (configurable via Group Policy or Intune)
 - **Multiple Output Formats**: Console, HTML, and PowerShell object output options
 
 ## Requirements
@@ -123,6 +125,12 @@ Test-MDENetworkProtection
 
 # Test Attack Surface Reduction rules
 Test-MDEAttackSurfaceReduction
+
+# Test threat default actions
+Test-MDEThreatDefaultActions
+
+# Test exclusion visibility settings
+Test-MDEExclusionVisibility
 ```
 
 ### Output Example
