@@ -40,7 +40,10 @@
         'Test-MDEBehaviorMonitoring',
         'Test-MDEOnboardingStatus',
         'Test-MDENetworkProtection',
-        'Test-MDEAttackSurfaceReduction'
+        'Test-MDEAttackSurfaceReduction',
+        'Test-MDEThreatDefaultActions',
+        'Test-MDEExclusionVisibility',
+        'Test-MDESmartScreen'
     )
 
     # Cmdlets to export from this module

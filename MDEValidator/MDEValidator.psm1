@@ -535,6 +535,226 @@ function Test-MDEAttackSurfaceReduction {
     }
 }
 
+function Test-MDEThreatDefaultActions {
+    <#
+    .SYNOPSIS
+        Tests the default actions configured for threat severity levels.
+    
+    .DESCRIPTION
+        Checks the default actions (Quarantine, Remove, Ignore, etc.) configured for
+        Low, Moderate, High, and Severe threat severity levels in Windows Defender.
+    
+    .EXAMPLE
+        Test-MDEThreatDefaultActions
+        
+        Tests the default threat actions configuration.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Threat action values:
+        1 = Clean (repairs infected files)
+        2 = Quarantine
+        3 = Remove (deletes the file)
+        6 = Allow (Ignore)
+        8 = UserDefined
+        9 = NoAction
+        10 = Block
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Threat Default Actions'
+    
+    # Map action values to human-readable names
+    $actionNames = @{
+        1 = 'Clean'
+        2 = 'Quarantine'
+        3 = 'Remove'
+        6 = 'Allow'
+        8 = 'UserDefined'
+        9 = 'NoAction'
+        10 = 'Block'
+    }
+    
+    # Recommended actions for each threat level
+    $recommendedActions = @{
+        'LowThreatDefaultAction' = @(1, 2, 3)      # Clean, Quarantine or Remove
+        'ModerateThreatDefaultAction' = @(1, 2, 3) # Clean, Quarantine or Remove
+        'HighThreatDefaultAction' = @(1, 2, 3)     # Clean, Quarantine or Remove
+        'SevereThreatDefaultAction' = @(1, 2, 3)   # Clean, Quarantine or Remove
+    }
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        $threatActions = @{
+            'LowThreatDefaultAction' = $mpPreference.LowThreatDefaultAction
+            'ModerateThreatDefaultAction' = $mpPreference.ModerateThreatDefaultAction
+            'HighThreatDefaultAction' = $mpPreference.HighThreatDefaultAction
+            'SevereThreatDefaultAction' = $mpPreference.SevereThreatDefaultAction
+        }
+        
+        $issues = @()
+        $details = @()
+        
+        foreach ($threatLevel in @('LowThreatDefaultAction', 'ModerateThreatDefaultAction', 'HighThreatDefaultAction', 'SevereThreatDefaultAction')) {
+            $actionValue = $threatActions[$threatLevel]
+            $actionName = if ($actionNames.ContainsKey([int]$actionValue)) { $actionNames[[int]$actionValue] } else { 'Unknown' }
+            $levelName = $threatLevel -replace 'ThreatDefaultAction', ''
+            
+            $details += "${levelName}: $actionValue ($actionName)"
+            
+            # Check if the action is recommended
+            if ($actionValue -notin $recommendedActions[$threatLevel]) {
+                if ($actionValue -eq 6 -or $actionValue -eq 9) {
+                    # Allow or NoAction are concerning
+                    $issues += "$levelName threats are set to $actionValue ($actionName)"
+                }
+            }
+        }
+        
+        $message = "Threat default actions: $($details -join '; ')"
+        
+        if ($issues.Count -gt 0) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "$message. Potential issues: $($issues -join '; ')." `
+                -Recommendation "Consider setting threat actions to Quarantine (2) or Remove (3) for all severity levels via Group Policy or Set-MpPreference."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message $message
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query threat default actions: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
+function Test-MDEExclusionVisibility {
+    <#
+    .SYNOPSIS
+        Tests if local users and administrators can view exclusions.
+    
+    .DESCRIPTION
+        Checks the HideExclusionsFromLocalUsers and HideExclusionsFromLocalAdmins
+        settings that control whether exclusions are visible to local users and
+        administrators. These settings can be configured via Group Policy or Intune.
+    
+    .EXAMPLE
+        Test-MDEExclusionVisibility
+        
+        Tests the exclusion visibility settings.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry locations:
+        - HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions (HideExclusionsFromLocalUsers)
+        - HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions (HideExclusionsFromLocalAdmins)
+        
+        Values:
+        0 or not present = Exclusions are visible (not hidden)
+        1 = Exclusions are hidden
+        
+        These settings are available via:
+        - Group Policy: Computer Configuration > Administrative Templates > Windows Components > 
+          Microsoft Defender Antivirus > Exclusions
+        - Intune: Endpoint Security > Antivirus > Microsoft Defender Antivirus > Exclusions
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Exclusion Visibility'
+    
+    try {
+        # Check registry settings for exclusion visibility
+        $exclusionsPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions'
+        $policiesPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Exclusions'
+        
+        $hideFromLocalUsers = $null
+        $hideFromLocalAdmins = $null
+        $source = ''
+        
+        # Check Group Policy settings first (takes precedence)
+        if (Test-Path $policiesPath) {
+            $policySettings = Get-ItemProperty -Path $policiesPath -ErrorAction SilentlyContinue
+            if ($null -ne $policySettings.HideExclusionsFromLocalUsers) {
+                $hideFromLocalUsers = $policySettings.HideExclusionsFromLocalUsers
+                $source = 'Group Policy'
+            }
+            if ($null -ne $policySettings.HideExclusionsFromLocalAdmins) {
+                $hideFromLocalAdmins = $policySettings.HideExclusionsFromLocalAdmins
+                $source = 'Group Policy'
+            }
+        }
+        
+        # Check default registry settings if policy not set
+        if (Test-Path $exclusionsPath) {
+            $defaultSettings = Get-ItemProperty -Path $exclusionsPath -ErrorAction SilentlyContinue
+            if ($null -eq $hideFromLocalUsers -and $null -ne $defaultSettings.HideExclusionsFromLocalUsers) {
+                $hideFromLocalUsers = $defaultSettings.HideExclusionsFromLocalUsers
+                if ([string]::IsNullOrEmpty($source)) { $source = 'Registry' }
+            }
+            if ($null -eq $hideFromLocalAdmins -and $null -ne $defaultSettings.HideExclusionsFromLocalAdmins) {
+                $hideFromLocalAdmins = $defaultSettings.HideExclusionsFromLocalAdmins
+                if ([string]::IsNullOrEmpty($source)) { $source = 'Registry' }
+            }
+        }
+        
+        # Also try Get-MpPreference for these settings (if available)
+        try {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+            if ($null -eq $hideFromLocalUsers -and $null -ne $mpPreference.HideExclusionsFromLocalUsers) {
+                $hideFromLocalUsers = if ($mpPreference.HideExclusionsFromLocalUsers) { 1 } else { 0 }
+                if ([string]::IsNullOrEmpty($source)) { $source = 'MpPreference' }
+            }
+            if ($null -eq $hideFromLocalAdmins -and $null -ne $mpPreference.HideExclusionsFromLocalAdmins) {
+                $hideFromLocalAdmins = if ($mpPreference.HideExclusionsFromLocalAdmins) { 1 } else { 0 }
+                if ([string]::IsNullOrEmpty($source)) { $source = 'MpPreference' }
+            }
+        }
+        catch {
+            # Continue even if MpPreference fails - we have registry values
+        }
+        
+        # Interpret results
+        $localUsersHidden = ($hideFromLocalUsers -eq 1)
+        $localAdminsHidden = ($hideFromLocalAdmins -eq 1)
+        
+        $localUsersStatus = if ($localUsersHidden) { 'Hidden' } elseif ($null -eq $hideFromLocalUsers) { 'Not Configured (Visible)' } else { 'Visible' }
+        $localAdminsStatus = if ($localAdminsHidden) { 'Hidden' } elseif ($null -eq $hideFromLocalAdmins) { 'Not Configured (Visible)' } else { 'Visible' }
+        
+        $sourceInfo = if ([string]::IsNullOrEmpty($source)) { '' } else { " (via $source)" }
+        $message = "Local Users: $localUsersStatus; Local Administrators: $localAdminsStatus$sourceInfo"
+        
+        # Both should be hidden for best security
+        if ($localUsersHidden -and $localAdminsHidden) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Exclusions are hidden from both local users and administrators.$sourceInfo"
+        } elseif ($localUsersHidden -or $localAdminsHidden) {
+            $visibleTo = @()
+            if (-not $localUsersHidden) { $visibleTo += 'local users' }
+            if (-not $localAdminsHidden) { $visibleTo += 'local administrators' }
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Exclusions are visible to $($visibleTo -join ' and ').$sourceInfo" `
+                -Recommendation "Consider hiding exclusions from both local users and administrators via Group Policy or Intune to prevent potential security bypass."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Exclusions are visible to both local users and administrators.$sourceInfo" `
+                -Recommendation "Configure 'Hide exclusions from local users' and 'Hide exclusions from local admins' via Group Policy or Intune to prevent attackers from discovering exclusion paths."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query exclusion visibility settings: $_" `
+            -Recommendation "Ensure you have appropriate permissions to read Windows Defender registry settings."
+    }
+}
+
 function Test-MDESmartScreen {
     <#
     .SYNOPSIS
@@ -686,6 +906,8 @@ function Test-MDEConfiguration {
     $results += Test-MDEBehaviorMonitoring
     $results += Test-MDENetworkProtection
     $results += Test-MDEAttackSurfaceReduction
+    $results += Test-MDEThreatDefaultActions
+    $results += Test-MDEExclusionVisibility
     $results += Test-MDESmartScreen
     
     if ($IncludeOnboarding) {
@@ -970,5 +1192,7 @@ Export-ModuleMember -Function @(
     'Test-MDEOnboardingStatus',
     'Test-MDENetworkProtection',
     'Test-MDEAttackSurfaceReduction',
+    'Test-MDEThreatDefaultActions',
+    'Test-MDEExclusionVisibility',
     'Test-MDESmartScreen'
 )

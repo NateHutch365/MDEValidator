@@ -58,6 +58,14 @@ Describe 'MDEValidator Module' {
         It 'Should export Test-MDEAttackSurfaceReduction function' {
             Get-Command -Name 'Test-MDEAttackSurfaceReduction' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+        
+        It 'Should export Test-MDEThreatDefaultActions function' {
+            Get-Command -Name 'Test-MDEThreatDefaultActions' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDEExclusionVisibility function' {
+            Get-Command -Name 'Test-MDEExclusionVisibility' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
     }
     
     Context 'Test-MDEServiceStatus' {
@@ -148,6 +156,43 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDEThreatDefaultActions' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEThreatDefaultActions
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Threat Default Actions'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDEThreatDefaultActions function' {
+            Get-Command -Name 'Test-MDEThreatDefaultActions' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should include threat level details or error message in the message' {
+            $result = Test-MDEThreatDefaultActions
+            # Either contains threat levels when successful, or contains error info when Get-MpPreference is unavailable
+            $result.Message | Should -Match '(Low|Moderate|High|Severe|Unable to query|threat default actions)'
+        }
+    }
+    
+    Context 'Test-MDEExclusionVisibility' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEExclusionVisibility
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Exclusion Visibility'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDEExclusionVisibility function' {
+            Get-Command -Name 'Test-MDEExclusionVisibility' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention local users or administrators in the message' {
+            $result = Test-MDEExclusionVisibility
+            $result.Message | Should -Match '(Local Users|Local Administrators|local users|local administrators)'
+        }
+    }
+    
     Context 'Test-MDEConfiguration' {
         It 'Should return an array of results' {
             $results = Test-MDEConfiguration
@@ -165,6 +210,8 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Behavior Monitoring'
             $testNames | Should -Contain 'Network Protection'
             $testNames | Should -Contain 'Attack Surface Reduction Rules'
+            $testNames | Should -Contain 'Threat Default Actions'
+            $testNames | Should -Contain 'Exclusion Visibility'
             $testNames | Should -Contain 'Edge SmartScreen'
         }
         
