@@ -33,7 +33,9 @@
     FunctionsToExport = @(
         'Test-MDEConfiguration',
         'Get-MDEValidationReport',
+        'Get-MDEOperatingSystemInfo',
         'Test-MDEServiceStatus',
+        'Test-MDEPassiveMode',
         'Test-MDERealTimeProtection',
         'Test-MDECloudProtection',
         'Test-MDECloudBlockLevel',
