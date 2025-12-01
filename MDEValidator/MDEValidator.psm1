@@ -922,7 +922,7 @@ function Test-MDESmartScreen {
         if ($null -ne $smartScreenEnabled) {
             if ($smartScreenEnabled -eq 1) {
                 Write-ValidationResult -TestName $testName -Status 'Pass' `
-                    -Message "Edge SmartScreen is enabled via either Group Policy or Intune ($smartScreenSource). Test URL: https://smartscreentestratings2.net/"
+                    -Message "Edge SmartScreen is enabled via Group Policy or Intune. Test URL: https://smartscreentestratings2.net/"
             } else {
                 Write-ValidationResult -TestName $testName -Status 'Fail' `
                     -Message "Edge SmartScreen is disabled via $smartScreenSource." `
@@ -1209,7 +1209,7 @@ function Get-MDEValidationReport {
                 Write-Host "$($result.TestName)" -ForegroundColor White
                 Write-Host "         $($result.Message)" -ForegroundColor Gray
                 
-                if ($result.Recommendation -and $result.Status -ne 'Pass') {
+                if ($result.Recommendation) {
                     Write-Host "         Recommendation: $($result.Recommendation)" -ForegroundColor Yellow
                 }
                 Write-Host ""
@@ -1353,7 +1353,7 @@ function Get-MDEValidationReport {
                 $encodedTestName = ConvertTo-HtmlEncodedString $result.TestName
                 $encodedMessage = ConvertTo-HtmlEncodedString $result.Message
                 $encodedRecommendation = ConvertTo-HtmlEncodedString $result.Recommendation
-                $recommendation = if ($result.Recommendation -and $result.Status -ne 'Pass') {
+                $recommendation = if ($result.Recommendation) {
                     "<div class='recommendation'><strong>Recommendation:</strong> $encodedRecommendation</div>"
                 } else { '' }
                 
