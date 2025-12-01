@@ -63,8 +63,16 @@ Describe 'MDEValidator Module' {
             Get-Command -Name 'Test-MDEThreatDefaultActions' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
         
-        It 'Should export Test-MDEExclusionVisibility function' {
-            Get-Command -Name 'Test-MDEExclusionVisibility' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        It 'Should export Test-MDEExclusionVisibilityLocalAdmins function' {
+            Get-Command -Name 'Test-MDEExclusionVisibilityLocalAdmins' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDEExclusionVisibilityLocalUsers function' {
+            Get-Command -Name 'Test-MDEExclusionVisibilityLocalUsers' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDECloudBlockLevel function' {
+            Get-Command -Name 'Test-MDECloudBlockLevel' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
     }
     
@@ -175,21 +183,57 @@ Describe 'MDEValidator Module' {
         }
     }
     
-    Context 'Test-MDEExclusionVisibility' {
+    Context 'Test-MDEExclusionVisibilityLocalAdmins' {
         It 'Should return a PSCustomObject with expected properties' {
-            $result = Test-MDEExclusionVisibility
+            $result = Test-MDEExclusionVisibilityLocalAdmins
             $result | Should -Not -BeNullOrEmpty
-            $result.TestName | Should -Be 'Exclusion Visibility'
+            $result.TestName | Should -Be 'Exclusion Visibility (Local Admins)'
             $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
         }
         
-        It 'Should export Test-MDEExclusionVisibility function' {
-            Get-Command -Name 'Test-MDEExclusionVisibility' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        It 'Should export Test-MDEExclusionVisibilityLocalAdmins function' {
+            Get-Command -Name 'Test-MDEExclusionVisibilityLocalAdmins' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
         
-        It 'Should mention local users or administrators in the message' {
-            $result = Test-MDEExclusionVisibility
-            $result.Message | Should -Match '(Local Users|Local Administrators|local users|local administrators)'
+        It 'Should mention local administrators in the message' {
+            $result = Test-MDEExclusionVisibilityLocalAdmins
+            $result.Message | Should -Match '(local administrators|administrators)'
+        }
+    }
+    
+    Context 'Test-MDEExclusionVisibilityLocalUsers' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEExclusionVisibilityLocalUsers
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Exclusion Visibility (Local Users)'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDEExclusionVisibilityLocalUsers function' {
+            Get-Command -Name 'Test-MDEExclusionVisibilityLocalUsers' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention local users in the message' {
+            $result = Test-MDEExclusionVisibilityLocalUsers
+            $result.Message | Should -Match '(local users|users)'
+        }
+    }
+    
+    Context 'Test-MDECloudBlockLevel' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDECloudBlockLevel
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Cloud Block Level'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDECloudBlockLevel function' {
+            Get-Command -Name 'Test-MDECloudBlockLevel' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Cloud Block Level or error message in output' {
+            $result = Test-MDECloudBlockLevel
+            $result.Message | Should -Match '(Cloud Block Level|Unable to query)'
         }
     }
     
@@ -197,7 +241,7 @@ Describe 'MDEValidator Module' {
         It 'Should return an array of results' {
             $results = Test-MDEConfiguration
             $results | Should -Not -BeNullOrEmpty
-            $results.Count | Should -BeGreaterThan 0
+            @($results).Count | Should -BeGreaterThan 0
         }
         
         It 'Should include all basic tests when called without parameters' {
@@ -206,12 +250,14 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Windows Defender Service Status'
             $testNames | Should -Contain 'Real-Time Protection'
             $testNames | Should -Contain 'Cloud-Delivered Protection'
+            $testNames | Should -Contain 'Cloud Block Level'
             $testNames | Should -Contain 'Automatic Sample Submission'
             $testNames | Should -Contain 'Behavior Monitoring'
             $testNames | Should -Contain 'Network Protection'
             $testNames | Should -Contain 'Attack Surface Reduction Rules'
             $testNames | Should -Contain 'Threat Default Actions'
-            $testNames | Should -Contain 'Exclusion Visibility'
+            $testNames | Should -Contain 'Exclusion Visibility (Local Admins)'
+            $testNames | Should -Contain 'Exclusion Visibility (Local Users)'
             $testNames | Should -Contain 'Edge SmartScreen'
         }
         
