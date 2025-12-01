@@ -36,13 +36,15 @@
         'Test-MDEServiceStatus',
         'Test-MDERealTimeProtection',
         'Test-MDECloudProtection',
+        'Test-MDECloudBlockLevel',
         'Test-MDESampleSubmission',
         'Test-MDEBehaviorMonitoring',
         'Test-MDEOnboardingStatus',
         'Test-MDENetworkProtection',
         'Test-MDEAttackSurfaceReduction',
         'Test-MDEThreatDefaultActions',
-        'Test-MDEExclusionVisibility',
+        'Test-MDEExclusionVisibilityLocalAdmins',
+        'Test-MDEExclusionVisibilityLocalUsers',
         'Test-MDESmartScreen'
     )
 
