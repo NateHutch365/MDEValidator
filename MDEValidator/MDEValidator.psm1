@@ -190,10 +190,10 @@ function Test-MDEPassiveMode {
         Passive Mode: Defender runs alongside another AV, with limited real-time protection.
         EDR in Block Mode: Allows Defender to take remediation actions even when in passive mode.
         
-        Registry locations:
-        - Passive Mode: HKLM:\SOFTWARE\Microsoft\Windows Defender\PassiveMode = 1
-        - EDR Block Mode: HKLM:\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection\ForceDefenderPassiveMode = 0
-                          combined with HKLM:\SOFTWARE\Microsoft\Windows Defender\Features\PassiveModeBehavior
+        Detection methods:
+        - Primary: Get-MpComputerStatus AMRunningMode property (Normal, Passive, EDR Block Mode, SxS Passive Mode)
+        - Registry fallback for Passive Mode: HKLM:\SOFTWARE\Microsoft\Windows Defender\PassiveMode = 1
+        - Registry for EDR Block Mode behavior: HKLM:\SOFTWARE\Microsoft\Windows Defender\Features\PassiveModeBehavior = 1
     #>
     [CmdletBinding()]
     param()
@@ -219,7 +219,8 @@ function Test-MDEPassiveMode {
             }
         }
         catch {
-            # Fall back to registry checks if Get-MpComputerStatus fails
+            # Get-MpComputerStatus may not be available on non-Windows systems or if Defender is not installed
+            # Fall back to registry checks below
         }
         
         # Check registry for Passive Mode indicator
@@ -253,8 +254,10 @@ function Test-MDEPassiveMode {
             }
         }
         
-        # EDR Block Mode is enabled when ForceDefenderPassiveMode = 0 and PassiveModeBehavior = 1
-        # Or when the device is in passive mode but has EDR block mode enabled
+        # EDR Block Mode detection via registry
+        # EDR Block Mode allows Defender to perform remediation even when in passive mode
+        # It's enabled when PassiveModeBehavior = 1 (block mode behavior is on) AND 
+        # the device is in passive mode (either detected via AMRunningMode or PassiveMode registry)
         if ($passiveModeBehavior -eq 1 -and $isPassiveMode) {
             $isEDRBlockMode = $true
         }
