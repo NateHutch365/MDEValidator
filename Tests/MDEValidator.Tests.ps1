@@ -74,6 +74,44 @@ Describe 'MDEValidator Module' {
         It 'Should export Test-MDECloudBlockLevel function' {
             Get-Command -Name 'Test-MDECloudBlockLevel' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+        
+        It 'Should export Get-MDEOperatingSystemInfo function' {
+            Get-Command -Name 'Get-MDEOperatingSystemInfo' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDEPassiveMode function' {
+            Get-Command -Name 'Test-MDEPassiveMode' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context 'Get-MDEOperatingSystemInfo' {
+        It 'Should return a non-empty string' {
+            $result = Get-MDEOperatingSystemInfo
+            $result | Should -Not -BeNullOrEmpty
+            $result | Should -BeOfType [string]
+        }
+        
+        It 'Should return OS information or Unknown OS' {
+            $result = Get-MDEOperatingSystemInfo
+            # Either returns valid OS info (Windows/Ubuntu/etc) or "Unknown OS"
+            $result | Should -Match '(Windows|Ubuntu|Linux|macOS|Unknown OS)'
+        }
+    }
+    
+    Context 'Test-MDEPassiveMode' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEPassiveMode
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Passive Mode / EDR Block Mode'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention passive mode or active mode in the message' {
+            $result = Test-MDEPassiveMode
+            $result.Message | Should -Match '(Passive|Active|EDR Block|Unable to determine)'
+        }
     }
     
     Context 'Test-MDEServiceStatus' {
@@ -248,6 +286,7 @@ Describe 'MDEValidator Module' {
             $results = Test-MDEConfiguration
             $testNames = $results.TestName
             $testNames | Should -Contain 'Windows Defender Service Status'
+            $testNames | Should -Contain 'Passive Mode / EDR Block Mode'
             $testNames | Should -Contain 'Real-Time Protection'
             $testNames | Should -Contain 'Cloud-Delivered Protection'
             $testNames | Should -Contain 'Cloud Block Level'

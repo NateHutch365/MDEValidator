@@ -101,6 +101,185 @@ function Test-IsElevated {
 
 #region Public Functions
 
+function Get-MDEOperatingSystemInfo {
+    <#
+    .SYNOPSIS
+        Gets the operating system version and build information.
+    
+    .DESCRIPTION
+        Retrieves detailed information about the Windows operating system including
+        the product name, version (e.g., 22H2, 25H2), and build number.
+    
+    .EXAMPLE
+        Get-MDEOperatingSystemInfo
+        
+        Returns a string like "Windows 10 Professional Version 22H2 19045.6575"
+    
+    .OUTPUTS
+        String containing the OS name, version, and build information.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    try {
+        # Get OS information from registry
+        $osRegPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        
+        if (-not (Test-Path $osRegPath)) {
+            return "Unknown OS"
+        }
+        
+        $osInfo = Get-ItemProperty -Path $osRegPath -ErrorAction Stop
+        
+        # Get product name (e.g., "Windows 10 Pro", "Windows 11 Enterprise", "Windows Server 2022")
+        $productName = $osInfo.ProductName
+        
+        # Get display version (e.g., "22H2", "25H2")
+        $displayVersion = $osInfo.DisplayVersion
+        
+        # Get current build number and UBR (Update Build Revision)
+        $currentBuild = $osInfo.CurrentBuild
+        $ubr = $osInfo.UBR
+        
+        # Construct the full build string
+        $fullBuild = if ($null -ne $currentBuild -and $null -ne $ubr) {
+            "$currentBuild.$ubr"
+        } elseif ($null -ne $currentBuild) {
+            $currentBuild
+        } else {
+            ""
+        }
+        
+        # Build the output string
+        $osString = $productName
+        
+        if (-not [string]::IsNullOrEmpty($displayVersion)) {
+            $osString += " Version $displayVersion"
+        }
+        
+        if (-not [string]::IsNullOrEmpty($fullBuild)) {
+            $osString += " $fullBuild"
+        }
+        
+        return $osString
+    }
+    catch {
+        return "Unknown OS"
+    }
+}
+
+function Test-MDEPassiveMode {
+    <#
+    .SYNOPSIS
+        Tests if the device is in Passive Mode or EDR in Block Mode.
+    
+    .DESCRIPTION
+        Checks whether Microsoft Defender Antivirus is running in Passive Mode
+        (when another antivirus is the primary AV) or if EDR in Block Mode is enabled.
+        Both modes should generate warnings as they indicate non-standard configurations.
+    
+    .EXAMPLE
+        Test-MDEPassiveMode
+        
+        Tests if the device is in Passive Mode or EDR in Block Mode.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Passive Mode: Defender runs alongside another AV, with limited real-time protection.
+        EDR in Block Mode: Allows Defender to take remediation actions even when in passive mode.
+        
+        Registry locations:
+        - Passive Mode: HKLM:\SOFTWARE\Microsoft\Windows Defender\PassiveMode = 1
+        - EDR Block Mode: HKLM:\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection\ForceDefenderPassiveMode = 0
+                          combined with HKLM:\SOFTWARE\Microsoft\Windows Defender\Features\PassiveModeBehavior
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Passive Mode / EDR Block Mode'
+    
+    try {
+        $isPassiveMode = $false
+        $isEDRBlockMode = $false
+        
+        # Check for Passive Mode via Get-MpComputerStatus if available
+        try {
+            $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+            if ($null -ne $mpStatus.AMRunningMode) {
+                # AMRunningMode can be: Normal, Passive, EDR Block Mode, SxS Passive Mode
+                $runningMode = $mpStatus.AMRunningMode
+                if ($runningMode -match 'Passive') {
+                    $isPassiveMode = $true
+                }
+                if ($runningMode -match 'EDR Block') {
+                    $isEDRBlockMode = $true
+                }
+            }
+        }
+        catch {
+            # Fall back to registry checks if Get-MpComputerStatus fails
+        }
+        
+        # Check registry for Passive Mode indicator
+        $passiveModeRegPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender'
+        if (Test-Path $passiveModeRegPath) {
+            $defenderReg = Get-ItemProperty -Path $passiveModeRegPath -ErrorAction SilentlyContinue
+            if ($null -ne $defenderReg.PassiveMode -and $defenderReg.PassiveMode -eq 1) {
+                $isPassiveMode = $true
+            }
+        }
+        
+        # Check for EDR Block Mode configuration
+        # EDR Block Mode is when passive mode is forced but block mode behavior is enabled
+        $atpPolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection'
+        $featuresPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features'
+        
+        $forcePassiveMode = $null
+        $passiveModeBehavior = $null
+        
+        if (Test-Path $atpPolicyPath) {
+            $atpPolicy = Get-ItemProperty -Path $atpPolicyPath -ErrorAction SilentlyContinue
+            if ($null -ne $atpPolicy.ForceDefenderPassiveMode) {
+                $forcePassiveMode = $atpPolicy.ForceDefenderPassiveMode
+            }
+        }
+        
+        if (Test-Path $featuresPath) {
+            $features = Get-ItemProperty -Path $featuresPath -ErrorAction SilentlyContinue
+            if ($null -ne $features.PassiveModeBehavior) {
+                $passiveModeBehavior = $features.PassiveModeBehavior
+            }
+        }
+        
+        # EDR Block Mode is enabled when ForceDefenderPassiveMode = 0 and PassiveModeBehavior = 1
+        # Or when the device is in passive mode but has EDR block mode enabled
+        if ($passiveModeBehavior -eq 1 -and $isPassiveMode) {
+            $isEDRBlockMode = $true
+        }
+        
+        # Determine the result
+        if ($isEDRBlockMode) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Device is running in EDR Block Mode. Defender is in passive mode but can take remediation actions via EDR." `
+                -Recommendation "EDR Block Mode is typically used when third-party antivirus is primary. Verify this is intentional and ensure the third-party AV provides adequate protection."
+        } elseif ($isPassiveMode) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Device is running in Passive Mode. Microsoft Defender Antivirus is not the primary antivirus solution." `
+                -Recommendation "Passive Mode means another antivirus is active. Verify the third-party AV provides adequate protection, or consider enabling EDR Block Mode for additional remediation capabilities."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Device is running in Active Mode. Microsoft Defender Antivirus is the primary antivirus solution."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to determine Passive Mode / EDR Block Mode status: $_" `
+            -Recommendation "Ensure you have appropriate permissions to query Windows Defender status."
+    }
+}
+
 function Test-MDEServiceStatus {
     <#
     .SYNOPSIS
@@ -1100,6 +1279,7 @@ function Test-MDEConfiguration {
     
     # Run all validation tests
     $results += Test-MDEServiceStatus
+    $results += Test-MDEPassiveMode
     $results += Test-MDERealTimeProtection
     $results += Test-MDECloudProtection
     $results += Test-MDECloudBlockLevel
@@ -1174,6 +1354,9 @@ function Get-MDEValidationReport {
     # Run all validation tests
     $results = Test-MDEConfiguration -IncludeOnboarding:$IncludeOnboarding
     
+    # Get OS information for the report header
+    $osInfo = Get-MDEOperatingSystemInfo
+    
     switch ($OutputFormat) {
         'Object' {
             return $results
@@ -1184,6 +1367,7 @@ function Get-MDEValidationReport {
             Write-Host "  MDE Configuration Validation Report" -ForegroundColor Cyan
             Write-Host "  Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
             Write-Host "  Computer: $env:COMPUTERNAME" -ForegroundColor Cyan
+            Write-Host "  OS: $osInfo" -ForegroundColor Cyan
             Write-Host "========================================`n" -ForegroundColor Cyan
             
             foreach ($result in $results) {
@@ -1322,6 +1506,7 @@ function Get-MDEValidationReport {
         <h1>MDE Configuration Validation Report</h1>
         <div class="meta">
             <p><strong>Computer:</strong> $(ConvertTo-HtmlEncodedString $env:COMPUTERNAME)</p>
+            <p><strong>OS:</strong> $(ConvertTo-HtmlEncodedString $osInfo)</p>
             <p><strong>Generated:</strong> $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
         </div>
         
@@ -1386,7 +1571,9 @@ function Get-MDEValidationReport {
 Export-ModuleMember -Function @(
     'Test-MDEConfiguration',
     'Get-MDEValidationReport',
+    'Get-MDEOperatingSystemInfo',
     'Test-MDEServiceStatus',
+    'Test-MDEPassiveMode',
     'Test-MDERealTimeProtection',
     'Test-MDECloudProtection',
     'Test-MDECloudBlockLevel',
