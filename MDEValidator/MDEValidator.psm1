@@ -569,6 +569,8 @@ function Test-MDEThreatDefaultActions {
     $testName = 'Threat Default Actions'
     
     # Map action values to human-readable names
+    # Note: Value 0 (Unknown) typically occurs when Tamper Protection is enabled,
+    # as it prevents reading these settings for security purposes
     $actionNames = @{
         0 = 'Unknown'
         1 = 'Clean'
@@ -1000,17 +1002,18 @@ function Test-MDECloudBlockLevel {
     try {
         $mpPreference = Get-MpPreference -ErrorAction Stop
         
-        $cloudBlockLevel = $mpPreference.CloudBlockLevel
-        $levelName = if ($cloudBlockLevelNames.ContainsKey([int]$cloudBlockLevel)) { 
-            $cloudBlockLevelNames[[int]$cloudBlockLevel] 
+        # Cast to int once for consistent comparison
+        $cloudBlockLevelValue = [int]$mpPreference.CloudBlockLevel
+        $levelName = if ($cloudBlockLevelNames.ContainsKey($cloudBlockLevelValue)) { 
+            $cloudBlockLevelNames[$cloudBlockLevelValue] 
         } else { 
             'Unknown' 
         }
         
-        $message = "Cloud Block Level: $cloudBlockLevel ($levelName)"
+        $message = "Cloud Block Level: $cloudBlockLevelValue ($levelName)"
         
         # Determine status based on the configured level
-        switch ([int]$cloudBlockLevel) {
+        switch ($cloudBlockLevelValue) {
             0 {
                 # Default/Not Configured - Fail
                 Write-ValidationResult -TestName $testName -Status 'Fail' `
