@@ -1371,6 +1371,209 @@ function Test-MDECloudExtendedTimeout {
     }
 }
 
+function Test-MDEDisableCatchupQuickScan {
+    <#
+    .SYNOPSIS
+        Tests if Catchup Quick Scan is enabled.
+    
+    .DESCRIPTION
+        Checks the DisableCatchupQuickScan setting in Windows Defender.
+        When DisableCatchupQuickScan is False, catchup quick scan is enabled,
+        which ensures missed scheduled scans are performed at the next opportunity.
+    
+    .EXAMPLE
+        Test-MDEDisableCatchupQuickScan
+        
+        Tests if Catchup Quick Scan is enabled.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        DisableCatchupQuickScan values:
+        $false = Catchup Quick Scan is enabled (recommended)
+        $true = Catchup Quick Scan is disabled
+        
+        When enabled, if the device is offline during a scheduled quick scan,
+        the scan will be performed at the next opportunity when the device is online.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Catchup Quick Scan'
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        # DisableCatchupQuickScan: $false = Enabled (good), $true = Disabled (bad)
+        if ($mpPreference.DisableCatchupQuickScan -eq $false) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Catchup Quick Scan is enabled. Missed scheduled quick scans will be performed at the next opportunity."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "Catchup Quick Scan is disabled." `
+                -Recommendation "Enable Catchup Quick Scan via Group Policy or 'Set-MpPreference -DisableCatchupQuickScan `$false' to ensure missed scans are performed."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Catchup Quick Scan status: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
+function Test-MDERealTimeScanDirection {
+    <#
+    .SYNOPSIS
+        Tests the Real-Time Scan Direction configuration.
+    
+    .DESCRIPTION
+        Checks the RealTimeScanDirection setting that controls which file operations
+        are monitored by real-time protection.
+    
+    .EXAMPLE
+        Test-MDERealTimeScanDirection
+        
+        Tests the Real-Time Scan Direction configuration.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        RealTimeScanDirection values:
+        0 = Monitor all files (bi-directional) - recommended
+        1 = Monitor incoming files only
+        2 = Monitor outgoing files only
+        
+        Bi-directional monitoring provides the most comprehensive protection.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Real Time Scan Direction'
+    
+    # Map RealTimeScanDirection values to human-readable names
+    $scanDirectionNames = @{
+        0 = 'Monitor all files (bi-directional)'
+        1 = 'Monitor incoming files'
+        2 = 'Monitor outgoing files'
+    }
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        $scanDirection = $mpPreference.RealTimeScanDirection
+        
+        # Handle null value as not configured
+        if ($null -eq $scanDirection) {
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "Real Time Scan Direction is not configured." `
+                -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Group Policy or 'Set-MpPreference -RealTimeScanDirection 0'."
+            return
+        }
+        
+        $directionName = if ($scanDirectionNames.ContainsKey([int]$scanDirection)) { 
+            $scanDirectionNames[[int]$scanDirection] 
+        } else { 
+            'Unknown' 
+        }
+        
+        $message = "Real Time Scan Direction: $scanDirection ($directionName)"
+        
+        switch ([int]$scanDirection) {
+            0 {
+                # Bi-directional - Pass
+                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                    -Message "$message. All file operations are monitored for threats."
+            }
+            1 {
+                # Incoming only - Warning
+                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                    -Message "$message. Only incoming files are monitored." `
+                    -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Group Policy or 'Set-MpPreference -RealTimeScanDirection 0' for comprehensive protection."
+            }
+            2 {
+                # Outgoing only - Warning
+                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                    -Message "$message. Only outgoing files are monitored." `
+                    -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Group Policy or 'Set-MpPreference -RealTimeScanDirection 0' for comprehensive protection."
+            }
+            default {
+                # Unknown value - Warning
+                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                    -Message "$message. Unknown Real Time Scan Direction value detected." `
+                    -Recommendation "Verify Real Time Scan Direction configuration via Group Policy or Intune."
+            }
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Real Time Scan Direction: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
+function Test-MDESignatureUpdateFallbackOrder {
+    <#
+    .SYNOPSIS
+        Tests the Signature Update Fallback Order configuration.
+    
+    .DESCRIPTION
+        Checks the SignatureFallbackOrder setting that controls the order in which
+        signature update sources are used when the primary source is unavailable.
+    
+    .EXAMPLE
+        Test-MDESignatureUpdateFallbackOrder
+        
+        Tests the Signature Update Fallback Order configuration.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        The recommended SignatureFallbackOrder is:
+        MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer
+        
+        This ensures that Microsoft Malware Protection Center (MMPC) is tried first,
+        followed by Microsoft Update Server, and then internal definition update servers.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Signature Update Fallback Order'
+    $recommendedOrder = 'MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer'
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        $fallbackOrder = $mpPreference.SignatureFallbackOrder
+        
+        # Handle null or empty value as not configured
+        if ([string]::IsNullOrEmpty($fallbackOrder)) {
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "Signature Update Fallback Order is not configured." `
+                -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Group Policy or 'Set-MpPreference -SignatureFallbackOrder `"$recommendedOrder`"'."
+            return
+        }
+        
+        $message = "Signature Update Fallback Order: $fallbackOrder"
+        
+        if ($fallbackOrder -eq $recommendedOrder) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "$message. The recommended fallback order is configured."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "$message. This differs from the recommended order." `
+                -Recommendation "Consider configuring Signature Update Fallback Order to '$recommendedOrder' via Group Policy or 'Set-MpPreference -SignatureFallbackOrder `"$recommendedOrder`"'."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Signature Update Fallback Order: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
 function Test-MDEConfiguration {
     <#
     .SYNOPSIS
@@ -1428,6 +1631,9 @@ function Test-MDEConfiguration {
     $results += Test-MDEExclusionVisibilityLocalAdmins
     $results += Test-MDEExclusionVisibilityLocalUsers
     $results += Test-MDESmartScreen
+    $results += Test-MDEDisableCatchupQuickScan
+    $results += Test-MDERealTimeScanDirection
+    $results += Test-MDESignatureUpdateFallbackOrder
     
     if ($IncludeOnboarding) {
         $results += Test-MDEOnboardingStatus
@@ -1724,5 +1930,8 @@ Export-ModuleMember -Function @(
     'Test-MDETamperProtection',
     'Test-MDEExclusionVisibilityLocalAdmins',
     'Test-MDEExclusionVisibilityLocalUsers',
-    'Test-MDESmartScreen'
+    'Test-MDESmartScreen',
+    'Test-MDEDisableCatchupQuickScan',
+    'Test-MDERealTimeScanDirection',
+    'Test-MDESignatureUpdateFallbackOrder'
 )

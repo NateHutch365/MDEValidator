@@ -49,7 +49,10 @@
         'Test-MDETamperProtection',
         'Test-MDEExclusionVisibilityLocalAdmins',
         'Test-MDEExclusionVisibilityLocalUsers',
-        'Test-MDESmartScreen'
+        'Test-MDESmartScreen',
+        'Test-MDEDisableCatchupQuickScan',
+        'Test-MDERealTimeScanDirection',
+        'Test-MDESignatureUpdateFallbackOrder'
     )
 
     # Cmdlets to export from this module

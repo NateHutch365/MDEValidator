@@ -90,6 +90,18 @@ Describe 'MDEValidator Module' {
         It 'Should export Test-MDECloudExtendedTimeout function' {
             Get-Command -Name 'Test-MDECloudExtendedTimeout' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+        
+        It 'Should export Test-MDEDisableCatchupQuickScan function' {
+            Get-Command -Name 'Test-MDEDisableCatchupQuickScan' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDERealTimeScanDirection function' {
+            Get-Command -Name 'Test-MDERealTimeScanDirection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESignatureUpdateFallbackOrder function' {
+            Get-Command -Name 'Test-MDESignatureUpdateFallbackOrder' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
     }
     
     Context 'Get-MDEOperatingSystemInfo' {
@@ -323,6 +335,66 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDEDisableCatchupQuickScan' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEDisableCatchupQuickScan
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Catchup Quick Scan'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDEDisableCatchupQuickScan function' {
+            Get-Command -Name 'Test-MDEDisableCatchupQuickScan' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Catchup Quick Scan or error message in output' {
+            $result = Test-MDEDisableCatchupQuickScan
+            $result.Message | Should -Match '(Catchup Quick Scan|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDERealTimeScanDirection' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDERealTimeScanDirection
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Real Time Scan Direction'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDERealTimeScanDirection function' {
+            Get-Command -Name 'Test-MDERealTimeScanDirection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Real Time Scan Direction or error message in output' {
+            $result = Test-MDERealTimeScanDirection
+            $result.Message | Should -Match '(Real Time Scan Direction|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDESignatureUpdateFallbackOrder' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESignatureUpdateFallbackOrder
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Signature Update Fallback Order'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESignatureUpdateFallbackOrder function' {
+            Get-Command -Name 'Test-MDESignatureUpdateFallbackOrder' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Signature Update Fallback Order or error message in output' {
+            $result = Test-MDESignatureUpdateFallbackOrder
+            $result.Message | Should -Match '(Signature Update Fallback Order|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEConfiguration' {
         It 'Should return an array of results' {
             $results = Test-MDEConfiguration
@@ -348,6 +420,9 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Exclusion Visibility (Local Admins)'
             $testNames | Should -Contain 'Exclusion Visibility (Local Users)'
             $testNames | Should -Contain 'Edge SmartScreen'
+            $testNames | Should -Contain 'Catchup Quick Scan'
+            $testNames | Should -Contain 'Real Time Scan Direction'
+            $testNames | Should -Contain 'Signature Update Fallback Order'
         }
         
         It 'Should include onboarding test when -IncludeOnboarding is specified' {
