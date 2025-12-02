@@ -200,6 +200,42 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDENetworkProtectionWindowsServer' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDENetworkProtectionWindowsServer
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Network Protection (Windows Server)'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDENetworkProtectionWindowsServer function' {
+            Get-Command -Name 'Test-MDENetworkProtectionWindowsServer' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Windows Server or NotApplicable in the message' {
+            $result = Test-MDENetworkProtectionWindowsServer
+            $result.Message | Should -Match '(Windows Server|This check only applies|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDEDatagramProcessingWindowsServer' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEDatagramProcessingWindowsServer
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Datagram Processing (Windows Server)'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDEDatagramProcessingWindowsServer function' {
+            Get-Command -Name 'Test-MDEDatagramProcessingWindowsServer' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Windows Server or NotApplicable in the message' {
+            $result = Test-MDEDatagramProcessingWindowsServer
+            $result.Message | Should -Match '(Windows Server|This check only applies|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEAttackSurfaceReduction' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Test-MDEAttackSurfaceReduction
@@ -454,6 +490,8 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Automatic Sample Submission'
             $testNames | Should -Contain 'Behavior Monitoring'
             $testNames | Should -Contain 'Network Protection'
+            $testNames | Should -Contain 'Network Protection (Windows Server)'
+            $testNames | Should -Contain 'Datagram Processing (Windows Server)'
             $testNames | Should -Contain 'Attack Surface Reduction Rules'
             $testNames | Should -Contain 'Threat Default Actions'
             $testNames | Should -Contain 'Tamper Protection'
