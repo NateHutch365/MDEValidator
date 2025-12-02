@@ -1696,11 +1696,12 @@ function Test-MDESmartScreenAppRepExclusions {
                 # Get all values from the registry key (exclusions are stored as numbered values)
                 $regValues = Get-ItemProperty -Path $policy.Path -ErrorAction SilentlyContinue
                 if ($null -ne $regValues) {
-                    # Get all properties except PSPath, PSParentPath, PSChildName, PSDrive, PSProvider
+                    # Get only numbered properties (1, 2, 3, etc.) since exclusions are stored as numbered subkeys
                     $exclusionValues = $regValues.PSObject.Properties | 
-                        Where-Object { $_.Name -notmatch '^PS' } | 
+                        Where-Object { $_.Name -match '^\d+$' } | 
                         ForEach-Object { $_.Value }
                     
+                    $malformedCount = 0
                     if ($exclusionValues -and @($exclusionValues).Count -gt 0) {
                         foreach ($jsonValue in $exclusionValues) {
                             try {
@@ -1731,12 +1732,13 @@ function Test-MDESmartScreenAppRepExclusions {
                                 }
                             }
                             catch {
-                                # Skip malformed JSON entries
+                                # Count malformed JSON entries
+                                $malformedCount++
                                 continue
                             }
                         }
                         
-                        if ($exclusions.Count -gt 0) {
+                        if ($exclusions.Count -gt 0 -or $malformedCount -gt 0) {
                             $source = $policy.Source
                             break
                         }
@@ -1757,7 +1759,7 @@ function Test-MDESmartScreenAppRepExclusions {
             
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "SmartScreen AppRep exclusions are configured via $source. The following file types on these domains bypass SmartScreen AppRep protection: $exclusionList" `
-                -Recommendation "Review the configured AppRep exclusions to ensure they are necessary. Each exclusion bypasses SmartScreen application reputation warnings for the specified file types. Exclusions: $exclusionList"
+                -Recommendation "Review the configured AppRep exclusions to ensure they are necessary. Each exclusion bypasses SmartScreen application reputation warnings for the specified file types."
         }
     }
     catch {
