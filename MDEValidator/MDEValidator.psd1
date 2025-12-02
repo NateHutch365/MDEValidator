@@ -52,7 +52,9 @@
         'Test-MDESmartScreen',
         'Test-MDEDisableCatchupQuickScan',
         'Test-MDERealTimeScanDirection',
-        'Test-MDESignatureUpdateFallbackOrder'
+        'Test-MDESignatureUpdateFallbackOrder',
+        'Test-MDESignatureUpdateInterval',
+        'Test-MDEDisableLocalAdminMerge'
     )
 
     # Cmdlets to export from this module
