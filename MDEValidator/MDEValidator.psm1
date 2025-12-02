@@ -1340,6 +1340,310 @@ function Test-MDESmartScreen {
     }
 }
 
+function Test-MDESmartScreenPUA {
+    <#
+    .SYNOPSIS
+        Tests if Microsoft Defender SmartScreen is configured to block potentially unwanted apps.
+    
+    .DESCRIPTION
+        Checks the SmartScreenPuaEnabled policy setting that controls whether
+        Microsoft Defender SmartScreen blocks potentially unwanted applications (PUAs).
+    
+    .EXAMPLE
+        Test-MDESmartScreenPUA
+        
+        Tests if SmartScreen PUA blocking is enabled.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry location:
+        - HKLM:\SOFTWARE\Policies\Microsoft\Edge (SmartScreenPuaEnabled)
+        - HKCU:\SOFTWARE\Policies\Microsoft\Edge (SmartScreenPuaEnabled)
+        
+        Values:
+        1 = Enabled (blocks PUAs)
+        0 = Disabled
+        Not present = Not configured
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Edge SmartScreen PUA Protection'
+    
+    try {
+        $smartScreenPuaEnabled = $null
+        $source = ''
+        
+        # Check Group Policy settings (machine then user)
+        $policyPaths = @(
+            @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'; Name = 'SmartScreenPuaEnabled'; Source = 'Group Policy (Machine)' },
+            @{ Path = 'HKCU:\SOFTWARE\Policies\Microsoft\Edge'; Name = 'SmartScreenPuaEnabled'; Source = 'Group Policy (User)' }
+        )
+        
+        foreach ($policy in $policyPaths) {
+            if (Test-Path $policy.Path) {
+                $value = Get-ItemProperty -Path $policy.Path -Name $policy.Name -ErrorAction SilentlyContinue
+                $propertyValue = $value.($policy.Name)
+                if ($null -ne $value -and $null -ne $propertyValue) {
+                    $smartScreenPuaEnabled = $propertyValue
+                    $source = $policy.Source
+                    break
+                }
+            }
+        }
+        
+        # Determine status
+        if ($null -eq $smartScreenPuaEnabled) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen PUA protection is not configured." `
+                -Recommendation "Configure 'Configure Microsoft Defender SmartScreen to block potentially unwanted apps' via Group Policy or Intune. Set SmartScreenPuaEnabled to 1."
+        } elseif ($smartScreenPuaEnabled -eq 1) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "SmartScreen PUA protection is enabled via $source. Potentially unwanted apps will be blocked."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen PUA protection is disabled via $source." `
+                -Recommendation "Enable 'Configure Microsoft Defender SmartScreen to block potentially unwanted apps' via Group Policy or Intune. Set SmartScreenPuaEnabled to 1."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query SmartScreen PUA protection status: $_" `
+            -Recommendation "Ensure you have permissions to read Edge policy registry settings."
+    }
+}
+
+function Test-MDESmartScreenPromptOverride {
+    <#
+    .SYNOPSIS
+        Tests if bypassing Microsoft Defender SmartScreen prompts for sites is prevented.
+    
+    .DESCRIPTION
+        Checks the PreventSmartScreenPromptOverride policy setting that controls whether
+        users can bypass SmartScreen warnings about potentially malicious websites.
+    
+    .EXAMPLE
+        Test-MDESmartScreenPromptOverride
+        
+        Tests if SmartScreen prompt bypassing is prevented.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry location:
+        - HKLM:\SOFTWARE\Policies\Microsoft\Edge (PreventSmartScreenPromptOverride)
+        - HKCU:\SOFTWARE\Policies\Microsoft\Edge (PreventSmartScreenPromptOverride)
+        
+        Values:
+        1 = Enabled (prevents bypassing)
+        0 = Disabled (allows bypassing)
+        Not present = Not configured
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Edge SmartScreen Prompt Override Prevention'
+    
+    try {
+        $preventOverride = $null
+        $source = ''
+        
+        # Check Group Policy settings (machine then user)
+        $policyPaths = @(
+            @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'; Name = 'PreventSmartScreenPromptOverride'; Source = 'Group Policy (Machine)' },
+            @{ Path = 'HKCU:\SOFTWARE\Policies\Microsoft\Edge'; Name = 'PreventSmartScreenPromptOverride'; Source = 'Group Policy (User)' }
+        )
+        
+        foreach ($policy in $policyPaths) {
+            if (Test-Path $policy.Path) {
+                $value = Get-ItemProperty -Path $policy.Path -Name $policy.Name -ErrorAction SilentlyContinue
+                $propertyValue = $value.($policy.Name)
+                if ($null -ne $value -and $null -ne $propertyValue) {
+                    $preventOverride = $propertyValue
+                    $source = $policy.Source
+                    break
+                }
+            }
+        }
+        
+        # Determine status
+        if ($null -eq $preventOverride) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen prompt override prevention is not configured. Users may be able to bypass SmartScreen warnings for sites." `
+                -Recommendation "Configure 'Prevent bypassing Microsoft Defender SmartScreen prompts for sites' via Group Policy or Intune. Set PreventSmartScreenPromptOverride to 1."
+        } elseif ($preventOverride -eq 1) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "SmartScreen prompt override prevention is enabled via $source. Users cannot bypass SmartScreen warnings for sites."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen prompt override prevention is disabled via $source. Users can bypass SmartScreen warnings for sites." `
+                -Recommendation "Enable 'Prevent bypassing Microsoft Defender SmartScreen prompts for sites' via Group Policy or Intune. Set PreventSmartScreenPromptOverride to 1."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query SmartScreen prompt override prevention status: $_" `
+            -Recommendation "Ensure you have permissions to read Edge policy registry settings."
+    }
+}
+
+function Test-MDESmartScreenDownloadOverride {
+    <#
+    .SYNOPSIS
+        Tests if bypassing Microsoft Defender SmartScreen warnings about downloads is prevented.
+    
+    .DESCRIPTION
+        Checks the PreventSmartScreenPromptOverrideForFiles policy setting that controls whether
+        users can bypass SmartScreen warnings about potentially malicious file downloads.
+    
+    .EXAMPLE
+        Test-MDESmartScreenDownloadOverride
+        
+        Tests if SmartScreen download warning bypassing is prevented.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry location:
+        - HKLM:\SOFTWARE\Policies\Microsoft\Edge (PreventSmartScreenPromptOverrideForFiles)
+        - HKCU:\SOFTWARE\Policies\Microsoft\Edge (PreventSmartScreenPromptOverrideForFiles)
+        
+        Values:
+        1 = Enabled (prevents bypassing download warnings)
+        0 = Disabled (allows bypassing download warnings)
+        Not present = Not configured
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Edge SmartScreen Download Override Prevention'
+    
+    try {
+        $preventOverride = $null
+        $source = ''
+        
+        # Check Group Policy settings (machine then user)
+        $policyPaths = @(
+            @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'; Name = 'PreventSmartScreenPromptOverrideForFiles'; Source = 'Group Policy (Machine)' },
+            @{ Path = 'HKCU:\SOFTWARE\Policies\Microsoft\Edge'; Name = 'PreventSmartScreenPromptOverrideForFiles'; Source = 'Group Policy (User)' }
+        )
+        
+        foreach ($policy in $policyPaths) {
+            if (Test-Path $policy.Path) {
+                $value = Get-ItemProperty -Path $policy.Path -Name $policy.Name -ErrorAction SilentlyContinue
+                $propertyValue = $value.($policy.Name)
+                if ($null -ne $value -and $null -ne $propertyValue) {
+                    $preventOverride = $propertyValue
+                    $source = $policy.Source
+                    break
+                }
+            }
+        }
+        
+        # Determine status
+        if ($null -eq $preventOverride) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen download override prevention is not configured. Users may be able to bypass SmartScreen warnings about downloads." `
+                -Recommendation "Configure 'Prevent bypassing of Microsoft Defender SmartScreen warnings about downloads' via Group Policy or Intune. Set PreventSmartScreenPromptOverrideForFiles to 1."
+        } elseif ($preventOverride -eq 1) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "SmartScreen download override prevention is enabled via $source. Users cannot bypass SmartScreen warnings about downloads."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen download override prevention is disabled via $source. Users can bypass SmartScreen warnings about downloads." `
+                -Recommendation "Enable 'Prevent bypassing of Microsoft Defender SmartScreen warnings about downloads' via Group Policy or Intune. Set PreventSmartScreenPromptOverrideForFiles to 1."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query SmartScreen download override prevention status: $_" `
+            -Recommendation "Ensure you have permissions to read Edge policy registry settings."
+    }
+}
+
+function Test-MDESmartScreenDomainExclusions {
+    <#
+    .SYNOPSIS
+        Tests if SmartScreen domain exclusions are configured.
+    
+    .DESCRIPTION
+        Checks the SmartScreenAllowListDomains policy setting that configures domains
+        for which Microsoft Defender SmartScreen won't trigger warnings. If domains
+        are configured, this is a potential security risk as those domains bypass SmartScreen.
+    
+    .EXAMPLE
+        Test-MDESmartScreenDomainExclusions
+        
+        Tests if SmartScreen domain exclusions are configured.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry location:
+        - HKLM:\SOFTWARE\Policies\Microsoft\Edge\SmartScreenAllowListDomains
+        - HKCU:\SOFTWARE\Policies\Microsoft\Edge\SmartScreenAllowListDomains
+        
+        Domains are stored as numbered subkeys (1, 2, 3, etc.) with string values.
+        If domains are configured, they should be reported as a warning since
+        those domains bypass SmartScreen protection.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Edge SmartScreen Domain Exclusions'
+    
+    try {
+        $domains = @()
+        $source = ''
+        
+        # Check Group Policy settings for domain exclusions
+        $policyPaths = @(
+            @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge\SmartScreenAllowListDomains'; Source = 'Group Policy (Machine)' },
+            @{ Path = 'HKCU:\SOFTWARE\Policies\Microsoft\Edge\SmartScreenAllowListDomains'; Source = 'Group Policy (User)' }
+        )
+        
+        foreach ($policy in $policyPaths) {
+            if (Test-Path $policy.Path) {
+                # Get all values from the registry key (domains are stored as numbered values)
+                $regValues = Get-ItemProperty -Path $policy.Path -ErrorAction SilentlyContinue
+                if ($null -ne $regValues) {
+                    # Get all properties except PSPath, PSParentPath, PSChildName, PSDrive, PSProvider
+                    $domainValues = $regValues.PSObject.Properties | 
+                        Where-Object { $_.Name -notmatch '^PS' } | 
+                        ForEach-Object { $_.Value }
+                    
+                    if ($domainValues -and $domainValues.Count -gt 0) {
+                        $domains = @($domainValues)
+                        $source = $policy.Source
+                        break
+                    }
+                }
+            }
+        }
+        
+        # Determine status
+        if ($domains.Count -eq 0) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "No SmartScreen domain exclusions are configured. SmartScreen protection applies to all domains."
+        } else {
+            $domainList = $domains -join ', '
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen domain exclusions are configured via $source. The following domains bypass SmartScreen protection: $domainList" `
+                -Recommendation "Review the configured domain exclusions to ensure they are necessary. Each excluded domain bypasses SmartScreen protection. Domains: $domainList"
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query SmartScreen domain exclusions: $_" `
+            -Recommendation "Ensure you have permissions to read Edge policy registry settings."
+    }
+}
+
 function Test-MDECloudBlockLevel {
     <#
     .SYNOPSIS
@@ -1965,6 +2269,10 @@ function Test-MDEConfiguration {
     $results += Test-MDEExclusionVisibilityLocalAdmins
     $results += Test-MDEExclusionVisibilityLocalUsers
     $results += Test-MDESmartScreen
+    $results += Test-MDESmartScreenPUA
+    $results += Test-MDESmartScreenPromptOverride
+    $results += Test-MDESmartScreenDownloadOverride
+    $results += Test-MDESmartScreenDomainExclusions
     $results += Test-MDEDisableCatchupQuickScan
     $results += Test-MDERealTimeScanDirection
     $results += Test-MDESignatureUpdateFallbackOrder
@@ -2269,6 +2577,10 @@ Export-ModuleMember -Function @(
     'Test-MDEExclusionVisibilityLocalAdmins',
     'Test-MDEExclusionVisibilityLocalUsers',
     'Test-MDESmartScreen',
+    'Test-MDESmartScreenPUA',
+    'Test-MDESmartScreenPromptOverride',
+    'Test-MDESmartScreenDownloadOverride',
+    'Test-MDESmartScreenDomainExclusions',
     'Test-MDEDisableCatchupQuickScan',
     'Test-MDERealTimeScanDirection',
     'Test-MDESignatureUpdateFallbackOrder',
