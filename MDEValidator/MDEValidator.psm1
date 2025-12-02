@@ -1708,9 +1708,12 @@ function Test-MDESmartScreenAppRepExclusions {
                             $fileExt = $parsed.file_extension
                             
                             # Extract domains (the policy uses 'domains' not 'url_patterns')
+                            # Ensure domains is an array (ConvertFrom-Json returns a string for single values)
                             $domains = $parsed.domains
-                            if ($null -eq $domains -or $domains.Count -eq 0) {
+                            if ($null -eq $domains) {
                                 $domains = @('*')
+                            } else {
+                                $domains = @($domains)
                             }
                             
                             foreach ($domain in $domains) {
@@ -1735,7 +1738,8 @@ function Test-MDESmartScreenAppRepExclusions {
                         }
                     }
                     catch {
-                        # Continue to next policy path if JSON parsing fails
+                        # JSON parsing failed - log a warning and continue to next policy path
+                        Write-Verbose "Failed to parse ExemptSmartScreenDownloadWarnings JSON from $($policy.Source): $_"
                         continue
                     }
                 }
