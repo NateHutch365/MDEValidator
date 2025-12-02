@@ -1386,7 +1386,7 @@ function Test-MDESmartScreenPUA {
             if (Test-Path $policy.Path) {
                 $value = Get-ItemProperty -Path $policy.Path -Name $policy.Name -ErrorAction SilentlyContinue
                 $propertyValue = $value.($policy.Name)
-                if ($null -ne $value -and $null -ne $propertyValue) {
+                if ($null -ne $propertyValue) {
                     $smartScreenPuaEnabled = $propertyValue
                     $source = $policy.Source
                     break
@@ -1461,7 +1461,7 @@ function Test-MDESmartScreenPromptOverride {
             if (Test-Path $policy.Path) {
                 $value = Get-ItemProperty -Path $policy.Path -Name $policy.Name -ErrorAction SilentlyContinue
                 $propertyValue = $value.($policy.Name)
-                if ($null -ne $value -and $null -ne $propertyValue) {
+                if ($null -ne $propertyValue) {
                     $preventOverride = $propertyValue
                     $source = $policy.Source
                     break
@@ -1536,7 +1536,7 @@ function Test-MDESmartScreenDownloadOverride {
             if (Test-Path $policy.Path) {
                 $value = Get-ItemProperty -Path $policy.Path -Name $policy.Name -ErrorAction SilentlyContinue
                 $propertyValue = $value.($policy.Name)
-                if ($null -ne $value -and $null -ne $propertyValue) {
+                if ($null -ne $propertyValue) {
                     $preventOverride = $propertyValue
                     $source = $policy.Source
                     break
