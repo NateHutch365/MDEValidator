@@ -1239,6 +1239,138 @@ function Test-MDECloudBlockLevel {
     }
 }
 
+function Test-MDETamperProtection {
+    <#
+    .SYNOPSIS
+        Tests if Tamper Protection is enabled.
+    
+    .DESCRIPTION
+        Checks the Tamper Protection status and source of Windows Defender.
+        Tamper Protection prevents malicious apps from changing important 
+        Windows Defender Antivirus settings.
+    
+    .EXAMPLE
+        Test-MDETamperProtection
+        
+        Tests if Tamper Protection is enabled and reports the source.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Tamper Protection source can be:
+        - ATP (Microsoft Defender for Endpoint)
+        - Intune (Microsoft Endpoint Manager)
+        - ConfigMgr (Configuration Manager)
+        - Admin (locally configured by admin)
+        - Unknown
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Tamper Protection'
+    
+    try {
+        $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+        
+        $isTamperProtected = $mpStatus.IsTamperProtected
+        $tamperProtectionSource = $mpStatus.TamperProtectionSource
+        
+        # Build source information string
+        $sourceInfo = if ([string]::IsNullOrEmpty($tamperProtectionSource)) {
+            ''
+        } else {
+            " Source: $tamperProtectionSource."
+        }
+        
+        if ($isTamperProtected -eq $true) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Tamper Protection is enabled.$sourceInfo"
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "Tamper Protection is disabled.$sourceInfo" `
+                -Recommendation "Enable Tamper Protection via Microsoft Defender for Endpoint portal, Intune, or Group Policy. Tamper Protection prevents malicious apps from changing important Windows Defender Antivirus settings."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Tamper Protection status: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and the Defender PowerShell module is available."
+    }
+}
+
+function Test-MDECloudExtendedTimeout {
+    <#
+    .SYNOPSIS
+        Tests the Cloud Extended Timeout configuration.
+    
+    .DESCRIPTION
+        Checks the Cloud Extended Timeout (CloudExtendedTimeout) setting that controls
+        how long Windows Defender Antivirus can block a file while waiting for a 
+        cloud-based determination. This is an extension to the default 10-second timeout.
+    
+    .EXAMPLE
+        Test-MDECloudExtendedTimeout
+        
+        Tests the Cloud Extended Timeout configuration.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        CloudExtendedTimeout values:
+        0 = Not configured (uses default 10-second timeout only)
+        1-50 = Additional seconds to wait for cloud verdict (on top of built-in 10 seconds)
+        
+        Recommended: 41-50 seconds for maximum cloud protection capability.
+        This gives the cloud a total of 51-60 seconds (10 built-in + 41-50 extended) 
+        to analyze suspicious files.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Cloud Extended Timeout'
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        $cloudExtendedTimeout = $mpPreference.CloudExtendedTimeout
+        
+        # Handle null or not configured
+        if ($null -eq $cloudExtendedTimeout) {
+            $cloudExtendedTimeout = 0
+        }
+        
+        $recommendationNote = "This feature allows Windows Defender Antivirus to block a suspicious file for up to 60 seconds, and scan it in the cloud to make sure it's safe. The more time you provide, the better chance of blocking a suspicious file. 10 seconds is already built-in."
+        
+        if ($cloudExtendedTimeout -ge 41 -and $cloudExtendedTimeout -le 50) {
+            # Pass: 41-50 seconds (total 51-60 seconds with built-in)
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Cloud Extended Timeout is set to $cloudExtendedTimeout seconds (total: $($cloudExtendedTimeout + 10) seconds including built-in 10 seconds)."
+        } elseif ($cloudExtendedTimeout -ge 21 -and $cloudExtendedTimeout -le 40) {
+            # Warning: 21-40 seconds
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Cloud Extended Timeout is set to $cloudExtendedTimeout seconds (total: $($cloudExtendedTimeout + 10) seconds including built-in 10 seconds)." `
+                -Recommendation "Consider increasing CloudExtendedTimeout to 50 seconds via Group Policy or 'Set-MpPreference -CloudExtendedTimeout 50'. $recommendationNote"
+        } else {
+            # Fail: 0-20 seconds or not configured
+            $message = if ($cloudExtendedTimeout -eq 0) {
+                "Cloud Extended Timeout is not configured (using default 10 seconds only)."
+            } else {
+                "Cloud Extended Timeout is set to $cloudExtendedTimeout seconds (total: $($cloudExtendedTimeout + 10) seconds including built-in 10 seconds)."
+            }
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message $message `
+                -Recommendation "Configure CloudExtendedTimeout to 50 seconds via Group Policy or 'Set-MpPreference -CloudExtendedTimeout 50'. $recommendationNote"
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Cloud Extended Timeout: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
 function Test-MDEConfiguration {
     <#
     .SYNOPSIS
@@ -1286,11 +1418,13 @@ function Test-MDEConfiguration {
     $results += Test-MDERealTimeProtection
     $results += Test-MDECloudProtection
     $results += Test-MDECloudBlockLevel
+    $results += Test-MDECloudExtendedTimeout
     $results += Test-MDESampleSubmission
     $results += Test-MDEBehaviorMonitoring
     $results += Test-MDENetworkProtection
     $results += Test-MDEAttackSurfaceReduction
     $results += Test-MDEThreatDefaultActions
+    $results += Test-MDETamperProtection
     $results += Test-MDEExclusionVisibilityLocalAdmins
     $results += Test-MDEExclusionVisibilityLocalUsers
     $results += Test-MDESmartScreen
@@ -1580,12 +1714,14 @@ Export-ModuleMember -Function @(
     'Test-MDERealTimeProtection',
     'Test-MDECloudProtection',
     'Test-MDECloudBlockLevel',
+    'Test-MDECloudExtendedTimeout',
     'Test-MDESampleSubmission',
     'Test-MDEBehaviorMonitoring',
     'Test-MDEOnboardingStatus',
     'Test-MDENetworkProtection',
     'Test-MDEAttackSurfaceReduction',
     'Test-MDEThreatDefaultActions',
+    'Test-MDETamperProtection',
     'Test-MDEExclusionVisibilityLocalAdmins',
     'Test-MDEExclusionVisibilityLocalUsers',
     'Test-MDESmartScreen'

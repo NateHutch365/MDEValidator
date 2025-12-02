@@ -82,6 +82,14 @@ Describe 'MDEValidator Module' {
         It 'Should export Test-MDEPassiveMode function' {
             Get-Command -Name 'Test-MDEPassiveMode' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+        
+        It 'Should export Test-MDETamperProtection function' {
+            Get-Command -Name 'Test-MDETamperProtection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDECloudExtendedTimeout function' {
+            Get-Command -Name 'Test-MDECloudExtendedTimeout' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
     }
     
     Context 'Get-MDEOperatingSystemInfo' {
@@ -275,6 +283,46 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDETamperProtection' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDETamperProtection
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Tamper Protection'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDETamperProtection function' {
+            Get-Command -Name 'Test-MDETamperProtection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Tamper Protection or error message in output' {
+            $result = Test-MDETamperProtection
+            $result.Message | Should -Match '(Tamper Protection|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDECloudExtendedTimeout' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDECloudExtendedTimeout
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Cloud Extended Timeout'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDECloudExtendedTimeout function' {
+            Get-Command -Name 'Test-MDECloudExtendedTimeout' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Cloud Extended Timeout or error message in output' {
+            $result = Test-MDECloudExtendedTimeout
+            $result.Message | Should -Match '(Cloud Extended Timeout|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEConfiguration' {
         It 'Should return an array of results' {
             $results = Test-MDEConfiguration
@@ -290,11 +338,13 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Real-Time Protection'
             $testNames | Should -Contain 'Cloud-Delivered Protection'
             $testNames | Should -Contain 'Cloud Block Level'
+            $testNames | Should -Contain 'Cloud Extended Timeout'
             $testNames | Should -Contain 'Automatic Sample Submission'
             $testNames | Should -Contain 'Behavior Monitoring'
             $testNames | Should -Contain 'Network Protection'
             $testNames | Should -Contain 'Attack Surface Reduction Rules'
             $testNames | Should -Contain 'Threat Default Actions'
+            $testNames | Should -Contain 'Tamper Protection'
             $testNames | Should -Contain 'Exclusion Visibility (Local Admins)'
             $testNames | Should -Contain 'Exclusion Visibility (Local Users)'
             $testNames | Should -Contain 'Edge SmartScreen'
