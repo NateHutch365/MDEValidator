@@ -181,9 +181,9 @@ function Get-MDEManagementType {
         $enrollmentStatus = $senseCmInfo.EnrollmentStatus
         
         switch ($enrollmentStatus) {
-            0 { return 'GPO' }           # Failed - fallback to GPO
+            0 { return 'GPO' }           # Failed enrollment - default to GPO path (standard policy location)
             1 { return 'SecuritySettingsManagement' }
-            2 { return 'GPO' }           # Not enrolled - fallback to GPO
+            2 { return 'GPO' }           # Never enrolled - default to GPO path (standard policy location)
             3 { return 'Intune' }
             4 { return 'SCCM' }
             default { return 'None' }
@@ -221,23 +221,14 @@ function Get-MDEPolicyRegistryPath {
         [string]$ManagementType
     )
     
-    switch ($ManagementType) {
-        'Intune' {
-            return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
-        }
-        'SecuritySettingsManagement' {
-            return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
-        }
-        'SCCM' {
-            return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
-        }
-        'GPO' {
-            return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
-        }
-        default {
-            return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
-        }
+    # Intune uses a different registry path (Policy Manager subfolder)
+    # All other management types use the standard Windows Defender policy path
+    if ($ManagementType -eq 'Intune') {
+        return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
     }
+    
+    # Standard policy path for SSM, SCCM, GPO, and unmanaged devices
+    return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
 }
 
 function Test-MDEPolicyRegistryValue {
@@ -395,7 +386,7 @@ function Test-MDEPolicyRegistryVerification {
         }
         
         return Write-ValidationResult -TestName $testName -Status 'Pass' `
-            -Message "Policy registry entry verified. $SettingDisplayName found at $($regResult.Path). $valueInfo Management: $($regResult.ManagementType)."
+            -Message "Policy registry entry verified. $SettingDisplayName found at $($regResult.Path). $valueInfo. Management type: $($regResult.ManagementType)."
     } else {
         $recommendation = @"
 The policy registry entry for $SettingDisplayName was not found at $($regResult.Path).
@@ -407,7 +398,7 @@ Verify the policy is correctly configured in your management solution ($($regRes
 "@
         
         return Write-ValidationResult -TestName $testName -Status 'Warning' `
-            -Message "Policy registry entry not found. Expected $SettingDisplayName at $($regResult.Path) ($($regResult.ManagementType) management)." `
+            -Message "Policy registry entry not found. Expected $SettingDisplayName at $($regResult.Path). Management type: $($regResult.ManagementType)." `
             -Recommendation $recommendation
     }
 }
