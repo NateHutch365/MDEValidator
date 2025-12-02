@@ -395,6 +395,46 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDESignatureUpdateInterval' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESignatureUpdateInterval
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Signature Update Interval'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESignatureUpdateInterval function' {
+            Get-Command -Name 'Test-MDESignatureUpdateInterval' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Signature Update Interval or error message in output' {
+            $result = Test-MDESignatureUpdateInterval
+            $result.Message | Should -Match '(Signature Update Interval|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDEDisableLocalAdminMerge' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEDisableLocalAdminMerge
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Disable Local Admin Merge'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDEDisableLocalAdminMerge function' {
+            Get-Command -Name 'Test-MDEDisableLocalAdminMerge' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Disable Local Admin Merge or error message in output' {
+            $result = Test-MDEDisableLocalAdminMerge
+            $result.Message | Should -Match '(Disable Local Admin Merge|Local Admin|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEConfiguration' {
         It 'Should return an array of results' {
             $results = Test-MDEConfiguration
@@ -423,6 +463,8 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Catchup Quick Scan'
             $testNames | Should -Contain 'Real Time Scan Direction'
             $testNames | Should -Contain 'Signature Update Fallback Order'
+            $testNames | Should -Contain 'Signature Update Interval'
+            $testNames | Should -Contain 'Disable Local Admin Merge'
         }
         
         It 'Should include onboarding test when -IncludeOnboarding is specified' {

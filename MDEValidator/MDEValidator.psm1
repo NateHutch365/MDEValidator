@@ -1574,6 +1574,136 @@ function Test-MDESignatureUpdateFallbackOrder {
     }
 }
 
+function Test-MDESignatureUpdateInterval {
+    <#
+    .SYNOPSIS
+        Tests the Signature Update Interval configuration.
+    
+    .DESCRIPTION
+        Checks the SignatureUpdateInterval setting that controls how frequently
+        Windows Defender checks for signature updates. A lower value ensures
+        more frequent delta updates.
+    
+    .EXAMPLE
+        Test-MDESignatureUpdateInterval
+        
+        Tests the Signature Update Interval configuration.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        SignatureUpdateInterval values:
+        0 = Disabled (never checks for updates automatically) - Fail
+        1-4 = Optimal interval for frequent delta updates - Pass
+        5-24 = Less frequent updates - Warning
+        
+        Recommended: Set to 1 to ensure delta updates are applied frequently.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Signature Update Interval'
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        $signatureUpdateInterval = $mpPreference.SignatureUpdateInterval
+        
+        # Handle null as not configured (treat as 0/disabled)
+        if ($null -eq $signatureUpdateInterval) {
+            $signatureUpdateInterval = 0
+        }
+        
+        $message = "Signature Update Interval: $signatureUpdateInterval hour(s)"
+        
+        if ($signatureUpdateInterval -eq 0) {
+            # Fail: Disabled
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "$message. Automatic signature update checking is disabled." `
+                -Recommendation "Set Signature Update Interval to 1 hour via Group Policy or 'Set-MpPreference -SignatureUpdateInterval 1' to ensure delta updates are applied frequently."
+        } elseif ($signatureUpdateInterval -ge 1 -and $signatureUpdateInterval -le 4) {
+            # Pass: 1-4 hours
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "$message. Signature updates are checked frequently."
+        } elseif ($signatureUpdateInterval -ge 5 -and $signatureUpdateInterval -le 24) {
+            # Warning: 5-24 hours
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "$message. Signature updates are checked less frequently than recommended." `
+                -Recommendation "Set Signature Update Interval to 1 hour via Group Policy or 'Set-MpPreference -SignatureUpdateInterval 1' to ensure delta updates are applied frequently."
+        } else {
+            # Unknown/invalid value - Warning
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "$message. Unexpected Signature Update Interval value." `
+                -Recommendation "Set Signature Update Interval to 1 hour via Group Policy or 'Set-MpPreference -SignatureUpdateInterval 1' to ensure delta updates are applied frequently."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Signature Update Interval: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
+function Test-MDEDisableLocalAdminMerge {
+    <#
+    .SYNOPSIS
+        Tests if Disable Local Admin Merge is configured.
+    
+    .DESCRIPTION
+        Checks the DisableLocalAdminMerge setting that controls whether local
+        administrators can add exclusions. When enabled (set to $true), local
+        administrator exclusions are ignored, improving security.
+    
+    .EXAMPLE
+        Test-MDEDisableLocalAdminMerge
+        
+        Tests the Disable Local Admin Merge configuration.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        DisableLocalAdminMerge values:
+        $true = Local admin merge is disabled (recommended) - Pass
+        $false or not configured = Local admin merge is enabled - Warning
+        
+        When DisableLocalAdminMerge is enabled, exclusions added by local 
+        administrators are ignored, preventing potential security bypasses.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Disable Local Admin Merge'
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        $disableLocalAdminMerge = $mpPreference.DisableLocalAdminMerge
+        
+        # Handle null as not configured
+        if ($null -eq $disableLocalAdminMerge) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Disable Local Admin Merge is not configured. Local administrator exclusions may be applied." `
+                -Recommendation "Configure Disable Local Admin Merge via Group Policy or 'Set-MpPreference -DisableLocalAdminMerge `$true' to prevent local administrators from adding exclusions."
+        } elseif ($disableLocalAdminMerge -eq $true) {
+            # Pass: Disabled (local admin merge is disabled = exclusions are ignored)
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Disable Local Admin Merge is enabled. Local administrator exclusions are ignored."
+        } else {
+            # Warning: Enabled (local admin merge is enabled = exclusions are applied)
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Disable Local Admin Merge is disabled. Local administrator exclusions may be applied." `
+                -Recommendation "Configure Disable Local Admin Merge via Group Policy or 'Set-MpPreference -DisableLocalAdminMerge `$true' to prevent local administrators from adding exclusions."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Disable Local Admin Merge setting: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
 function Test-MDEConfiguration {
     <#
     .SYNOPSIS
@@ -1634,6 +1764,8 @@ function Test-MDEConfiguration {
     $results += Test-MDEDisableCatchupQuickScan
     $results += Test-MDERealTimeScanDirection
     $results += Test-MDESignatureUpdateFallbackOrder
+    $results += Test-MDESignatureUpdateInterval
+    $results += Test-MDEDisableLocalAdminMerge
     
     if ($IncludeOnboarding) {
         $results += Test-MDEOnboardingStatus
@@ -1933,5 +2065,7 @@ Export-ModuleMember -Function @(
     'Test-MDESmartScreen',
     'Test-MDEDisableCatchupQuickScan',
     'Test-MDERealTimeScanDirection',
-    'Test-MDESignatureUpdateFallbackOrder'
+    'Test-MDESignatureUpdateFallbackOrder',
+    'Test-MDESignatureUpdateInterval',
+    'Test-MDEDisableLocalAdminMerge'
 )
