@@ -338,6 +338,26 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDESmartScreenAppRepExclusions' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESmartScreenAppRepExclusions
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Edge SmartScreen AppRep Exclusions'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESmartScreenAppRepExclusions function' {
+            Get-Command -Name 'Test-MDESmartScreenAppRepExclusions' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention SmartScreen AppRep exclusions or error message in output' {
+            $result = Test-MDESmartScreenAppRepExclusions
+            $result.Message | Should -Match '(SmartScreen AppRep exclusions|SmartScreen AppRep protection|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEThreatDefaultActions' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Test-MDEThreatDefaultActions
@@ -582,6 +602,7 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Edge SmartScreen Prompt Override Prevention'
             $testNames | Should -Contain 'Edge SmartScreen Download Override Prevention'
             $testNames | Should -Contain 'Edge SmartScreen Domain Exclusions'
+            $testNames | Should -Contain 'Edge SmartScreen AppRep Exclusions'
             $testNames | Should -Contain 'Catchup Quick Scan'
             $testNames | Should -Contain 'Real Time Scan Direction'
             $testNames | Should -Contain 'Signature Update Fallback Order'

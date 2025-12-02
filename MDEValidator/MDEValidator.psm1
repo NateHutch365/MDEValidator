@@ -1644,6 +1644,129 @@ function Test-MDESmartScreenDomainExclusions {
     }
 }
 
+function Test-MDESmartScreenAppRepExclusions {
+    <#
+    .SYNOPSIS
+        Tests if SmartScreen AppRep file type exclusions are configured.
+    
+    .DESCRIPTION
+        Checks the ExemptSmartScreenDownloadWarnings policy setting that configures
+        domains and file types for which Microsoft Defender SmartScreen won't trigger
+        application reputation (AppRep) warnings. If exclusions are configured, this is
+        a potential security risk as those file types on those domains bypass SmartScreen.
+    
+    .EXAMPLE
+        Test-MDESmartScreenAppRepExclusions
+        
+        Tests if SmartScreen AppRep exclusions are configured.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry location:
+        - HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExemptSmartScreenDownloadWarnings
+        - HKCU:\SOFTWARE\Policies\Microsoft\Edge\ExemptSmartScreenDownloadWarnings
+        
+        Exclusions are stored as numbered subkeys (1, 2, 3, etc.) with JSON string values.
+        Each value is a JSON object like: {"url_patterns": ["*.contoso.com"], "file_extension": "msi"}
+        
+        If exclusions are configured, they should be reported as a warning since
+        those file types on those domains bypass SmartScreen AppRep protection.
+        
+        Output format: domainname1.com: msi, exe | domainname2.com: xlsx | *: vbe
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Edge SmartScreen AppRep Exclusions'
+    
+    try {
+        $exclusions = @{}  # Hashtable: domain -> list of file extensions
+        $source = ''
+        
+        # Check Group Policy settings for AppRep exclusions
+        $policyPaths = @(
+            @{ Path = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge\ExemptSmartScreenDownloadWarnings'; Source = 'Group Policy (Machine)' },
+            @{ Path = 'HKCU:\SOFTWARE\Policies\Microsoft\Edge\ExemptSmartScreenDownloadWarnings'; Source = 'Group Policy (User)' }
+        )
+        
+        foreach ($policy in $policyPaths) {
+            if (Test-Path $policy.Path) {
+                # Get all values from the registry key (exclusions are stored as numbered values)
+                $regValues = Get-ItemProperty -Path $policy.Path -ErrorAction SilentlyContinue
+                if ($null -ne $regValues) {
+                    # Get all properties except PSPath, PSParentPath, PSChildName, PSDrive, PSProvider
+                    $exclusionValues = $regValues.PSObject.Properties | 
+                        Where-Object { $_.Name -notmatch '^PS' } | 
+                        ForEach-Object { $_.Value }
+                    
+                    if ($exclusionValues -and @($exclusionValues).Count -gt 0) {
+                        foreach ($jsonValue in $exclusionValues) {
+                            try {
+                                $parsed = $jsonValue | ConvertFrom-Json
+                                
+                                # Extract file extension
+                                $fileExt = $parsed.file_extension
+                                
+                                # Extract URL patterns
+                                $urlPatterns = $parsed.url_patterns
+                                if ($null -eq $urlPatterns) {
+                                    $urlPatterns = @('*')
+                                }
+                                
+                                foreach ($pattern in $urlPatterns) {
+                                    # Normalize the domain pattern (remove leading *.)
+                                    $domain = $pattern -replace '^\*\.', ''
+                                    if ([string]::IsNullOrEmpty($domain)) {
+                                        $domain = '*'
+                                    }
+                                    
+                                    if (-not $exclusions.ContainsKey($domain)) {
+                                        $exclusions[$domain] = @()
+                                    }
+                                    if ($fileExt -and $fileExt -notin $exclusions[$domain]) {
+                                        $exclusions[$domain] += $fileExt
+                                    }
+                                }
+                            }
+                            catch {
+                                # Skip malformed JSON entries
+                                continue
+                            }
+                        }
+                        
+                        if ($exclusions.Count -gt 0) {
+                            $source = $policy.Source
+                            break
+                        }
+                    }
+                }
+            }
+        }
+        
+        # Determine status
+        if ($exclusions.Count -eq 0) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "No SmartScreen AppRep exclusions are configured. SmartScreen AppRep protection applies to all file types on all domains."
+        } else {
+            # Format: domainname1.com: msi, exe | domainname2.com: xlsx | *: vbe
+            $exclusionList = ($exclusions.GetEnumerator() | Sort-Object Name | ForEach-Object {
+                "$($_.Key): $($_.Value -join ', ')"
+            }) -join ' | '
+            
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "SmartScreen AppRep exclusions are configured via $source. The following file types on these domains bypass SmartScreen AppRep protection: $exclusionList" `
+                -Recommendation "Review the configured AppRep exclusions to ensure they are necessary. Each exclusion bypasses SmartScreen application reputation warnings for the specified file types. Exclusions: $exclusionList"
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query SmartScreen AppRep exclusions: $_" `
+            -Recommendation "Ensure you have permissions to read Edge policy registry settings."
+    }
+}
+
 function Test-MDECloudBlockLevel {
     <#
     .SYNOPSIS
@@ -2273,6 +2396,7 @@ function Test-MDEConfiguration {
     $results += Test-MDESmartScreenPromptOverride
     $results += Test-MDESmartScreenDownloadOverride
     $results += Test-MDESmartScreenDomainExclusions
+    $results += Test-MDESmartScreenAppRepExclusions
     $results += Test-MDEDisableCatchupQuickScan
     $results += Test-MDERealTimeScanDirection
     $results += Test-MDESignatureUpdateFallbackOrder
@@ -2581,6 +2705,7 @@ Export-ModuleMember -Function @(
     'Test-MDESmartScreenPromptOverride',
     'Test-MDESmartScreenDownloadOverride',
     'Test-MDESmartScreenDomainExclusions',
+    'Test-MDESmartScreenAppRepExclusions',
     'Test-MDEDisableCatchupQuickScan',
     'Test-MDERealTimeScanDirection',
     'Test-MDESignatureUpdateFallbackOrder',

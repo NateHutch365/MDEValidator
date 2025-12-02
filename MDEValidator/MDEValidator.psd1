@@ -56,6 +56,7 @@
         'Test-MDESmartScreenPromptOverride',
         'Test-MDESmartScreenDownloadOverride',
         'Test-MDESmartScreenDomainExclusions',
+        'Test-MDESmartScreenAppRepExclusions',
         'Test-MDEDisableCatchupQuickScan',
         'Test-MDERealTimeScanDirection',
         'Test-MDESignatureUpdateFallbackOrder',
