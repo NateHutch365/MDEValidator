@@ -101,6 +101,9 @@ function Test-IsWindowsServer {
     <#
     .SYNOPSIS
         Checks if the current operating system is Windows Server.
+    .NOTES
+        Uses the InstallationType registry value which is more reliable than pattern matching.
+        InstallationType values: "Client" for workstation, "Server" or "Server Core" for servers.
     #>
     [CmdletBinding()]
     param()
@@ -114,10 +117,20 @@ function Test-IsWindowsServer {
         }
         
         $osInfo = Get-ItemProperty -Path $osRegPath -ErrorAction Stop
-        $productName = $osInfo.ProductName
         
-        # Check if the product name contains "Server"
-        if ($productName -match 'Server') {
+        # Check InstallationType - more reliable than pattern matching ProductName
+        # InstallationType is "Client" for workstation, "Server" or "Server Core" for servers
+        if ($null -ne $osInfo.InstallationType) {
+            if ($osInfo.InstallationType -eq 'Server' -or $osInfo.InstallationType -eq 'Server Core') {
+                return $true
+            }
+            return $false
+        }
+        
+        # Fallback: Check ProductName if InstallationType is not available
+        # Use specific "Windows Server" pattern to avoid false positives like "Workstation"
+        $productName = $osInfo.ProductName
+        if ($productName -match '^Windows Server') {
             return $true
         }
         
@@ -726,9 +739,12 @@ function Test-MDENetworkProtectionWindowsServer {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message "Network Protection for Windows Server is properly configured. AllowNetworkProtectionOnWinServer and AllowNetworkProtectionDownLevel are both enabled."
         } else {
-            $recommendation = "Deploy the following registry keys via Group Policy or another management tool: " +
-                "HKLM\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection - AllowNetworkProtectionDownLevel REG_DWORD 1, " +
-                "HKLM\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection - AllowNetworkProtectionOnWinServer REG_DWORD 1"
+            $recommendation = @"
+Deploy the following registry keys via Group Policy or another management tool:
+- HKLM\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection
+  - AllowNetworkProtectionDownLevel REG_DWORD 1
+  - AllowNetworkProtectionOnWinServer REG_DWORD 1
+"@
             
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Network Protection for Windows Server is not properly configured. Issues: $($issues -join '; ')." `
@@ -794,8 +810,11 @@ function Test-MDEDatagramProcessingWindowsServer {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message "Datagram Processing for Windows Server is properly configured. AllowDatagramProcessingOnWinServer is enabled."
         } else {
-            $recommendation = "Deploy the following registry key via Group Policy or another management tool: " +
-                "HKLM\SOFTWARE\Microsoft\Windows Defender\NIS\Consumers\IPS - AllowDatagramProcessingOnWinServer REG_DWORD 1"
+            $recommendation = @"
+Deploy the following registry key via Group Policy or another management tool:
+- HKLM\SOFTWARE\Microsoft\Windows Defender\NIS\Consumers\IPS
+  - AllowDatagramProcessingOnWinServer REG_DWORD 1
+"@
             
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Datagram Processing for Windows Server is not enabled. AllowDatagramProcessingOnWinServer is not configured or disabled." `
