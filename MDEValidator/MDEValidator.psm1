@@ -212,6 +212,67 @@ function Get-MDEOperatingSystemInfo {
     }
 }
 
+function Get-MDESecuritySettingsManagementStatus {
+    <#
+    .SYNOPSIS
+        Gets the Security Settings Management (MDE-attach) enrollment status.
+    
+    .DESCRIPTION
+        Retrieves the Security Settings Management enrollment status from the registry.
+        This is informational and indicates how the device is managed for security settings.
+    
+    .EXAMPLE
+        Get-MDESecuritySettingsManagementStatus
+        
+        Returns a string like "Enrolled to Security Settings Management" or 
+        "Managed by Intune" depending on the enrollment status.
+    
+    .OUTPUTS
+        String containing the Security Settings Management enrollment status.
+    
+    .NOTES
+        Registry location: HKLM\SOFTWARE\Microsoft\SenseCM
+        EnrollmentStatus REG_DWORD values and their return strings:
+        0 = "Failed / Not Successfully Enrolled"
+        1 = "Enrolled to Security Settings Management"
+        2 = "Not Enrolled (never enrolled)"
+        3 = "Managed by Intune"
+        4 = "Managed by Configuration Manager (SCCM)"
+    #>
+    [CmdletBinding()]
+    param()
+    
+    try {
+        # Get Security Settings Management enrollment status from registry
+        $senseCmPath = 'HKLM:\SOFTWARE\Microsoft\SenseCM'
+        
+        if (-not (Test-Path $senseCmPath)) {
+            return "Not Available (SenseCM registry key not found)"
+        }
+        
+        $senseCmInfo = Get-ItemProperty -Path $senseCmPath -ErrorAction SilentlyContinue
+        
+        if ($null -eq $senseCmInfo -or $null -eq $senseCmInfo.EnrollmentStatus) {
+            return "Not Configured"
+        }
+        
+        $enrollmentStatus = $senseCmInfo.EnrollmentStatus
+        
+        # Map enrollment status values to human-readable strings
+        switch ($enrollmentStatus) {
+            0 { return "Failed / Not Successfully Enrolled" }
+            1 { return "Enrolled to Security Settings Management" }
+            2 { return "Not Enrolled (never enrolled)" }
+            3 { return "Managed by Intune" }
+            4 { return "Managed by Configuration Manager (SCCM)" }
+            default { return "Unknown Status ($enrollmentStatus)" }
+        }
+    }
+    catch {
+        return "Error retrieving status"
+    }
+}
+
 function Test-MDEPassiveMode {
     <#
     .SYNOPSIS
@@ -2469,6 +2530,9 @@ function Get-MDEValidationReport {
     # Get OS information for the report header
     $osInfo = Get-MDEOperatingSystemInfo
     
+    # Get Security Settings Management status for the report header
+    $ssmStatus = Get-MDESecuritySettingsManagementStatus
+    
     switch ($OutputFormat) {
         'Object' {
             return $results
@@ -2480,6 +2544,7 @@ function Get-MDEValidationReport {
             Write-Host "  Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
             Write-Host "  Computer: $env:COMPUTERNAME" -ForegroundColor Cyan
             Write-Host "  OS: $osInfo" -ForegroundColor Cyan
+            Write-Host "  Security Settings Management: $ssmStatus" -ForegroundColor Cyan
             Write-Host "========================================`n" -ForegroundColor Cyan
             
             foreach ($result in $results) {
@@ -2619,6 +2684,7 @@ function Get-MDEValidationReport {
         <div class="meta">
             <p><strong>Computer:</strong> $(ConvertTo-HtmlEncodedString $env:COMPUTERNAME)</p>
             <p><strong>OS:</strong> $(ConvertTo-HtmlEncodedString $osInfo)</p>
+            <p><strong>Security Settings Management:</strong> $(ConvertTo-HtmlEncodedString $ssmStatus)</p>
             <p><strong>Generated:</strong> $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
         </div>
         
@@ -2684,6 +2750,7 @@ Export-ModuleMember -Function @(
     'Test-MDEConfiguration',
     'Get-MDEValidationReport',
     'Get-MDEOperatingSystemInfo',
+    'Get-MDESecuritySettingsManagementStatus',
     'Test-MDEServiceStatus',
     'Test-MDEPassiveMode',
     'Test-MDERealTimeProtection',

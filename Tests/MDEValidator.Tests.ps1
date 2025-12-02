@@ -79,6 +79,10 @@ Describe 'MDEValidator Module' {
             Get-Command -Name 'Get-MDEOperatingSystemInfo' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
         
+        It 'Should export Get-MDESecuritySettingsManagementStatus function' {
+            Get-Command -Name 'Get-MDESecuritySettingsManagementStatus' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
         It 'Should export Test-MDEPassiveMode function' {
             Get-Command -Name 'Test-MDEPassiveMode' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
@@ -115,6 +119,20 @@ Describe 'MDEValidator Module' {
             $result = Get-MDEOperatingSystemInfo
             # Either returns valid OS info (Windows/Ubuntu/etc) or "Unknown OS"
             $result | Should -Match '(Windows|Ubuntu|Linux|macOS|Unknown OS)'
+        }
+    }
+    
+    Context 'Get-MDESecuritySettingsManagementStatus' {
+        It 'Should return a non-empty string' {
+            $result = Get-MDESecuritySettingsManagementStatus
+            $result | Should -Not -BeNullOrEmpty
+            $result | Should -BeOfType [string]
+        }
+        
+        It 'Should return a valid status message' {
+            $result = Get-MDESecuritySettingsManagementStatus
+            # Valid status messages include enrollment status descriptions or error/not available messages
+            $result | Should -Match '(Failed|Enrolled|Not Enrolled|Managed by|Not Available|Not Configured|Unknown Status|Error)'
         }
     }
     

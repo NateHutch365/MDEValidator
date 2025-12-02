@@ -34,6 +34,7 @@
         'Test-MDEConfiguration',
         'Get-MDEValidationReport',
         'Get-MDEOperatingSystemInfo',
+        'Get-MDESecuritySettingsManagementStatus',
         'Test-MDEServiceStatus',
         'Test-MDEPassiveMode',
         'Test-MDERealTimeProtection',
