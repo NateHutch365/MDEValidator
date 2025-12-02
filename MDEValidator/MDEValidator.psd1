@@ -44,6 +44,8 @@
         'Test-MDEBehaviorMonitoring',
         'Test-MDEOnboardingStatus',
         'Test-MDENetworkProtection',
+        'Test-MDENetworkProtectionWindowsServer',
+        'Test-MDEDatagramProcessingWindowsServer',
         'Test-MDEAttackSurfaceReduction',
         'Test-MDEThreatDefaultActions',
         'Test-MDETamperProtection',

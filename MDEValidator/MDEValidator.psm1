@@ -97,6 +97,50 @@ function Test-IsElevated {
     return $false
 }
 
+function Test-IsWindowsServer {
+    <#
+    .SYNOPSIS
+        Checks if the current operating system is Windows Server.
+    .NOTES
+        Uses the InstallationType registry value which is more reliable than pattern matching.
+        InstallationType values: "Client" for workstation, "Server" or "Server Core" for servers.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    try {
+        # Get OS information from registry
+        $osRegPath = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion'
+        
+        if (-not (Test-Path $osRegPath)) {
+            return $false
+        }
+        
+        $osInfo = Get-ItemProperty -Path $osRegPath -ErrorAction Stop
+        
+        # Check InstallationType - more reliable than pattern matching ProductName
+        # InstallationType is "Client" for workstation, "Server" or "Server Core" for servers
+        if ($null -ne $osInfo.InstallationType) {
+            if ($osInfo.InstallationType -eq 'Server' -or $osInfo.InstallationType -eq 'Server Core') {
+                return $true
+            }
+            return $false
+        }
+        
+        # Fallback: Check ProductName if InstallationType is not available
+        # Use specific "Windows Server" pattern to avoid false positives like "Workstation"
+        $productName = $osInfo.ProductName
+        if ($productName -match '^Windows Server') {
+            return $true
+        }
+        
+        return $false
+    }
+    catch {
+        return $false
+    }
+}
+
 #endregion
 
 #region Public Functions
@@ -623,6 +667,164 @@ function Test-MDENetworkProtection {
         Write-ValidationResult -TestName $testName -Status 'Fail' `
             -Message "Unable to query network protection status: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
+function Test-MDENetworkProtectionWindowsServer {
+    <#
+    .SYNOPSIS
+        Tests if Network Protection is properly configured for Windows Server.
+    
+    .DESCRIPTION
+        Checks if the AllowNetworkProtectionOnWinServer and AllowNetworkProtectionDownLevel 
+        registry keys are enabled for Windows Server operating systems. These settings are 
+        required for Network Protection to function on Windows Server.
+        
+        For non-Server operating systems (e.g., Windows 10/11 Professional, Enterprise), 
+        this check returns NotApplicable as these settings are only required on Server.
+    
+    .EXAMPLE
+        Test-MDENetworkProtectionWindowsServer
+        
+        Tests if Network Protection is properly configured for Windows Server.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry locations:
+        - HKLM:\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection
+          - AllowNetworkProtectionOnWinServer (REG_DWORD, 1 = enabled)
+          - AllowNetworkProtectionDownLevel (REG_DWORD, 1 = enabled)
+        
+        Both settings must be set to 1 for Network Protection to work on Windows Server.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Network Protection (Windows Server)'
+    
+    # Check if running on Windows Server
+    if (-not (Test-IsWindowsServer)) {
+        Write-ValidationResult -TestName $testName -Status 'NotApplicable' `
+            -Message "This check only applies to Windows Server operating systems."
+        return
+    }
+    
+    try {
+        $networkProtectionPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection'
+        
+        $allowOnWinServer = $null
+        $allowDownLevel = $null
+        
+        if (Test-Path $networkProtectionPath) {
+            $npSettings = Get-ItemProperty -Path $networkProtectionPath -ErrorAction SilentlyContinue
+            $allowOnWinServer = $npSettings.AllowNetworkProtectionOnWinServer
+            $allowDownLevel = $npSettings.AllowNetworkProtectionDownLevel
+        }
+        
+        $issues = @()
+        
+        # Check AllowNetworkProtectionOnWinServer
+        if ($null -eq $allowOnWinServer -or $allowOnWinServer -ne 1) {
+            $issues += "AllowNetworkProtectionOnWinServer is not enabled"
+        }
+        
+        # Check AllowNetworkProtectionDownLevel
+        if ($null -eq $allowDownLevel -or $allowDownLevel -ne 1) {
+            $issues += "AllowNetworkProtectionDownLevel is not enabled"
+        }
+        
+        if ($issues.Count -eq 0) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Network Protection for Windows Server is properly configured. AllowNetworkProtectionOnWinServer and AllowNetworkProtectionDownLevel are both enabled."
+        } else {
+            $recommendation = @"
+Deploy the following registry keys via Group Policy or another management tool:
+- HKLM\SOFTWARE\Microsoft\Windows Defender\Windows Defender Exploit Guard\Network Protection
+  - AllowNetworkProtectionDownLevel REG_DWORD 1
+  - AllowNetworkProtectionOnWinServer REG_DWORD 1
+"@
+            
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "Network Protection for Windows Server is not properly configured. Issues: $($issues -join '; ')." `
+                -Recommendation $recommendation
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Network Protection Windows Server settings: $_" `
+            -Recommendation "Ensure you have appropriate permissions to read Windows Defender registry settings."
+    }
+}
+
+function Test-MDEDatagramProcessingWindowsServer {
+    <#
+    .SYNOPSIS
+        Tests if Datagram Processing is properly configured for Windows Server.
+    
+    .DESCRIPTION
+        Checks if the AllowDatagramProcessingOnWinServer registry key is enabled for 
+        Windows Server operating systems. This setting is required for proper network 
+        inspection functionality on Windows Server.
+        
+        For non-Server operating systems (e.g., Windows 10/11 Professional, Enterprise), 
+        this check returns NotApplicable as this setting is only required on Server.
+    
+    .EXAMPLE
+        Test-MDEDatagramProcessingWindowsServer
+        
+        Tests if Datagram Processing is properly configured for Windows Server.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        Registry location:
+        - HKLM:\SOFTWARE\Microsoft\Windows Defender\NIS\Consumers\IPS
+          - AllowDatagramProcessingOnWinServer (REG_DWORD, 1 = enabled)
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Datagram Processing (Windows Server)'
+    
+    # Check if running on Windows Server
+    if (-not (Test-IsWindowsServer)) {
+        Write-ValidationResult -TestName $testName -Status 'NotApplicable' `
+            -Message "This check only applies to Windows Server operating systems."
+        return
+    }
+    
+    try {
+        $ipsPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\NIS\Consumers\IPS'
+        
+        $allowDatagramProcessing = $null
+        
+        if (Test-Path $ipsPath) {
+            $ipsSettings = Get-ItemProperty -Path $ipsPath -ErrorAction SilentlyContinue
+            $allowDatagramProcessing = $ipsSettings.AllowDatagramProcessingOnWinServer
+        }
+        
+        if ($null -ne $allowDatagramProcessing -and $allowDatagramProcessing -eq 1) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Datagram Processing for Windows Server is properly configured. AllowDatagramProcessingOnWinServer is enabled."
+        } else {
+            $recommendation = @"
+Deploy the following registry key via Group Policy or another management tool:
+- HKLM\SOFTWARE\Microsoft\Windows Defender\NIS\Consumers\IPS
+  - AllowDatagramProcessingOnWinServer REG_DWORD 1
+"@
+            
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "Datagram Processing for Windows Server is not enabled. AllowDatagramProcessingOnWinServer is not configured or disabled." `
+                -Recommendation $recommendation
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Datagram Processing Windows Server settings: $_" `
+            -Recommendation "Ensure you have appropriate permissions to read Windows Defender registry settings."
     }
 }
 
@@ -1755,6 +1957,8 @@ function Test-MDEConfiguration {
     $results += Test-MDESampleSubmission
     $results += Test-MDEBehaviorMonitoring
     $results += Test-MDENetworkProtection
+    $results += Test-MDENetworkProtectionWindowsServer
+    $results += Test-MDEDatagramProcessingWindowsServer
     $results += Test-MDEAttackSurfaceReduction
     $results += Test-MDEThreatDefaultActions
     $results += Test-MDETamperProtection
@@ -2057,6 +2261,8 @@ Export-ModuleMember -Function @(
     'Test-MDEBehaviorMonitoring',
     'Test-MDEOnboardingStatus',
     'Test-MDENetworkProtection',
+    'Test-MDENetworkProtectionWindowsServer',
+    'Test-MDEDatagramProcessingWindowsServer',
     'Test-MDEAttackSurfaceReduction',
     'Test-MDEThreatDefaultActions',
     'Test-MDETamperProtection',
