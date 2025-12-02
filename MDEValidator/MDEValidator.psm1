@@ -232,12 +232,12 @@ function Get-MDESecuritySettingsManagementStatus {
     
     .NOTES
         Registry location: HKLM\SOFTWARE\Microsoft\SenseCM
-        EnrollmentStatus REG_DWORD values:
-        0 = Generic "failed" / not successfully enrolled
-        1 = Device successfully enrolled to Security Settings Management
-        2 = Device is not enrolled and has never been enrolled to the security management channel
-        3 = Device is managed by Intune
-        4 = Device is managed by Configuration Manager (SCCM)
+        EnrollmentStatus REG_DWORD values and their return strings:
+        0 = "Failed / Not Successfully Enrolled"
+        1 = "Enrolled to Security Settings Management"
+        2 = "Not Enrolled (never enrolled)"
+        3 = "Managed by Intune"
+        4 = "Managed by Configuration Manager (SCCM)"
     #>
     [CmdletBinding()]
     param()
