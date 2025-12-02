@@ -258,6 +258,86 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDESmartScreenPUA' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESmartScreenPUA
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Edge SmartScreen PUA Protection'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESmartScreenPUA function' {
+            Get-Command -Name 'Test-MDESmartScreenPUA' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention SmartScreen PUA or error message in output' {
+            $result = Test-MDESmartScreenPUA
+            $result.Message | Should -Match '(SmartScreen PUA|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDESmartScreenPromptOverride' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESmartScreenPromptOverride
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Edge SmartScreen Prompt Override Prevention'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESmartScreenPromptOverride function' {
+            Get-Command -Name 'Test-MDESmartScreenPromptOverride' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention SmartScreen prompt override or error message in output' {
+            $result = Test-MDESmartScreenPromptOverride
+            $result.Message | Should -Match '(SmartScreen prompt override|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDESmartScreenDownloadOverride' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESmartScreenDownloadOverride
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Edge SmartScreen Download Override Prevention'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESmartScreenDownloadOverride function' {
+            Get-Command -Name 'Test-MDESmartScreenDownloadOverride' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention SmartScreen download override or error message in output' {
+            $result = Test-MDESmartScreenDownloadOverride
+            $result.Message | Should -Match '(SmartScreen download override|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDESmartScreenDomainExclusions' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDESmartScreenDomainExclusions
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Edge SmartScreen Domain Exclusions'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDESmartScreenDomainExclusions function' {
+            Get-Command -Name 'Test-MDESmartScreenDomainExclusions' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention SmartScreen domain exclusions or error message in output' {
+            $result = Test-MDESmartScreenDomainExclusions
+            $result.Message | Should -Match '(SmartScreen domain exclusions|SmartScreen protection|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEThreatDefaultActions' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Test-MDEThreatDefaultActions
@@ -498,6 +578,10 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Exclusion Visibility (Local Admins)'
             $testNames | Should -Contain 'Exclusion Visibility (Local Users)'
             $testNames | Should -Contain 'Edge SmartScreen'
+            $testNames | Should -Contain 'Edge SmartScreen PUA Protection'
+            $testNames | Should -Contain 'Edge SmartScreen Prompt Override Prevention'
+            $testNames | Should -Contain 'Edge SmartScreen Download Override Prevention'
+            $testNames | Should -Contain 'Edge SmartScreen Domain Exclusions'
             $testNames | Should -Contain 'Catchup Quick Scan'
             $testNames | Should -Contain 'Real Time Scan Direction'
             $testNames | Should -Contain 'Signature Update Fallback Order'
