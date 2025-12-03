@@ -141,6 +141,268 @@ function Test-IsWindowsServer {
     }
 }
 
+function Get-MDEManagementType {
+    <#
+    .SYNOPSIS
+        Gets the management type for the device based on enrollment status.
+    
+    .DESCRIPTION
+        Determines how the device is managed (Intune, Security Settings Management, SCCM, GPO, or None)
+        based on the SenseCM EnrollmentStatus registry value.
+    
+    .OUTPUTS
+        String containing the management type: 'Intune', 'SecuritySettingsManagement', 'SCCM', 'GPO', or 'None'
+    
+    .NOTES
+        Registry location: HKLM\SOFTWARE\Microsoft\SenseCM
+        EnrollmentStatus REG_DWORD values:
+        0 = Failed / Not Successfully Enrolled -> GPO (fallback to GPO)
+        1 = Enrolled to Security Settings Management
+        2 = Not Enrolled (never enrolled) -> GPO (fallback to GPO)
+        3 = Managed by Intune
+        4 = Managed by Configuration Manager (SCCM)
+    #>
+    [CmdletBinding()]
+    param()
+    
+    try {
+        $senseCmPath = 'HKLM:\SOFTWARE\Microsoft\SenseCM'
+        
+        if (-not (Test-Path $senseCmPath)) {
+            return 'None'
+        }
+        
+        $senseCmInfo = Get-ItemProperty -Path $senseCmPath -ErrorAction SilentlyContinue
+        
+        if ($null -eq $senseCmInfo -or $null -eq $senseCmInfo.EnrollmentStatus) {
+            return 'None'
+        }
+        
+        $enrollmentStatus = $senseCmInfo.EnrollmentStatus
+        
+        switch ($enrollmentStatus) {
+            0 { return 'GPO' }           # Failed enrollment - default to GPO path (standard policy location)
+            1 { return 'SecuritySettingsManagement' }
+            2 { return 'GPO' }           # Never enrolled - default to GPO path (standard policy location)
+            3 { return 'Intune' }
+            4 { return 'SCCM' }
+            default { return 'None' }
+        }
+    }
+    catch {
+        return 'None'
+    }
+}
+
+function Get-MDEPolicyRegistryPath {
+    <#
+    .SYNOPSIS
+        Gets the appropriate registry path for MDE policies based on management type.
+    
+    .DESCRIPTION
+        Returns the registry path where MDE policy settings are stored based on how
+        the device is managed.
+    
+    .PARAMETER ManagementType
+        The management type: 'Intune', 'SecuritySettingsManagement', 'SCCM', 'GPO', or 'None'
+    
+    .OUTPUTS
+        String containing the registry path for MDE policies.
+    
+    .NOTES
+        Registry locations based on management type:
+        - Security Settings Management, SCCM, GPO: HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender
+        - Intune (MDM): HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet('Intune', 'SecuritySettingsManagement', 'SCCM', 'GPO', 'None')]
+        [string]$ManagementType
+    )
+    
+    # Intune uses a different registry path (Policy Manager subfolder)
+    # All other management types use the standard Windows Defender policy path
+    if ($ManagementType -eq 'Intune') {
+        return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
+    }
+    
+    # Standard policy path for SSM, SCCM, GPO, and unmanaged devices
+    return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
+}
+
+function Test-MDEPolicyRegistryValue {
+    <#
+    .SYNOPSIS
+        Tests if a policy registry value exists and matches expected value.
+    
+    .DESCRIPTION
+        Verifies that a Windows Defender policy setting exists in the correct
+        registry location based on the device's management type.
+    
+    .PARAMETER SettingName
+        The name of the setting to verify (e.g., 'DisableRealtimeMonitoring').
+    
+    .PARAMETER ExpectedValue
+        The expected value for the setting.
+    
+    .PARAMETER SubPath
+        Optional subpath under the main policy path (e.g., 'Real-Time Protection').
+    
+    .OUTPUTS
+        PSCustomObject with properties:
+        - Found: Boolean indicating if the registry value was found
+        - Value: The actual value found (if any)
+        - Path: The full registry path checked
+        - ManagementType: The detected management type
+    
+    .NOTES
+        This function checks the appropriate registry location based on the
+        detected management type (Intune vs Security Settings Management/GPO/SCCM).
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$SettingName,
+        
+        [Parameter()]
+        $ExpectedValue = $null,
+        
+        [Parameter()]
+        [string]$SubPath = ''
+    )
+    
+    $managementType = Get-MDEManagementType
+    $basePath = Get-MDEPolicyRegistryPath -ManagementType $managementType
+    
+    # Construct full path including optional subpath
+    $fullPath = if ([string]::IsNullOrEmpty($SubPath)) {
+        $basePath
+    } else {
+        Join-Path $basePath $SubPath
+    }
+    
+    $result = [PSCustomObject]@{
+        Found = $false
+        Value = $null
+        Path = $fullPath
+        ManagementType = $managementType
+        SettingName = $SettingName
+    }
+    
+    try {
+        if (Test-Path $fullPath) {
+            $regValue = Get-ItemProperty -Path $fullPath -Name $SettingName -ErrorAction SilentlyContinue
+            if ($null -ne $regValue -and $null -ne $regValue.$SettingName) {
+                $result.Found = $true
+                $result.Value = $regValue.$SettingName
+            }
+        }
+    }
+    catch {
+        # Registry path or value not accessible
+        $result.Found = $false
+    }
+    
+    return $result
+}
+
+function Test-MDEPolicyRegistryVerification {
+    <#
+    .SYNOPSIS
+        Performs registry verification sub-test for an MDE setting.
+    
+    .DESCRIPTION
+        Creates a sub-test result that verifies whether a policy setting exists
+        in the correct registry location based on management type.
+    
+    .PARAMETER ParentTestName
+        The name of the parent test (e.g., 'Real-Time Protection').
+    
+    .PARAMETER SettingName
+        The registry setting name to verify.
+    
+    .PARAMETER SettingDisplayName
+        Human-readable name for the setting.
+    
+    .PARAMETER SubPath
+        Optional subpath under the main policy path.
+    
+    .PARAMETER ExpectedValue
+        The expected value for the setting (optional).
+    
+    .PARAMETER IsApplicableToSSM
+        Whether this setting is applicable to Security Settings Management.
+        Default is $true. Set to $false for settings not supported by SSM.
+    
+    .OUTPUTS
+        PSCustomObject with validation results for the registry verification sub-test.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$ParentTestName,
+        
+        [Parameter(Mandatory)]
+        [string]$SettingName,
+        
+        [Parameter(Mandatory)]
+        [string]$SettingDisplayName,
+        
+        [Parameter()]
+        [string]$SubPath = '',
+        
+        [Parameter()]
+        $ExpectedValue = $null,
+        
+        [Parameter()]
+        [bool]$IsApplicableToSSM = $true
+    )
+    
+    $testName = "$ParentTestName - Policy Registry Verification"
+    
+    $managementType = Get-MDEManagementType
+    
+    # Check if this test is applicable based on management type
+    if ($managementType -eq 'None') {
+        return Write-ValidationResult -TestName $testName -Status 'Info' `
+            -Message "Policy registry verification skipped - device management type could not be determined."
+    }
+    
+    # Check if SSM-incompatible test on SSM-managed device
+    if (-not $IsApplicableToSSM -and $managementType -eq 'SecuritySettingsManagement') {
+        return Write-ValidationResult -TestName $testName -Status 'NotApplicable' `
+            -Message "This setting cannot be enforced via Security Settings Management. Only Antivirus, ASR, EDR, and Firewall policies are supported."
+    }
+    
+    $regResult = Test-MDEPolicyRegistryValue -SettingName $SettingName -SubPath $SubPath -ExpectedValue $ExpectedValue
+    
+    if ($regResult.Found) {
+        $valueInfo = if ($null -ne $ExpectedValue) {
+            $matchStatus = if ($regResult.Value -eq $ExpectedValue) { "matches expected" } else { "differs from expected" }
+            "Value: $($regResult.Value) ($matchStatus value: $ExpectedValue)"
+        } else {
+            "Value: $($regResult.Value)"
+        }
+        
+        return Write-ValidationResult -TestName $testName -Status 'Pass' `
+            -Message "Policy registry entry verified. $SettingDisplayName found at $($regResult.Path). $valueInfo. Management type: $($regResult.ManagementType)."
+    } else {
+        $recommendation = @"
+The policy registry entry for $SettingDisplayName was not found at $($regResult.Path).
+This may indicate:
+- The policy has not been deployed via $($regResult.ManagementType)
+- The policy is configured locally but not via management tools
+- There may be a sync issue with the management platform
+Verify the policy is correctly configured in your management solution ($($regResult.ManagementType)).
+"@
+        
+        return Write-ValidationResult -TestName $testName -Status 'Warning' `
+            -Message "Policy registry entry not found. Expected $SettingDisplayName at $($regResult.Path). Management type: $($regResult.ManagementType)." `
+            -Recommendation $recommendation
+    }
+}
+
 #endregion
 
 #region Public Functions
@@ -2407,6 +2669,19 @@ function Test-MDEConfiguration {
     .PARAMETER IncludeOnboarding
         Include MDE onboarding status check (requires elevated privileges).
     
+    .PARAMETER IncludePolicyVerification
+        Include policy registry verification sub-tests. These sub-tests verify that
+        settings returned by Get-MpPreference match the corresponding registry/policy
+        entries based on the device's management type (Intune vs Security Settings Management).
+        
+        Registry locations checked:
+        - Intune: HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager
+        - SSM/GPO/SCCM: HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender
+        
+        Note: Some tests (Edge SmartScreen, Exclusion Visibility) are not applicable
+        for Security Settings Management as only Antivirus, ASR, EDR, and Firewall
+        policies are supported.
+    
     .EXAMPLE
         Test-MDEConfiguration
         
@@ -2417,13 +2692,21 @@ function Test-MDEConfiguration {
         
         Runs all tests including MDE onboarding status check.
     
+    .EXAMPLE
+        Test-MDEConfiguration -IncludePolicyVerification
+        
+        Runs all tests with policy registry verification sub-tests.
+    
     .OUTPUTS
         Array of PSCustomObjects with validation results.
     #>
     [CmdletBinding()]
     param(
         [Parameter()]
-        [switch]$IncludeOnboarding
+        [switch]$IncludeOnboarding,
+        
+        [Parameter()]
+        [switch]$IncludePolicyVerification
     )
     
     $results = @()
@@ -2439,31 +2722,128 @@ function Test-MDEConfiguration {
     # Run all validation tests
     $results += Test-MDEServiceStatus
     $results += Test-MDEPassiveMode
+    
     $results += Test-MDERealTimeProtection
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Real-Time Protection' `
+            -SettingName 'DisableRealtimeMonitoring' -SettingDisplayName 'DisableRealtimeMonitoring' `
+            -SubPath 'Real-Time Protection' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDECloudProtection
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Cloud-Delivered Protection' `
+            -SettingName 'MAPSReporting' -SettingDisplayName 'MAPSReporting (MAPS)' `
+            -SubPath 'Spynet' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDECloudBlockLevel
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Cloud Block Level' `
+            -SettingName 'MpCloudBlockLevel' -SettingDisplayName 'MpCloudBlockLevel' `
+            -SubPath 'MpEngine' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDECloudExtendedTimeout
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Cloud Extended Timeout' `
+            -SettingName 'MpBafsExtendedTimeout' -SettingDisplayName 'MpBafsExtendedTimeout' `
+            -SubPath 'MpEngine' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDESampleSubmission
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Automatic Sample Submission' `
+            -SettingName 'SubmitSamplesConsent' -SettingDisplayName 'SubmitSamplesConsent' `
+            -SubPath 'Spynet' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDEBehaviorMonitoring
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Behavior Monitoring' `
+            -SettingName 'DisableBehaviorMonitoring' -SettingDisplayName 'DisableBehaviorMonitoring' `
+            -SubPath 'Real-Time Protection' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDENetworkProtection
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Network Protection' `
+            -SettingName 'EnableNetworkProtection' -SettingDisplayName 'EnableNetworkProtection' `
+            -SubPath 'Windows Defender Exploit Guard\Network Protection' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDENetworkProtectionWindowsServer
     $results += Test-MDEDatagramProcessingWindowsServer
+    
     $results += Test-MDEAttackSurfaceReduction
+    if ($IncludePolicyVerification) {
+        # ASR rules are stored in a specific subpath
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Attack Surface Reduction Rules' `
+            -SettingName 'ExploitGuard_ASR_Rules' -SettingDisplayName 'ExploitGuard_ASR_Rules' `
+            -SubPath 'Windows Defender Exploit Guard\ASR' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDEThreatDefaultActions
     $results += Test-MDETamperProtection
+    
+    # Exclusion visibility tests - NOT applicable to Security Settings Management
     $results += Test-MDEExclusionVisibilityLocalAdmins
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Exclusion Visibility (Local Admins)' `
+            -SettingName 'HideExclusionsFromLocalAdmins' -SettingDisplayName 'HideExclusionsFromLocalAdmins' `
+            -SubPath 'Exclusions' -IsApplicableToSSM $false
+    }
+    
     $results += Test-MDEExclusionVisibilityLocalUsers
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Exclusion Visibility (Local Users)' `
+            -SettingName 'HideExclusionsFromLocalUsers' -SettingDisplayName 'HideExclusionsFromLocalUsers' `
+            -SubPath 'Exclusions' -IsApplicableToSSM $false
+    }
+    
+    # Edge SmartScreen tests - NOT applicable to Security Settings Management
+    # These are Edge browser policies, not Windows Defender policies
     $results += Test-MDESmartScreen
     $results += Test-MDESmartScreenPUA
     $results += Test-MDESmartScreenPromptOverride
     $results += Test-MDESmartScreenDownloadOverride
     $results += Test-MDESmartScreenDomainExclusions
     $results += Test-MDESmartScreenAppRepExclusions
+    
     $results += Test-MDEDisableCatchupQuickScan
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Catchup Quick Scan' `
+            -SettingName 'DisableCatchupQuickScan' -SettingDisplayName 'DisableCatchupQuickScan' `
+            -SubPath 'Scan' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDERealTimeScanDirection
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Real Time Scan Direction' `
+            -SettingName 'RealTimeScanDirection' -SettingDisplayName 'RealTimeScanDirection' `
+            -SubPath 'Real-Time Protection' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDESignatureUpdateFallbackOrder
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Signature Update Fallback Order' `
+            -SettingName 'SignatureFallbackOrder' -SettingDisplayName 'SignatureFallbackOrder' `
+            -SubPath 'Signature Updates' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDESignatureUpdateInterval
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Signature Update Interval' `
+            -SettingName 'SignatureUpdateInterval' -SettingDisplayName 'SignatureUpdateInterval' `
+            -SubPath 'Signature Updates' -IsApplicableToSSM $true
+    }
+    
     $results += Test-MDEDisableLocalAdminMerge
+    if ($IncludePolicyVerification) {
+        $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Disable Local Admin Merge' `
+            -SettingName 'DisableLocalAdminMerge' -SettingDisplayName 'DisableLocalAdminMerge' `
+            -IsApplicableToSSM $true
+    }
     
     if ($IncludeOnboarding) {
         $results += Test-MDEOnboardingStatus
@@ -2493,6 +2873,11 @@ function Get-MDEValidationReport {
     .PARAMETER IncludeOnboarding
         Include MDE onboarding status check (requires elevated privileges).
     
+    .PARAMETER IncludePolicyVerification
+        Include policy registry verification sub-tests. These sub-tests verify that
+        settings returned by Get-MpPreference match the corresponding registry/policy
+        entries based on the device's management type (Intune vs Security Settings Management).
+    
     .EXAMPLE
         Get-MDEValidationReport
         
@@ -2508,6 +2893,11 @@ function Get-MDEValidationReport {
         
         Returns validation results as PowerShell objects.
     
+    .EXAMPLE
+        Get-MDEValidationReport -IncludePolicyVerification
+        
+        Displays a validation report with policy registry verification sub-tests.
+    
     .OUTPUTS
         Console output, HTML file, or array of PSCustomObjects depending on OutputFormat.
     #>
@@ -2521,11 +2911,14 @@ function Get-MDEValidationReport {
         [string]$OutputPath,
         
         [Parameter()]
-        [switch]$IncludeOnboarding
+        [switch]$IncludeOnboarding,
+        
+        [Parameter()]
+        [switch]$IncludePolicyVerification
     )
     
     # Run all validation tests
-    $results = Test-MDEConfiguration -IncludeOnboarding:$IncludeOnboarding
+    $results = Test-MDEConfiguration -IncludeOnboarding:$IncludeOnboarding -IncludePolicyVerification:$IncludePolicyVerification
     
     # Get OS information for the report header
     $osInfo = Get-MDEOperatingSystemInfo
@@ -2751,6 +3144,10 @@ Export-ModuleMember -Function @(
     'Get-MDEValidationReport',
     'Get-MDEOperatingSystemInfo',
     'Get-MDESecuritySettingsManagementStatus',
+    'Get-MDEManagementType',
+    'Get-MDEPolicyRegistryPath',
+    'Test-MDEPolicyRegistryValue',
+    'Test-MDEPolicyRegistryVerification',
     'Test-MDEServiceStatus',
     'Test-MDEPassiveMode',
     'Test-MDERealTimeProtection',

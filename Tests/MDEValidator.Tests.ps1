@@ -633,6 +633,99 @@ Describe 'MDEValidator Module' {
             $testNames = $results.TestName
             $testNames | Should -Contain 'MDE Onboarding Status'
         }
+        
+        It 'Should include policy verification sub-tests when -IncludePolicyVerification is specified' {
+            $results = Test-MDEConfiguration -IncludePolicyVerification
+            $testNames = $results.TestName
+            # Should include at least one policy registry verification sub-test
+            $verificationTests = $testNames | Where-Object { $_ -match 'Policy Registry Verification' }
+            $verificationTests.Count | Should -BeGreaterThan 0
+        }
+    }
+    
+    Context 'Get-MDEManagementType' {
+        It 'Should return a valid management type string' {
+            $result = Get-MDEManagementType
+            $result | Should -Not -BeNullOrEmpty
+            $result | Should -BeIn @('Intune', 'SecuritySettingsManagement', 'SCCM', 'GPO', 'None')
+        }
+        
+        It 'Should export Get-MDEManagementType function' {
+            Get-Command -Name 'Get-MDEManagementType' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context 'Get-MDEPolicyRegistryPath' {
+        It 'Should return Intune registry path for Intune management type' {
+            $result = Get-MDEPolicyRegistryPath -ManagementType 'Intune'
+            $result | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
+        }
+        
+        It 'Should return standard registry path for Security Settings Management' {
+            $result = Get-MDEPolicyRegistryPath -ManagementType 'SecuritySettingsManagement'
+            $result | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
+        }
+        
+        It 'Should return standard registry path for GPO' {
+            $result = Get-MDEPolicyRegistryPath -ManagementType 'GPO'
+            $result | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
+        }
+        
+        It 'Should return standard registry path for SCCM' {
+            $result = Get-MDEPolicyRegistryPath -ManagementType 'SCCM'
+            $result | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
+        }
+        
+        It 'Should export Get-MDEPolicyRegistryPath function' {
+            Get-Command -Name 'Get-MDEPolicyRegistryPath' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context 'Test-MDEPolicyRegistryValue' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEPolicyRegistryValue -SettingName 'DisableRealtimeMonitoring' -SubPath 'Real-Time Protection'
+            $result | Should -Not -BeNullOrEmpty
+            $result.PSObject.Properties.Name | Should -Contain 'Found'
+            $result.PSObject.Properties.Name | Should -Contain 'Value'
+            $result.PSObject.Properties.Name | Should -Contain 'Path'
+            $result.PSObject.Properties.Name | Should -Contain 'ManagementType'
+            $result.PSObject.Properties.Name | Should -Contain 'SettingName'
+        }
+        
+        It 'Should return Found as boolean' {
+            $result = Test-MDEPolicyRegistryValue -SettingName 'DisableRealtimeMonitoring'
+            $result.Found | Should -BeOfType [bool]
+        }
+        
+        It 'Should export Test-MDEPolicyRegistryValue function' {
+            Get-Command -Name 'Test-MDEPolicyRegistryValue' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context 'Test-MDEPolicyRegistryVerification' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEPolicyRegistryVerification -ParentTestName 'Real-Time Protection' `
+                -SettingName 'DisableRealtimeMonitoring' -SettingDisplayName 'DisableRealtimeMonitoring'
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Match 'Policy Registry Verification'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should handle SSM-incompatible settings on SSM-managed devices' {
+            # This test verifies the function handles IsApplicableToSSM correctly
+            $result = Test-MDEPolicyRegistryVerification -ParentTestName 'Exclusion Visibility' `
+                -SettingName 'HideExclusionsFromLocalAdmins' -SettingDisplayName 'HideExclusionsFromLocalAdmins' `
+                -IsApplicableToSSM $false
+            $result | Should -Not -BeNullOrEmpty
+            # Status will depend on management type
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDEPolicyRegistryVerification function' {
+            Get-Command -Name 'Test-MDEPolicyRegistryVerification' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
     }
     
     Context 'Get-MDEValidationReport' {
@@ -657,6 +750,14 @@ Describe 'MDEValidator Module' {
                     Remove-Item $tempPath -Force
                 }
             }
+        }
+        
+        It 'Should include policy verification sub-tests when -IncludePolicyVerification is specified' {
+            $results = Get-MDEValidationReport -OutputFormat Object -IncludePolicyVerification
+            $testNames = $results.TestName
+            # Should include at least one policy registry verification sub-test
+            $verificationTests = $testNames | Where-Object { $_ -match 'Policy Registry Verification' }
+            $verificationTests.Count | Should -BeGreaterThan 0
         }
     }
 }
