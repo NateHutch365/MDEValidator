@@ -1468,9 +1468,9 @@ function Test-MDEAttackSurfaceReduction {
         $totalRules = $configuredRules.Count
         $summaryMessage = "ASR rules configured: $totalRules total ($enabledCount Block, $auditCount Audit, $warnCount Warn, $disabledCount Disabled)"
         
-        # Build detailed message with rule names and actions
-        $detailedRules = $ruleDetails -join "; "
-        $fullMessage = "$summaryMessage. Rules: $detailedRules"
+        # Build detailed message with rule names and actions, each on its own line
+        $detailedRules = ($ruleDetails | ForEach-Object { "  - $_" }) -join "`n"
+        $fullMessage = "$summaryMessage`nRules:`n$detailedRules"
         
         if ($enabledCount -gt 0) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
