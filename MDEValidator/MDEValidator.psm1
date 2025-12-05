@@ -1647,15 +1647,41 @@ function Test-MDEExclusionVisibilityLocalAdmins {
     $testName = 'Exclusion Visibility (Local Admins)'
     
     try {
+        $hideFromLocalAdmins = $null
+        $source = ''
+        
+        # First, check Get-MpPreference for exclusion properties that indicate hidden status
+        # When exclusions are hidden from local admins, the ExclusionExtension property returns
+        # a string like "{N/A: Administrators are not allowed to view exclusions}"
+        try {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+            
+            # Check if ExclusionExtension contains the "not allowed to view" message
+            # This is a reliable indicator that HideExclusionsFromLocalAdmins is enabled
+            if ($null -ne $mpPreference.ExclusionExtension) {
+                $exclusionExtension = $mpPreference.ExclusionExtension -join ''
+                if ($exclusionExtension -match 'Administrators are not allowed to view exclusions') {
+                    $hideFromLocalAdmins = 1
+                    $source = 'Get-MpPreference (exclusions hidden)'
+                }
+            }
+            
+            # Also check HideExclusionsFromLocalAdmins property directly
+            if ($null -eq $hideFromLocalAdmins -and $null -ne $mpPreference.HideExclusionsFromLocalAdmins) {
+                $hideFromLocalAdmins = if ($mpPreference.HideExclusionsFromLocalAdmins) { 1 } else { 0 }
+                if ([string]::IsNullOrEmpty($source)) { $source = 'MpPreference' }
+            }
+        }
+        catch {
+            # Continue even if MpPreference fails - we may have registry values
+        }
+        
         # Check registry settings for exclusion visibility
         $exclusionsPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Exclusions'
         $policiesPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Exclusions'
         
-        $hideFromLocalAdmins = $null
-        $source = ''
-        
-        # Check Group Policy settings first (takes precedence)
-        if (Test-Path $policiesPath) {
+        # Check Group Policy settings (takes precedence over default registry)
+        if ($null -eq $hideFromLocalAdmins -and (Test-Path $policiesPath)) {
             $policySettings = Get-ItemProperty -Path $policiesPath -ErrorAction SilentlyContinue
             if ($null -ne $policySettings.HideExclusionsFromLocalAdmins) {
                 $hideFromLocalAdmins = $policySettings.HideExclusionsFromLocalAdmins
@@ -1669,20 +1695,6 @@ function Test-MDEExclusionVisibilityLocalAdmins {
             if ($null -ne $defaultSettings.HideExclusionsFromLocalAdmins) {
                 $hideFromLocalAdmins = $defaultSettings.HideExclusionsFromLocalAdmins
                 if ([string]::IsNullOrEmpty($source)) { $source = 'Registry' }
-            }
-        }
-        
-        # Also try Get-MpPreference for these settings (if available)
-        if ($null -eq $hideFromLocalAdmins) {
-            try {
-                $mpPreference = Get-MpPreference -ErrorAction Stop
-                if ($null -ne $mpPreference.HideExclusionsFromLocalAdmins) {
-                    $hideFromLocalAdmins = if ($mpPreference.HideExclusionsFromLocalAdmins) { 1 } else { 0 }
-                    if ([string]::IsNullOrEmpty($source)) { $source = 'MpPreference' }
-                }
-            }
-            catch {
-                # Continue even if MpPreference fails - we may have registry values
             }
         }
         
@@ -2907,6 +2919,71 @@ function Test-MDEDisableLocalAdminMerge {
     }
 }
 
+function Test-MDEFileHashComputation {
+    <#
+    .SYNOPSIS
+        Tests if File Hash Computation is enabled.
+    
+    .DESCRIPTION
+        Checks the EnableFileHashComputation setting in Windows Defender.
+        When enabled, Windows Defender computes file hashes for files that are scanned,
+        which can be used for threat intelligence, hunting, and IoC matching.
+    
+    .EXAMPLE
+        Test-MDEFileHashComputation
+        
+        Tests if File Hash Computation is enabled.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        EnableFileHashComputation values:
+        $true = File Hash Computation is enabled (recommended)
+        $false or not configured = File Hash Computation is disabled
+        
+        When enabled, file hashes are computed for scanned files, enabling:
+        - Threat intelligence matching
+        - Indicator of Compromise (IoC) hunting
+        - Enhanced threat detection via file hash reputation
+        
+        This can be configured via:
+        - Group Policy: Computer Configuration > Administrative Templates > Windows Components > 
+          Microsoft Defender Antivirus > Enable file hash computation feature
+        - Intune/MEM: Endpoint Security > Antivirus
+        - PowerShell: Set-MpPreference -EnableFileHashComputation $true
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'File Hash Computation'
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        $enableFileHashComputation = $mpPreference.EnableFileHashComputation
+        
+        # Handle null as not configured (disabled by default)
+        if ($null -eq $enableFileHashComputation) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "File Hash Computation is not configured (disabled by default)." `
+                -Recommendation "Enable File Hash Computation via Group Policy or 'Set-MpPreference -EnableFileHashComputation `$true' to enable file hash-based threat detection and IoC matching."
+        } elseif ($enableFileHashComputation -eq $true) {
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "File Hash Computation is enabled. File hashes are computed for scanned files."
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "File Hash Computation is disabled." `
+                -Recommendation "Enable File Hash Computation via Group Policy or 'Set-MpPreference -EnableFileHashComputation `$true' to enable file hash-based threat detection and IoC matching."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query File Hash Computation setting: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
 function Test-MDEConfiguration {
     <#
     .SYNOPSIS
@@ -3078,6 +3155,8 @@ function Test-MDEConfiguration {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Disable Local Admin Merge' `
             -SettingKey 'DisableLocalAdminMerge' -IsApplicableToSSM $true
     }
+    
+    $results += Test-MDEFileHashComputation
     
     if ($IncludeOnboarding) {
         $results += Test-MDEOnboardingStatus
@@ -3410,5 +3489,6 @@ Export-ModuleMember -Function @(
     'Test-MDERealTimeScanDirection',
     'Test-MDESignatureUpdateFallbackOrder',
     'Test-MDESignatureUpdateInterval',
-    'Test-MDEDisableLocalAdminMerge'
+    'Test-MDEDisableLocalAdminMerge',
+    'Test-MDEFileHashComputation'
 )

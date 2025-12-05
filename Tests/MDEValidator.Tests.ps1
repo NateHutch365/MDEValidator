@@ -595,6 +595,26 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDEFileHashComputation' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEFileHashComputation
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'File Hash Computation'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDEFileHashComputation function' {
+            Get-Command -Name 'Test-MDEFileHashComputation' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention File Hash Computation or error message in output' {
+            $result = Test-MDEFileHashComputation
+            $result.Message | Should -Match '(File Hash Computation|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEConfiguration' {
         It 'Should return an array of results' {
             $results = Test-MDEConfiguration
@@ -632,6 +652,7 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Signature Update Fallback Order'
             $testNames | Should -Contain 'Signature Update Interval'
             $testNames | Should -Contain 'Disable Local Admin Merge'
+            $testNames | Should -Contain 'File Hash Computation'
         }
         
         It 'Should include onboarding test when -IncludeOnboarding is specified' {

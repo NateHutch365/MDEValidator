@@ -67,7 +67,8 @@
         'Test-MDERealTimeScanDirection',
         'Test-MDESignatureUpdateFallbackOrder',
         'Test-MDESignatureUpdateInterval',
-        'Test-MDEDisableLocalAdminMerge'
+        'Test-MDEDisableLocalAdminMerge',
+        'Test-MDEFileHashComputation'
     )
 
     # Cmdlets to export from this module
