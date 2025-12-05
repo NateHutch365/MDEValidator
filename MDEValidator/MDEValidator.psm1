@@ -362,7 +362,7 @@ function Get-MDEPolicySettingConfig {
             DisplayName = 'Real-Time Scan Direction'
         }
         'SignatureFallbackOrder' = @{
-            Intune = @{ Path = $intuneBasePath; Name = 'SignatureFallbackOrder' }
+            Intune = @{ Path = $intuneBasePath; Name = 'SignatureUpdateFallbackOrder' }
             GPO = @{ Path = "$gpoBasePath\Signature Updates"; Name = 'FallbackOrder' }
             DisplayName = 'Signature Fallback Order'
         }
@@ -1368,6 +1368,7 @@ function Test-MDEAttackSurfaceReduction {
     
     .DESCRIPTION
         Checks the Attack Surface Reduction rules status of Windows Defender Antivirus.
+        Reports each rule by its human-readable name and enforcement setting.
     
     .EXAMPLE
         Test-MDEAttackSurfaceReduction
@@ -1383,7 +1384,7 @@ function Test-MDEAttackSurfaceReduction {
     $testName = 'Attack Surface Reduction Rules'
     
     # Common ASR rule GUIDs and their descriptions
-    $asrRules = @{
+    $asrRuleNames = @{
         '56a863a9-875e-4185-98a7-b882c64b5ce5' = 'Block abuse of exploited vulnerable signed drivers'
         '7674ba52-37eb-4a4f-a9a1-f0f9a1619a2c' = 'Block Adobe Reader from creating child processes'
         'd4f940ab-401b-4efc-aadc-ad5f3c50688a' = 'Block all Office applications from creating child processes'
@@ -1400,6 +1401,17 @@ function Test-MDEAttackSurfaceReduction {
         'b2b3f03d-6a65-4f7b-a9c7-1c7ef74a9ba4' = 'Block untrusted and unsigned processes that run from USB'
         '92e97fa1-2edf-4476-bdd6-9dd0b4dddc7b' = 'Block Win32 API calls from Office macros'
         'c1db55ab-c21a-4637-bb3f-a12568109d35' = 'Use advanced protection against ransomware'
+        'a8f5898e-1dc8-49a9-9878-85004b8a61e6' = 'Block Webshell creation for Servers'
+        '33ddedf1-c6e0-47cb-833e-de6133960387' = 'Block rebooting machine in Safe Mode'
+        'c0033c00-d16d-4114-a5a0-dc9b3a7d2ceb' = 'Block use of copied or impersonated system tools'
+    }
+    
+    # ASR rule action values and their human-readable names
+    $asrActionNames = @{
+        0 = 'Disabled'
+        1 = 'Block'
+        2 = 'Audit'
+        6 = 'Warn'
     }
     
     try {
@@ -1418,30 +1430,58 @@ function Test-MDEAttackSurfaceReduction {
         $enabledCount = 0
         $auditCount = 0
         $disabledCount = 0
+        $warnCount = 0
+        $ruleDetails = @()
         
         for ($i = 0; $i -lt $configuredRules.Count; $i++) {
-            if ($null -ne $ruleActions -and $i -lt $ruleActions.Count) {
-                switch ($ruleActions[$i]) {
+            $ruleGuid = $configuredRules[$i].ToLower()
+            $actionValue = if ($null -ne $ruleActions -and $i -lt $ruleActions.Count) { $ruleActions[$i] } else { $null }
+            
+            # Get human-readable rule name (fall back to GUID if unknown)
+            $ruleName = if ($asrRuleNames.ContainsKey($ruleGuid)) { 
+                $asrRuleNames[$ruleGuid] 
+            } else { 
+                "Unknown rule ($ruleGuid)" 
+            }
+            
+            # Get human-readable action name
+            $actionName = if ($null -ne $actionValue -and $asrActionNames.ContainsKey([int]$actionValue)) {
+                $asrActionNames[[int]$actionValue]
+            } else {
+                'Unknown'
+            }
+            
+            # Count actions
+            if ($null -ne $actionValue) {
+                switch ([int]$actionValue) {
                     0 { $disabledCount++ }
                     1 { $enabledCount++ }
                     2 { $auditCount++ }
+                    6 { $warnCount++ }
                 }
             }
+            
+            # Add to rule details with human-readable format
+            $ruleDetails += "$ruleName ($actionName)"
         }
         
         $totalRules = $configuredRules.Count
-        $message = "ASR rules configured: $totalRules total ($enabledCount enabled/blocked, $auditCount audit, $disabledCount disabled)"
+        $summaryMessage = "ASR rules configured: $totalRules total ($enabledCount Block, $auditCount Audit, $warnCount Warn, $disabledCount Disabled)"
+        
+        # Build detailed message with rule names and actions
+        $detailedRules = $ruleDetails -join "; "
+        $fullMessage = "$summaryMessage. Rules: $detailedRules"
         
         if ($enabledCount -gt 0) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
-                -Message $message
-        } elseif ($auditCount -gt 0) {
+                -Message $fullMessage
+        } elseif ($auditCount -gt 0 -or $warnCount -gt 0) {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
-                -Message "$message. All configured rules are in Audit mode only." `
+                -Message "$fullMessage. No rules are in Block mode." `
                 -Recommendation "Consider enabling Block mode for ASR rules after validating Audit mode results."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
-                -Message "$message. All configured rules are disabled." `
+                -Message "$fullMessage. All configured rules are disabled." `
                 -Recommendation "Enable ASR rules for enhanced protection against common attack techniques."
         }
     }

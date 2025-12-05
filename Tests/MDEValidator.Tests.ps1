@@ -261,6 +261,12 @@ Describe 'MDEValidator Module' {
             $result.TestName | Should -Be 'Attack Surface Reduction Rules'
             $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
         }
+        
+        It 'Should mention ASR rules or error message in output' {
+            $result = Test-MDEAttackSurfaceReduction
+            # Message should contain human-readable info or error
+            $result.Message | Should -Match '(ASR rules|Attack Surface Reduction|Unable to query)'
+        }
     }
     
     Context 'Test-MDESmartScreen' {
@@ -721,6 +727,20 @@ Describe 'MDEValidator Module' {
             $gpoResult.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\MpEngine'
             $intuneResult.SettingName | Should -Be 'MpCloudBlockLevel'
             $gpoResult.SettingName | Should -Be 'MpCloudBlockLevel'
+        }
+        
+        It 'Should return correct Intune key name for SignatureFallbackOrder' {
+            $result = Get-MDEPolicySettingConfig -SettingKey 'SignatureFallbackOrder' -ManagementType 'Intune'
+            $result | Should -Not -BeNullOrEmpty
+            $result.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
+            $result.SettingName | Should -Be 'SignatureUpdateFallbackOrder'
+        }
+        
+        It 'Should return correct GPO key name for SignatureFallbackOrder' {
+            $result = Get-MDEPolicySettingConfig -SettingKey 'SignatureFallbackOrder' -ManagementType 'GPO'
+            $result | Should -Not -BeNullOrEmpty
+            $result.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Signature Updates'
+            $result.SettingName | Should -Be 'FallbackOrder'
         }
         
         It 'Should return DisplayName property' {
