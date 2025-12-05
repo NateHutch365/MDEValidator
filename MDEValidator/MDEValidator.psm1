@@ -283,8 +283,13 @@ function Get-MDEPolicySettingConfig {
     )
     
     # Define the configuration mappings
-    # Intune uses Policy Manager directly with different key names
-    # GPO/SSM/SCCM use subfolders with traditional key names
+    # 
+    # Registry naming conventions differ between Intune and GPO:
+    # - Intune (Policy Manager): Uses "Allow" prefix (e.g., AllowRealtimeMonitoring, AllowBehaviorMonitoring)
+    #   where 1 = enabled and 0 = disabled
+    # - GPO/SCCM/SSM: Uses "Disable" prefix (e.g., DisableRealtimeMonitoring, DisableBehaviorMonitoring)
+    #   where 0 = enabled and 1 = disabled
+    # This is due to the different CSP (Configuration Service Provider) implementations.
     
     $intuneBasePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
     $gpoBasePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
@@ -297,6 +302,8 @@ function Get-MDEPolicySettingConfig {
             DisplayName = 'Real-Time Protection'
         }
         'CloudProtection' = @{
+            # Note: "Spynet" is the legacy registry path name for Cloud Protection/MAPS
+            # (Microsoft Active Protection Service). Microsoft still uses this path internally.
             Intune = @{ Path = $intuneBasePath; Name = 'AllowCloudProtection' }
             GPO = @{ Path = "$gpoBasePath\Spynet"; Name = 'SpynetReporting' }
             DisplayName = 'Cloud Protection (MAPS)'
@@ -312,6 +319,7 @@ function Get-MDEPolicySettingConfig {
             DisplayName = 'Cloud Extended Timeout'
         }
         'SampleSubmission' = @{
+            # Note: "Spynet" is the legacy registry path name for Cloud Protection/MAPS
             Intune = @{ Path = $intuneBasePath; Name = 'SubmitSamplesConsent' }
             GPO = @{ Path = "$gpoBasePath\Spynet"; Name = 'SubmitSamplesConsent' }
             DisplayName = 'Sample Submission'
@@ -327,8 +335,8 @@ function Get-MDEPolicySettingConfig {
             DisplayName = 'Network Protection'
         }
         'AttackSurfaceReduction' = @{
-            # For Intune, ASR rules are stored as individual GUIDs with values like "92e97fa1-2edf-4476-bdd6-9dd0b4dddc7b=2|..."
-            # We'll check for the ASRRules key which indicates ASR is configured
+            # ASR rules verification: Intune stores rules in a combined ASRRules key,
+            # while GPO uses ExploitGuard_ASR_Rules. Both indicate ASR is configured.
             Intune = @{ Path = $intuneBasePath; Name = 'ASRRules' }
             GPO = @{ Path = "$gpoBasePath\Windows Defender Exploit Guard\ASR"; Name = 'ExploitGuard_ASR_Rules' }
             DisplayName = 'Attack Surface Reduction Rules'
