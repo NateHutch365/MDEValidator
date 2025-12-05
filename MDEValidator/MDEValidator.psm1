@@ -687,29 +687,36 @@ function Get-MDEOperatingSystemInfo {
 function Get-MDESecuritySettingsManagementStatus {
     <#
     .SYNOPSIS
-        Gets the Security Settings Management (MDE-attach) enrollment status.
+        Gets the device management status for MDE policy settings.
     
     .DESCRIPTION
-        Retrieves the Security Settings Management enrollment status from the registry.
-        This is informational and indicates how the device is managed for security settings.
+        Retrieves the device management status from the SenseCM registry key.
+        If the SenseCM key is not found, falls back to detecting management type
+        based on Windows Defender policy registry paths:
+        - HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager = Intune
+        - HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender = Security Settings Management
     
     .EXAMPLE
         Get-MDESecuritySettingsManagementStatus
         
-        Returns a string like "Enrolled to Security Settings Management" or 
-        "Managed by Intune" depending on the enrollment status.
+        Returns a string like "Intune" or "Security Settings Management" 
+        depending on the management status.
     
     .OUTPUTS
-        String containing the Security Settings Management enrollment status.
+        String containing the device management status.
     
     .NOTES
-        Registry location: HKLM\SOFTWARE\Microsoft\SenseCM
+        Primary Registry location: HKLM\SOFTWARE\Microsoft\SenseCM
         EnrollmentStatus REG_DWORD values and their return strings:
         0 = "Failed / Not Successfully Enrolled"
-        1 = "Enrolled to Security Settings Management"
+        1 = "Security Settings Management"
         2 = "Not Enrolled (never enrolled)"
-        3 = "Managed by Intune"
-        4 = "Managed by Configuration Manager (SCCM)"
+        3 = "Intune"
+        4 = "Configuration Manager (SCCM)"
+        
+        Fallback detection:
+        - HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager (with entries) = Intune
+        - HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender (with entries) = Security Settings Management
     #>
     [CmdletBinding()]
     param()
@@ -719,13 +726,15 @@ function Get-MDESecuritySettingsManagementStatus {
         $senseCmPath = 'HKLM:\SOFTWARE\Microsoft\SenseCM'
         
         if (-not (Test-Path $senseCmPath)) {
-            return "Not Available (SenseCM registry key not found)"
+            # SenseCM key not found - use fallback detection based on policy registry paths
+            return Get-MDEManagementTypeFallback
         }
         
         $senseCmInfo = Get-ItemProperty -Path $senseCmPath -ErrorAction SilentlyContinue
         
         if ($null -eq $senseCmInfo -or $null -eq $senseCmInfo.EnrollmentStatus) {
-            return "Not Configured"
+            # EnrollmentStatus not set - use fallback detection
+            return Get-MDEManagementTypeFallback
         }
         
         $enrollmentStatus = $senseCmInfo.EnrollmentStatus
@@ -733,15 +742,85 @@ function Get-MDESecuritySettingsManagementStatus {
         # Map enrollment status values to human-readable strings
         switch ($enrollmentStatus) {
             0 { return "Failed / Not Successfully Enrolled" }
-            1 { return "Enrolled to Security Settings Management" }
+            1 { return "Security Settings Management" }
             2 { return "Not Enrolled (never enrolled)" }
-            3 { return "Managed by Intune" }
-            4 { return "Managed by Configuration Manager (SCCM)" }
+            3 { return "Intune" }
+            4 { return "Configuration Manager (SCCM)" }
             default { return "Unknown Status ($enrollmentStatus)" }
         }
     }
     catch {
         return "Error retrieving status"
+    }
+}
+
+function Get-MDEManagementTypeFallback {
+    <#
+    .SYNOPSIS
+        Detects management type based on Windows Defender policy registry paths.
+    
+    .DESCRIPTION
+        Fallback detection when SenseCM registry key is not available.
+        Checks for the presence of policy entries in registry paths to determine
+        if the device is managed by Intune or Security Settings Management.
+    
+    .OUTPUTS
+        String containing the detected management type.
+    
+    .NOTES
+        Detection logic:
+        - If HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager has entries -> Intune
+        - If HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender has entries -> Security Settings Management
+        - Otherwise -> Not Configured
+    #>
+    [CmdletBinding()]
+    param()
+    
+    # Pattern to filter out PowerShell automatic properties from registry entries
+    $psAutoPropertiesPattern = '^PS(Path|ParentPath|ChildName|Provider|Drive)$'
+    
+    try {
+        $intunePolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
+        $ssmPolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
+        
+        # Check for Intune policy entries first (more specific path)
+        if (Test-Path $intunePolicyPath) {
+            $intuneEntries = Get-ItemProperty -Path $intunePolicyPath -ErrorAction SilentlyContinue
+            if ($null -ne $intuneEntries) {
+                # Check if there are any values (excluding PSPath, PSParentPath, etc.)
+                $valueNames = @($intuneEntries.PSObject.Properties | 
+                    Where-Object { $_.Name -notmatch $psAutoPropertiesPattern } |
+                    Select-Object -ExpandProperty Name)
+                if ($valueNames.Count -gt 0) {
+                    return "Intune"
+                }
+            }
+        }
+        
+        # Check for Security Settings Management / GPO policy entries
+        if (Test-Path $ssmPolicyPath) {
+            $ssmEntries = Get-ItemProperty -Path $ssmPolicyPath -ErrorAction SilentlyContinue
+            # Check if any subkeys exist - limit to first result for efficiency
+            $hasSubKeys = $null -ne (Get-ChildItem -Path $ssmPolicyPath -ErrorAction SilentlyContinue | Select-Object -First 1)
+            
+            if ($null -ne $ssmEntries) {
+                # Check if there are any values (excluding PSPath, PSParentPath, etc.)
+                $valueNames = @($ssmEntries.PSObject.Properties | 
+                    Where-Object { $_.Name -notmatch $psAutoPropertiesPattern } |
+                    Select-Object -ExpandProperty Name)
+                if ($valueNames.Count -gt 0 -or $hasSubKeys) {
+                    return "Security Settings Management"
+                }
+            }
+            elseif ($hasSubKeys) {
+                return "Security Settings Management"
+            }
+        }
+        
+        return "Not Configured"
+    }
+    catch {
+        return "Not Configured"
     }
 }
 
@@ -3244,8 +3323,8 @@ function Get-MDEValidationReport {
     # Get OS information for the report header
     $osInfo = Get-MDEOperatingSystemInfo
     
-    # Get Security Settings Management status for the report header
-    $ssmStatus = Get-MDESecuritySettingsManagementStatus
+    # Get management status for the report header
+    $managedByStatus = Get-MDESecuritySettingsManagementStatus
     
     switch ($OutputFormat) {
         'Object' {
@@ -3258,7 +3337,7 @@ function Get-MDEValidationReport {
             Write-Host "  Generated: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')" -ForegroundColor Cyan
             Write-Host "  Computer: $env:COMPUTERNAME" -ForegroundColor Cyan
             Write-Host "  OS: $osInfo" -ForegroundColor Cyan
-            Write-Host "  Security Settings Management: $ssmStatus" -ForegroundColor Cyan
+            Write-Host "  Managed By: $managedByStatus" -ForegroundColor Cyan
             Write-Host "========================================`n" -ForegroundColor Cyan
             
             foreach ($result in $results) {
@@ -3398,7 +3477,7 @@ function Get-MDEValidationReport {
         <div class="meta">
             <p><strong>Computer:</strong> $(ConvertTo-HtmlEncodedString $env:COMPUTERNAME)</p>
             <p><strong>OS:</strong> $(ConvertTo-HtmlEncodedString $osInfo)</p>
-            <p><strong>Security Settings Management:</strong> $(ConvertTo-HtmlEncodedString $ssmStatus)</p>
+            <p><strong>Managed By:</strong> $(ConvertTo-HtmlEncodedString $managedByStatus)</p>
             <p><strong>Generated:</strong> $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
         </div>
         
@@ -3466,6 +3545,7 @@ Export-ModuleMember -Function @(
     'Get-MDEOperatingSystemInfo',
     'Get-MDESecuritySettingsManagementStatus',
     'Get-MDEManagementType',
+    'Get-MDEManagementTypeFallback',
     'Get-MDEPolicyRegistryPath',
     'Get-MDEPolicySettingConfig',
     'Test-MDEPolicyRegistryValue',

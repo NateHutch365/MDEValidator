@@ -131,8 +131,25 @@ Describe 'MDEValidator Module' {
         
         It 'Should return a valid status message' {
             $result = Get-MDESecuritySettingsManagementStatus
-            # Valid status messages include enrollment status descriptions or error/not available messages
-            $result | Should -Match '(Failed|Enrolled|Not Enrolled|Managed by|Not Available|Not Configured|Unknown Status|Error)'
+            # Valid status messages include enrollment status descriptions, management type, or fallback messages
+            $result | Should -Match '(Failed|Not Enrolled|Intune|Security Settings Management|Configuration Manager|Not Configured|Unknown Status|Error)'
+        }
+    }
+    
+    Context 'Get-MDEManagementTypeFallback' {
+        It 'Should return a non-empty string' {
+            $result = Get-MDEManagementTypeFallback
+            $result | Should -Not -BeNullOrEmpty
+            $result | Should -BeOfType [string]
+        }
+        
+        It 'Should return a valid management type' {
+            $result = Get-MDEManagementTypeFallback
+            $result | Should -BeIn @('Intune', 'Security Settings Management', 'Not Configured')
+        }
+        
+        It 'Should export Get-MDEManagementTypeFallback function' {
+            Get-Command -Name 'Get-MDEManagementTypeFallback' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
     }
     
