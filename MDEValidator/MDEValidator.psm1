@@ -231,6 +231,173 @@ function Get-MDEPolicyRegistryPath {
     return 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
 }
 
+function Get-MDEPolicySettingConfig {
+    <#
+    .SYNOPSIS
+        Gets the registry configuration for a policy setting based on management type.
+    
+    .DESCRIPTION
+        Returns the correct registry path and setting name for a policy setting
+        based on whether the device is managed by Intune or GPO/SSM/SCCM.
+        
+        Intune stores settings directly in Policy Manager with different key names.
+        GPO/SSM/SCCM stores settings in subfolders with traditional key names.
+    
+    .PARAMETER SettingKey
+        The logical setting key (e.g., 'RealTimeProtection', 'CloudProtection').
+    
+    .PARAMETER ManagementType
+        The management type: 'Intune', 'SecuritySettingsManagement', 'SCCM', 'GPO', or 'None'
+    
+    .OUTPUTS
+        PSCustomObject with properties:
+        - Path: The full registry path for the setting
+        - SettingName: The registry value name
+        - DisplayName: Human-readable name for the setting
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet(
+            'RealTimeProtection',
+            'CloudProtection',
+            'CloudBlockLevel',
+            'CloudExtendedTimeout',
+            'SampleSubmission',
+            'BehaviorMonitoring',
+            'NetworkProtection',
+            'AttackSurfaceReduction',
+            'HideExclusionsFromLocalUsers',
+            'HideExclusionsFromLocalAdmins',
+            'CatchupQuickScan',
+            'RealTimeScanDirection',
+            'SignatureFallbackOrder',
+            'SignatureUpdateInterval',
+            'DisableLocalAdminMerge'
+        )]
+        [string]$SettingKey,
+        
+        [Parameter(Mandatory)]
+        [ValidateSet('Intune', 'SecuritySettingsManagement', 'SCCM', 'GPO', 'None')]
+        [string]$ManagementType
+    )
+    
+    # Define the configuration mappings
+    # 
+    # Registry naming conventions differ between Intune and GPO:
+    # - Intune (Policy Manager): Uses "Allow" prefix (e.g., AllowRealtimeMonitoring, AllowBehaviorMonitoring)
+    #   where 1 = enabled and 0 = disabled
+    # - GPO/SCCM/SSM: Uses "Disable" prefix (e.g., DisableRealtimeMonitoring, DisableBehaviorMonitoring)
+    #   where 0 = enabled and 1 = disabled
+    # This is due to the different CSP (Configuration Service Provider) implementations.
+    
+    $intuneBasePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
+    $gpoBasePath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
+    
+    # Configuration: [SettingKey] = @{ Intune = @{Path, Name}; GPO = @{Path, Name}; DisplayName }
+    $settingConfigs = @{
+        'RealTimeProtection' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'AllowRealtimeMonitoring' }
+            GPO = @{ Path = "$gpoBasePath\Real-Time Protection"; Name = 'DisableRealtimeMonitoring' }
+            DisplayName = 'Real-Time Protection'
+        }
+        'CloudProtection' = @{
+            # Note: "Spynet" is the legacy registry path name for Cloud Protection/MAPS
+            # (Microsoft Active Protection Service). Microsoft still uses this path internally.
+            Intune = @{ Path = $intuneBasePath; Name = 'AllowCloudProtection' }
+            GPO = @{ Path = "$gpoBasePath\Spynet"; Name = 'SpynetReporting' }
+            DisplayName = 'Cloud Protection (MAPS)'
+        }
+        'CloudBlockLevel' = @{
+            Intune = @{ Path = "$gpoBasePath\MpEngine"; Name = 'MpCloudBlockLevel' }
+            GPO = @{ Path = "$gpoBasePath\MpEngine"; Name = 'MpCloudBlockLevel' }
+            DisplayName = 'Cloud Block Level'
+        }
+        'CloudExtendedTimeout' = @{
+            Intune = @{ Path = "$gpoBasePath\MpEngine"; Name = 'MpBafsExtendedTimeout' }
+            GPO = @{ Path = "$gpoBasePath\MpEngine"; Name = 'MpBafsExtendedTimeout' }
+            DisplayName = 'Cloud Extended Timeout'
+        }
+        'SampleSubmission' = @{
+            # Note: "Spynet" is the legacy registry path name for Cloud Protection/MAPS
+            Intune = @{ Path = $intuneBasePath; Name = 'SubmitSamplesConsent' }
+            GPO = @{ Path = "$gpoBasePath\Spynet"; Name = 'SubmitSamplesConsent' }
+            DisplayName = 'Sample Submission'
+        }
+        'BehaviorMonitoring' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'AllowBehaviorMonitoring' }
+            GPO = @{ Path = "$gpoBasePath\Real-Time Protection"; Name = 'DisableBehaviorMonitoring' }
+            DisplayName = 'Behavior Monitoring'
+        }
+        'NetworkProtection' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'EnableNetworkProtection' }
+            GPO = @{ Path = "$gpoBasePath\Windows Defender Exploit Guard\Network Protection"; Name = 'EnableNetworkProtection' }
+            DisplayName = 'Network Protection'
+        }
+        'AttackSurfaceReduction' = @{
+            # ASR rules verification: Intune stores rules in a combined ASRRules key,
+            # while GPO uses ExploitGuard_ASR_Rules. Both indicate ASR is configured.
+            Intune = @{ Path = $intuneBasePath; Name = 'ASRRules' }
+            GPO = @{ Path = "$gpoBasePath\Windows Defender Exploit Guard\ASR"; Name = 'ExploitGuard_ASR_Rules' }
+            DisplayName = 'Attack Surface Reduction Rules'
+        }
+        'HideExclusionsFromLocalUsers' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'HideExclusionsFromLocalUsers' }
+            GPO = @{ Path = "$gpoBasePath\Exclusions"; Name = 'HideExclusionsFromLocalUsers' }
+            DisplayName = 'Hide Exclusions From Local Users'
+        }
+        'HideExclusionsFromLocalAdmins' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'HideExclusionsFromLocalAdmins' }
+            GPO = @{ Path = "$gpoBasePath\Exclusions"; Name = 'HideExclusionsFromLocalAdmins' }
+            DisplayName = 'Hide Exclusions From Local Admins'
+        }
+        'CatchupQuickScan' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'DisableCatchupQuickScan' }
+            GPO = @{ Path = "$gpoBasePath\Scan"; Name = 'DisableCatchupQuickScan' }
+            DisplayName = 'Catchup Quick Scan'
+        }
+        'RealTimeScanDirection' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'RealTimeScanDirection' }
+            GPO = @{ Path = "$gpoBasePath\Real-Time Protection"; Name = 'RealTimeScanDirection' }
+            DisplayName = 'Real-Time Scan Direction'
+        }
+        'SignatureFallbackOrder' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'SignatureFallbackOrder' }
+            GPO = @{ Path = "$gpoBasePath\Signature Updates"; Name = 'FallbackOrder' }
+            DisplayName = 'Signature Fallback Order'
+        }
+        'SignatureUpdateInterval' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'SignatureUpdateInterval' }
+            GPO = @{ Path = "$gpoBasePath\Signature Updates"; Name = 'SignatureUpdateInterval' }
+            DisplayName = 'Signature Update Interval'
+        }
+        'DisableLocalAdminMerge' = @{
+            Intune = @{ Path = $intuneBasePath; Name = 'DisableLocalAdminMerge' }
+            GPO = @{ Path = $gpoBasePath; Name = 'DisableLocalAdminMerge' }
+            DisplayName = 'Disable Local Admin Merge'
+        }
+    }
+    
+    $config = $settingConfigs[$SettingKey]
+    if ($null -eq $config) {
+        return $null
+    }
+    
+    # Determine which configuration to use based on management type
+    $pathConfig = if ($ManagementType -eq 'Intune') {
+        $config.Intune
+    } else {
+        # GPO, SSM, SCCM, and None all use the GPO path structure
+        $config.GPO
+    }
+    
+    return [PSCustomObject]@{
+        Path = $pathConfig.Path
+        SettingName = $pathConfig.Name
+        DisplayName = $config.DisplayName
+    }
+}
+
 function Test-MDEPolicyRegistryValue {
     <#
     .SYNOPSIS
@@ -240,14 +407,21 @@ function Test-MDEPolicyRegistryValue {
         Verifies that a Windows Defender policy setting exists in the correct
         registry location based on the device's management type.
     
+    .PARAMETER SettingKey
+        The logical setting key (e.g., 'RealTimeProtection'). When provided,
+        the function automatically determines the correct path and setting name
+        based on the management type.
+    
     .PARAMETER SettingName
         The name of the setting to verify (e.g., 'DisableRealtimeMonitoring').
+        Used for backward compatibility. Ignored if SettingKey is provided.
     
     .PARAMETER ExpectedValue
         The expected value for the setting.
     
     .PARAMETER SubPath
         Optional subpath under the main policy path (e.g., 'Real-Time Protection').
+        Used for backward compatibility. Ignored if SettingKey is provided.
     
     .OUTPUTS
         PSCustomObject with properties:
@@ -255,6 +429,7 @@ function Test-MDEPolicyRegistryValue {
         - Value: The actual value found (if any)
         - Path: The full registry path checked
         - ManagementType: The detected management type
+        - SettingName: The registry value name that was checked
     
     .NOTES
         This function checks the appropriate registry location based on the
@@ -262,7 +437,10 @@ function Test-MDEPolicyRegistryValue {
     #>
     [CmdletBinding()]
     param(
-        [Parameter(Mandatory)]
+        [Parameter()]
+        [string]$SettingKey,
+        
+        [Parameter()]
         [string]$SettingName,
         
         [Parameter()]
@@ -273,13 +451,28 @@ function Test-MDEPolicyRegistryValue {
     )
     
     $managementType = Get-MDEManagementType
-    $basePath = Get-MDEPolicyRegistryPath -ManagementType $managementType
     
-    # Construct full path including optional subpath
-    $fullPath = if ([string]::IsNullOrEmpty($SubPath)) {
-        $basePath
+    # If SettingKey is provided, use the new configuration-based approach
+    if (-not [string]::IsNullOrEmpty($SettingKey)) {
+        $config = Get-MDEPolicySettingConfig -SettingKey $SettingKey -ManagementType $managementType
+        if ($null -ne $config) {
+            $fullPath = $config.Path
+            $actualSettingName = $config.SettingName
+        } else {
+            # Fallback to old behavior if config not found
+            $basePath = Get-MDEPolicyRegistryPath -ManagementType $managementType
+            $fullPath = $basePath
+            $actualSettingName = $SettingName
+        }
     } else {
-        Join-Path $basePath $SubPath
+        # Backward compatibility: use the old SubPath approach
+        $basePath = Get-MDEPolicyRegistryPath -ManagementType $managementType
+        $fullPath = if ([string]::IsNullOrEmpty($SubPath)) {
+            $basePath
+        } else {
+            Join-Path $basePath $SubPath
+        }
+        $actualSettingName = $SettingName
     }
     
     $result = [PSCustomObject]@{
@@ -287,15 +480,15 @@ function Test-MDEPolicyRegistryValue {
         Value = $null
         Path = $fullPath
         ManagementType = $managementType
-        SettingName = $SettingName
+        SettingName = $actualSettingName
     }
     
     try {
         if (Test-Path $fullPath) {
-            $regValue = Get-ItemProperty -Path $fullPath -Name $SettingName -ErrorAction SilentlyContinue
-            if ($null -ne $regValue -and $null -ne $regValue.$SettingName) {
+            $regValue = Get-ItemProperty -Path $fullPath -Name $actualSettingName -ErrorAction SilentlyContinue
+            if ($null -ne $regValue -and $null -ne $regValue.$actualSettingName) {
                 $result.Found = $true
-                $result.Value = $regValue.$SettingName
+                $result.Value = $regValue.$actualSettingName
             }
         }
     }
@@ -319,14 +512,19 @@ function Test-MDEPolicyRegistryVerification {
     .PARAMETER ParentTestName
         The name of the parent test (e.g., 'Real-Time Protection').
     
+    .PARAMETER SettingKey
+        The logical setting key (e.g., 'RealTimeProtection'). When provided,
+        the function automatically determines the correct path, setting name,
+        and display name based on the management type.
+    
     .PARAMETER SettingName
-        The registry setting name to verify.
+        The registry setting name to verify (deprecated, use SettingKey instead).
     
     .PARAMETER SettingDisplayName
-        Human-readable name for the setting.
+        Human-readable name for the setting (deprecated, use SettingKey instead).
     
     .PARAMETER SubPath
-        Optional subpath under the main policy path.
+        Optional subpath under the main policy path (deprecated, use SettingKey instead).
     
     .PARAMETER ExpectedValue
         The expected value for the setting (optional).
@@ -343,10 +541,13 @@ function Test-MDEPolicyRegistryVerification {
         [Parameter(Mandatory)]
         [string]$ParentTestName,
         
-        [Parameter(Mandatory)]
+        [Parameter()]
+        [string]$SettingKey,
+        
+        [Parameter()]
         [string]$SettingName,
         
-        [Parameter(Mandatory)]
+        [Parameter()]
         [string]$SettingDisplayName,
         
         [Parameter()]
@@ -375,7 +576,16 @@ function Test-MDEPolicyRegistryVerification {
             -Message "This setting cannot be enforced via Security Settings Management. Only Antivirus, ASR, EDR, and Firewall policies are supported."
     }
     
-    $regResult = Test-MDEPolicyRegistryValue -SettingName $SettingName -SubPath $SubPath -ExpectedValue $ExpectedValue
+    # Use SettingKey if provided, otherwise fall back to legacy parameters
+    if (-not [string]::IsNullOrEmpty($SettingKey)) {
+        $regResult = Test-MDEPolicyRegistryValue -SettingKey $SettingKey -ExpectedValue $ExpectedValue
+        # Get the display name from the configuration
+        $config = Get-MDEPolicySettingConfig -SettingKey $SettingKey -ManagementType $managementType
+        $displayName = if ($null -ne $config) { $config.DisplayName } else { $SettingKey }
+    } else {
+        $regResult = Test-MDEPolicyRegistryValue -SettingName $SettingName -SubPath $SubPath -ExpectedValue $ExpectedValue
+        $displayName = $SettingDisplayName
+    }
     
     if ($regResult.Found) {
         $valueInfo = if ($null -ne $ExpectedValue) {
@@ -386,10 +596,10 @@ function Test-MDEPolicyRegistryVerification {
         }
         
         return Write-ValidationResult -TestName $testName -Status 'Pass' `
-            -Message "Policy registry entry verified. $SettingDisplayName found at $($regResult.Path). $valueInfo. Management type: $($regResult.ManagementType)."
+            -Message "Policy registry entry verified. $displayName found at $($regResult.Path)\$($regResult.SettingName). $valueInfo. Management type: $($regResult.ManagementType)."
     } else {
         $recommendation = @"
-The policy registry entry for $SettingDisplayName was not found at $($regResult.Path).
+The policy registry entry for $displayName was not found at $($regResult.Path)\$($regResult.SettingName).
 This may indicate:
 - The policy has not been deployed via $($regResult.ManagementType)
 - The policy is configured locally but not via management tools
@@ -398,7 +608,7 @@ Verify the policy is correctly configured in your management solution ($($regRes
 "@
         
         return Write-ValidationResult -TestName $testName -Status 'Warning' `
-            -Message "Policy registry entry not found. Expected $SettingDisplayName at $($regResult.Path). Management type: $($regResult.ManagementType)." `
+            -Message "Policy registry entry not found. Expected $displayName at $($regResult.Path)\$($regResult.SettingName). Management type: $($regResult.ManagementType)." `
             -Recommendation $recommendation
     }
 }
@@ -2726,50 +2936,43 @@ function Test-MDEConfiguration {
     $results += Test-MDERealTimeProtection
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Real-Time Protection' `
-            -SettingName 'DisableRealtimeMonitoring' -SettingDisplayName 'DisableRealtimeMonitoring' `
-            -SubPath 'Real-Time Protection' -IsApplicableToSSM $true
+            -SettingKey 'RealTimeProtection' -IsApplicableToSSM $true
     }
     
     $results += Test-MDECloudProtection
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Cloud-Delivered Protection' `
-            -SettingName 'MAPSReporting' -SettingDisplayName 'MAPSReporting (MAPS)' `
-            -SubPath 'Spynet' -IsApplicableToSSM $true
+            -SettingKey 'CloudProtection' -IsApplicableToSSM $true
     }
     
     $results += Test-MDECloudBlockLevel
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Cloud Block Level' `
-            -SettingName 'MpCloudBlockLevel' -SettingDisplayName 'MpCloudBlockLevel' `
-            -SubPath 'MpEngine' -IsApplicableToSSM $true
+            -SettingKey 'CloudBlockLevel' -IsApplicableToSSM $true
     }
     
     $results += Test-MDECloudExtendedTimeout
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Cloud Extended Timeout' `
-            -SettingName 'MpBafsExtendedTimeout' -SettingDisplayName 'MpBafsExtendedTimeout' `
-            -SubPath 'MpEngine' -IsApplicableToSSM $true
+            -SettingKey 'CloudExtendedTimeout' -IsApplicableToSSM $true
     }
     
     $results += Test-MDESampleSubmission
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Automatic Sample Submission' `
-            -SettingName 'SubmitSamplesConsent' -SettingDisplayName 'SubmitSamplesConsent' `
-            -SubPath 'Spynet' -IsApplicableToSSM $true
+            -SettingKey 'SampleSubmission' -IsApplicableToSSM $true
     }
     
     $results += Test-MDEBehaviorMonitoring
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Behavior Monitoring' `
-            -SettingName 'DisableBehaviorMonitoring' -SettingDisplayName 'DisableBehaviorMonitoring' `
-            -SubPath 'Real-Time Protection' -IsApplicableToSSM $true
+            -SettingKey 'BehaviorMonitoring' -IsApplicableToSSM $true
     }
     
     $results += Test-MDENetworkProtection
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Network Protection' `
-            -SettingName 'EnableNetworkProtection' -SettingDisplayName 'EnableNetworkProtection' `
-            -SubPath 'Windows Defender Exploit Guard\Network Protection' -IsApplicableToSSM $true
+            -SettingKey 'NetworkProtection' -IsApplicableToSSM $true
     }
     
     $results += Test-MDENetworkProtectionWindowsServer
@@ -2777,10 +2980,8 @@ function Test-MDEConfiguration {
     
     $results += Test-MDEAttackSurfaceReduction
     if ($IncludePolicyVerification) {
-        # ASR rules are stored in a specific subpath
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Attack Surface Reduction Rules' `
-            -SettingName 'ExploitGuard_ASR_Rules' -SettingDisplayName 'ExploitGuard_ASR_Rules' `
-            -SubPath 'Windows Defender Exploit Guard\ASR' -IsApplicableToSSM $true
+            -SettingKey 'AttackSurfaceReduction' -IsApplicableToSSM $true
     }
     
     $results += Test-MDEThreatDefaultActions
@@ -2790,15 +2991,13 @@ function Test-MDEConfiguration {
     $results += Test-MDEExclusionVisibilityLocalAdmins
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Exclusion Visibility (Local Admins)' `
-            -SettingName 'HideExclusionsFromLocalAdmins' -SettingDisplayName 'HideExclusionsFromLocalAdmins' `
-            -SubPath 'Exclusions' -IsApplicableToSSM $false
+            -SettingKey 'HideExclusionsFromLocalAdmins' -IsApplicableToSSM $false
     }
     
     $results += Test-MDEExclusionVisibilityLocalUsers
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Exclusion Visibility (Local Users)' `
-            -SettingName 'HideExclusionsFromLocalUsers' -SettingDisplayName 'HideExclusionsFromLocalUsers' `
-            -SubPath 'Exclusions' -IsApplicableToSSM $false
+            -SettingKey 'HideExclusionsFromLocalUsers' -IsApplicableToSSM $false
     }
     
     # Edge SmartScreen tests - NOT applicable to Security Settings Management
@@ -2813,36 +3012,31 @@ function Test-MDEConfiguration {
     $results += Test-MDEDisableCatchupQuickScan
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Catchup Quick Scan' `
-            -SettingName 'DisableCatchupQuickScan' -SettingDisplayName 'DisableCatchupQuickScan' `
-            -SubPath 'Scan' -IsApplicableToSSM $true
+            -SettingKey 'CatchupQuickScan' -IsApplicableToSSM $true
     }
     
     $results += Test-MDERealTimeScanDirection
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Real Time Scan Direction' `
-            -SettingName 'RealTimeScanDirection' -SettingDisplayName 'RealTimeScanDirection' `
-            -SubPath 'Real-Time Protection' -IsApplicableToSSM $true
+            -SettingKey 'RealTimeScanDirection' -IsApplicableToSSM $true
     }
     
     $results += Test-MDESignatureUpdateFallbackOrder
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Signature Update Fallback Order' `
-            -SettingName 'SignatureFallbackOrder' -SettingDisplayName 'SignatureFallbackOrder' `
-            -SubPath 'Signature Updates' -IsApplicableToSSM $true
+            -SettingKey 'SignatureFallbackOrder' -IsApplicableToSSM $true
     }
     
     $results += Test-MDESignatureUpdateInterval
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Signature Update Interval' `
-            -SettingName 'SignatureUpdateInterval' -SettingDisplayName 'SignatureUpdateInterval' `
-            -SubPath 'Signature Updates' -IsApplicableToSSM $true
+            -SettingKey 'SignatureUpdateInterval' -IsApplicableToSSM $true
     }
     
     $results += Test-MDEDisableLocalAdminMerge
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Disable Local Admin Merge' `
-            -SettingName 'DisableLocalAdminMerge' -SettingDisplayName 'DisableLocalAdminMerge' `
-            -IsApplicableToSSM $true
+            -SettingKey 'DisableLocalAdminMerge' -IsApplicableToSSM $true
     }
     
     if ($IncludeOnboarding) {
@@ -3146,6 +3340,7 @@ Export-ModuleMember -Function @(
     'Get-MDESecuritySettingsManagementStatus',
     'Get-MDEManagementType',
     'Get-MDEPolicyRegistryPath',
+    'Get-MDEPolicySettingConfig',
     'Test-MDEPolicyRegistryValue',
     'Test-MDEPolicyRegistryVerification',
     'Test-MDEServiceStatus',

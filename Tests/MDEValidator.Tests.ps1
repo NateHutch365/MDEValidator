@@ -681,6 +681,54 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Get-MDEPolicySettingConfig' {
+        It 'Should export Get-MDEPolicySettingConfig function' {
+            Get-Command -Name 'Get-MDEPolicySettingConfig' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should return correct Intune path for RealTimeProtection' {
+            $result = Get-MDEPolicySettingConfig -SettingKey 'RealTimeProtection' -ManagementType 'Intune'
+            $result | Should -Not -BeNullOrEmpty
+            $result.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
+            $result.SettingName | Should -Be 'AllowRealtimeMonitoring'
+        }
+        
+        It 'Should return correct GPO path for RealTimeProtection' {
+            $result = Get-MDEPolicySettingConfig -SettingKey 'RealTimeProtection' -ManagementType 'GPO'
+            $result | Should -Not -BeNullOrEmpty
+            $result.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection'
+            $result.SettingName | Should -Be 'DisableRealtimeMonitoring'
+        }
+        
+        It 'Should return correct Intune path for CloudProtection' {
+            $result = Get-MDEPolicySettingConfig -SettingKey 'CloudProtection' -ManagementType 'Intune'
+            $result | Should -Not -BeNullOrEmpty
+            $result.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
+            $result.SettingName | Should -Be 'AllowCloudProtection'
+        }
+        
+        It 'Should return correct GPO path for CloudProtection' {
+            $result = Get-MDEPolicySettingConfig -SettingKey 'CloudProtection' -ManagementType 'GPO'
+            $result | Should -Not -BeNullOrEmpty
+            $result.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Spynet'
+            $result.SettingName | Should -Be 'SpynetReporting'
+        }
+        
+        It 'Should return same MpEngine path for CloudBlockLevel regardless of management type' {
+            $intuneResult = Get-MDEPolicySettingConfig -SettingKey 'CloudBlockLevel' -ManagementType 'Intune'
+            $gpoResult = Get-MDEPolicySettingConfig -SettingKey 'CloudBlockLevel' -ManagementType 'GPO'
+            $intuneResult.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\MpEngine'
+            $gpoResult.Path | Should -Be 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\MpEngine'
+            $intuneResult.SettingName | Should -Be 'MpCloudBlockLevel'
+            $gpoResult.SettingName | Should -Be 'MpCloudBlockLevel'
+        }
+        
+        It 'Should return DisplayName property' {
+            $result = Get-MDEPolicySettingConfig -SettingKey 'RealTimeProtection' -ManagementType 'Intune'
+            $result.DisplayName | Should -Not -BeNullOrEmpty
+        }
+    }
+    
     Context 'Test-MDEPolicyRegistryValue' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Test-MDEPolicyRegistryValue -SettingName 'DisableRealtimeMonitoring' -SubPath 'Real-Time Protection'
@@ -703,7 +751,17 @@ Describe 'MDEValidator Module' {
     }
     
     Context 'Test-MDEPolicyRegistryVerification' {
-        It 'Should return a PSCustomObject with expected properties' {
+        It 'Should return a PSCustomObject with expected properties using SettingKey' {
+            $result = Test-MDEPolicyRegistryVerification -ParentTestName 'Real-Time Protection' `
+                -SettingKey 'RealTimeProtection'
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Match 'Policy Registry Verification'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should return a PSCustomObject with expected properties using legacy parameters' {
             $result = Test-MDEPolicyRegistryVerification -ParentTestName 'Real-Time Protection' `
                 -SettingName 'DisableRealtimeMonitoring' -SettingDisplayName 'DisableRealtimeMonitoring'
             $result | Should -Not -BeNullOrEmpty
@@ -716,8 +774,7 @@ Describe 'MDEValidator Module' {
         It 'Should handle SSM-incompatible settings on SSM-managed devices' {
             # This test verifies the function handles IsApplicableToSSM correctly
             $result = Test-MDEPolicyRegistryVerification -ParentTestName 'Exclusion Visibility' `
-                -SettingName 'HideExclusionsFromLocalAdmins' -SettingDisplayName 'HideExclusionsFromLocalAdmins' `
-                -IsApplicableToSSM $false
+                -SettingKey 'HideExclusionsFromLocalAdmins' -IsApplicableToSSM $false
             $result | Should -Not -BeNullOrEmpty
             # Status will depend on management type
             $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
