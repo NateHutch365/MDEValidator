@@ -1658,9 +1658,16 @@ function Test-MDEExclusionVisibilityLocalAdmins {
             
             # Check if ExclusionExtension contains the "not allowed to view" message
             # This is a reliable indicator that HideExclusionsFromLocalAdmins is enabled
+            # The message format is: "{N/A: Administrators are not allowed to view exclusions}"
+            $exclusionsHiddenMessage = 'Administrators are not allowed to view exclusions'
             if ($null -ne $mpPreference.ExclusionExtension) {
-                $exclusionExtension = $mpPreference.ExclusionExtension -join ''
-                if ($exclusionExtension -match 'Administrators are not allowed to view exclusions') {
+                # Handle both array and single string cases properly
+                $exclusionExtensionValue = if ($mpPreference.ExclusionExtension -is [array]) {
+                    $mpPreference.ExclusionExtension -join ' '
+                } else {
+                    [string]$mpPreference.ExclusionExtension
+                }
+                if ($exclusionExtensionValue -match [regex]::Escape($exclusionsHiddenMessage)) {
                     $hideFromLocalAdmins = 1
                     $source = 'Get-MpPreference (exclusions hidden)'
                 }
@@ -2957,6 +2964,7 @@ function Test-MDEFileHashComputation {
     param()
     
     $testName = 'File Hash Computation'
+    $enableRecommendation = "Enable File Hash Computation via Group Policy or 'Set-MpPreference -EnableFileHashComputation `$true' to enable file hash-based threat detection and IoC matching."
     
     try {
         $mpPreference = Get-MpPreference -ErrorAction Stop
@@ -2967,14 +2975,14 @@ function Test-MDEFileHashComputation {
         if ($null -eq $enableFileHashComputation) {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "File Hash Computation is not configured (disabled by default)." `
-                -Recommendation "Enable File Hash Computation via Group Policy or 'Set-MpPreference -EnableFileHashComputation `$true' to enable file hash-based threat detection and IoC matching."
+                -Recommendation $enableRecommendation
         } elseif ($enableFileHashComputation -eq $true) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message "File Hash Computation is enabled. File hashes are computed for scanned files."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "File Hash Computation is disabled." `
-                -Recommendation "Enable File Hash Computation via Group Policy or 'Set-MpPreference -EnableFileHashComputation `$true' to enable file hash-based threat detection and IoC matching."
+                -Recommendation $enableRecommendation
         }
     }
     catch {
