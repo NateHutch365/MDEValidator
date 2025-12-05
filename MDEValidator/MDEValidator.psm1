@@ -776,6 +776,9 @@ function Get-MDEManagementTypeFallback {
     [CmdletBinding()]
     param()
     
+    # Pattern to filter out PowerShell automatic properties from registry entries
+    $psAutoPropertiesPattern = '^PS(Path|ParentPath|ChildName|Provider|Drive)$'
+    
     try {
         $intunePolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager'
         $ssmPolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender'
@@ -785,9 +788,9 @@ function Get-MDEManagementTypeFallback {
             $intuneEntries = Get-ItemProperty -Path $intunePolicyPath -ErrorAction SilentlyContinue
             if ($null -ne $intuneEntries) {
                 # Check if there are any values (excluding PSPath, PSParentPath, etc.)
-                $valueNames = $intuneEntries.PSObject.Properties | 
-                    Where-Object { $_.Name -notmatch '^PS(Path|ParentPath|ChildName|Provider|Drive)$' } |
-                    Select-Object -ExpandProperty Name
+                $valueNames = @($intuneEntries.PSObject.Properties | 
+                    Where-Object { $_.Name -notmatch $psAutoPropertiesPattern } |
+                    Select-Object -ExpandProperty Name)
                 if ($valueNames.Count -gt 0) {
                     return "Intune"
                 }
@@ -797,13 +800,14 @@ function Get-MDEManagementTypeFallback {
         # Check for Security Settings Management / GPO policy entries
         if (Test-Path $ssmPolicyPath) {
             $ssmEntries = Get-ItemProperty -Path $ssmPolicyPath -ErrorAction SilentlyContinue
-            $hasSubKeys = (Get-ChildItem -Path $ssmPolicyPath -ErrorAction SilentlyContinue).Count -gt 0
+            # Check if any subkeys exist - limit to first result for efficiency
+            $hasSubKeys = $null -ne (Get-ChildItem -Path $ssmPolicyPath -ErrorAction SilentlyContinue | Select-Object -First 1)
             
             if ($null -ne $ssmEntries) {
-                # Check if there are any values (excluding PSPath, PSParentPath, etc. and Policy Manager)
-                $valueNames = $ssmEntries.PSObject.Properties | 
-                    Where-Object { $_.Name -notmatch '^PS(Path|ParentPath|ChildName|Provider|Drive)$' } |
-                    Select-Object -ExpandProperty Name
+                # Check if there are any values (excluding PSPath, PSParentPath, etc.)
+                $valueNames = @($ssmEntries.PSObject.Properties | 
+                    Where-Object { $_.Name -notmatch $psAutoPropertiesPattern } |
+                    Select-Object -ExpandProperty Name)
                 if ($valueNames.Count -gt 0 -or $hasSubKeys) {
                     return "Security Settings Management"
                 }
