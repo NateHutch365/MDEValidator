@@ -37,6 +37,7 @@
         'Get-MDESecuritySettingsManagementStatus',
         'Get-MDEManagementType',
         'Get-MDEPolicyRegistryPath',
+        'Get-MDEPolicySettingConfig',
         'Test-MDEPolicyRegistryValue',
         'Test-MDEPolicyRegistryVerification',
         'Test-MDEServiceStatus',
