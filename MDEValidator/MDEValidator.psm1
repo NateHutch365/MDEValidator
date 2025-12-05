@@ -803,8 +803,9 @@ function Get-MDEManagementTypeFallback {
     # so access denial reliably indicates Intune management.
     try {
         # Attempt to access the Intune Policy Manager path with ErrorAction Stop
-        # to catch access denied exceptions
-        $null = Get-ItemProperty -Path $intunePolicyPath -ErrorAction Stop
+        # to catch access denied exceptions. Using Get-Item as we only need to test access,
+        # not retrieve property values.
+        $null = Get-Item -Path $intunePolicyPath -ErrorAction Stop
     }
     catch {
         # Check if the error is an access denied / unauthorized exception
@@ -813,10 +814,10 @@ function Get-MDEManagementTypeFallback {
                           ($_.Exception.InnerException -is [System.UnauthorizedAccessException]) -or
                           ($_.Exception.InnerException -is [System.Security.SecurityException])
         
-        # Also check the error message for access denied indicators
+        # Also check the error message for access denied indicators (case-insensitive)
         if (-not $isAccessDenied) {
             $errorMessage = $_.Exception.Message
-            $isAccessDenied = $errorMessage -match 'access.*(denied|not allowed)|unauthorized|permission'
+            $isAccessDenied = $errorMessage -imatch 'access.*(denied|not allowed)|unauthorized|permission'
         }
         
         if ($isAccessDenied) {
