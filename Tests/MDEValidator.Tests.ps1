@@ -151,6 +151,12 @@ Describe 'MDEValidator Module' {
         It 'Should export Get-MDEManagementTypeFallback function' {
             Get-Command -Name 'Get-MDEManagementTypeFallback' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+        
+        It 'Should document HideExclusionsFromLocalAdmins detection logic in function description' {
+            # Verify the function documentation mentions the HideExclusionsFromLocalAdmins detection logic
+            $functionDef = (Get-Command -Name 'Get-MDEManagementTypeFallback' -Module 'MDEValidator').Definition
+            $functionDef | Should -Match 'HideExclusionsFromLocalAdmins'
+        }
     }
     
     Context 'Test-MDEPassiveMode' {
