@@ -3339,9 +3339,12 @@ function Test-MDEDisableLocalAdminMerge {
         administrators can add exclusions. When enabled (set to 1), local
         administrator exclusions are ignored, improving security.
         
-        Note: This setting cannot be reliably checked via Get-MpPreference when
-        HideExclusionsFromLocalAdmins is enabled, so this test checks the registry
-        directly based on the device's management type.
+        Note: This setting cannot be checked via Get-MpPreference. On Intune-only and
+        Configuration Manager-only devices, when HideExclusionsFromLocalAdmins is enabled,
+        the registry location may be inaccessible. In such cases, if Tamper Protection
+        for Exclusions is enabled (TPExclusions=1), DisableLocalAdminMerge is considered
+        enabled because Tamper Protection for Exclusions can only be enabled when 
+        DisableLocalAdminMerge is enforced.
     
     .EXAMPLE
         Test-MDEDisableLocalAdminMerge
@@ -3362,6 +3365,10 @@ function Test-MDEDisableLocalAdminMerge {
         
         When DisableLocalAdminMerge is enabled, exclusions added by local 
         administrators are ignored, preventing potential security bypasses.
+        
+        Special logic for Intune-only and Configuration Manager-only devices:
+        If Tamper Protection for Exclusions (TPExclusions=1) is enabled, DisableLocalAdminMerge
+        is inferred to be enabled because TPE requires DisableLocalAdminMerge to be enforced.
     #>
     [CmdletBinding()]
     param()
@@ -3392,19 +3399,29 @@ function Test-MDEDisableLocalAdminMerge {
             }
         }
         
-        # Fall back to Get-MpPreference if registry check didn't find a value
-        # This may not work if HideExclusionsFromLocalAdmins is enabled
+        # If registry check didn't find a value, check if we can infer the setting
+        # from Tamper Protection for Exclusions on Intune-only or ConfigMgr-only devices
         if ($null -eq $disableLocalAdminMerge) {
-            try {
-                $mpPreference = Get-MpPreference -ErrorAction Stop
-                if ($null -ne $mpPreference.DisableLocalAdminMerge) {
-                    # Convert boolean to integer for consistent comparison
-                    $disableLocalAdminMerge = if ($mpPreference.DisableLocalAdminMerge) { 1 } else { 0 }
-                    $source = 'Get-MpPreference'
+            # Check if device is managed for exclusions (Intune-only or ConfigMgr-only)
+            $managedDefenderInfo = Get-MDEManagedDefenderProductType
+            
+            if ($managedDefenderInfo.IsManagedForExclusions) {
+                # Check if Tamper Protection for Exclusions is enabled
+                $featuresPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features'
+                $tpExclusions = $null
+                
+                if (Test-Path $featuresPath) {
+                    $features = Get-ItemProperty -Path $featuresPath -ErrorAction SilentlyContinue
+                    if ($null -ne $features -and $features.PSObject.Properties['TPExclusions']) {
+                        $tpExclusions = $features.TPExclusions
+                    }
                 }
-            }
-            catch {
-                # Continue - we'll handle null value below
+                
+                if ($tpExclusions -eq 1) {
+                    # TPExclusions can only be enabled if DisableLocalAdminMerge is enforced
+                    $disableLocalAdminMerge = 1
+                    $source = "Inferred from Tamper Protection for Exclusions ($($managedDefenderInfo.ManagementType))"
+                }
             }
         }
         
