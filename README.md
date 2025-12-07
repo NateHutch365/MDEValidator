@@ -123,12 +123,14 @@ $results = Test-MDEConfiguration -IncludePolicyVerification
 $results = Test-MDEConfiguration -IncludeOnboarding -IncludePolicyVerification
 ```
 
-**Note on -IncludePolicyVerification**: When `HideExclusionsFromLocalAdmins` is enabled via Intune, registry access to certain policy keys is restricted for SYSTEM/Administrator accounts. This means policy verification sub-tests may not be accurate for all settings when this security feature is enabled, as the tool cannot directly access the registry hive to verify policy values.
+**Note on -IncludePolicyVerification**: When `HideExclusionsFromLocalAdmins` is enabled via Intune, it restricts SYSTEM/Administrator access to the entire Intune policy registry path (`HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager`). This means policy verification sub-tests will not be able to access the registry to verify policy values when this security feature is enabled.
 
 To identify if this limitation applies to your environment:
-- Check if exclusions appear as "{N/A: Administrators are not allowed to view exclusions}" when running Get-MpPreference
-- If you receive "Access Denied" errors when trying to read registry keys under HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager
-- If you're managing Windows Defender via Intune with HideExclusionsFromLocalAdmins enabled
+- Check if exclusions appear as "{N/A: Administrators are not allowed to view exclusions}" when running `Get-MpPreference`
+- If you receive "Access Denied" errors when attempting to read the Intune Policy Manager registry path
+- If you're managing Windows Defender via Intune with `HideExclusionsFromLocalAdmins` enabled
+
+Note: This limitation only affects Intune-managed devices with this specific security setting enabled. GPO/SCCM/SSM-managed devices can use `-IncludePolicyVerification` without restrictions.
 
 #### Individual Test Functions
 
