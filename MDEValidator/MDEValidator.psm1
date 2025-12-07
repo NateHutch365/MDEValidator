@@ -2887,6 +2887,8 @@ function Test-MDETamperProtectionForExclusions {
         try {
             $versionParts = $platformVersion -split '\.'
             if ($versionParts.Count -ge 4) {
+                # Attempt to parse each version part as an integer
+                # If any part is non-numeric, [int] will throw an exception that we catch below
                 $major = [int]$versionParts[0]
                 $minor = [int]$versionParts[1]
                 $build = [int]$versionParts[2]
@@ -2922,6 +2924,7 @@ function Test-MDETamperProtectionForExclusions {
             }
         }
         catch {
+            # Catch any exception during version parsing (e.g., non-numeric version parts)
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "Error parsing Microsoft Defender platform version '$platformVersion': $_" `
                 -Recommendation "Ensure Microsoft Defender platform version is 4.18.2211.5 or later."
@@ -3378,7 +3381,12 @@ function Test-MDEDisableLocalAdminMerge {
             if (Test-Path $config.Path) {
                 $regValue = Get-ItemProperty -Path $config.Path -Name $config.SettingName -ErrorAction SilentlyContinue
                 if ($null -ne $regValue -and $null -ne $regValue.($config.SettingName)) {
-                    $disableLocalAdminMerge = $regValue.($config.SettingName)
+                    # Registry values are already integers, but normalize boolean to integer for consistency
+                    $disableLocalAdminMerge = if ($regValue.($config.SettingName) -is [bool]) {
+                        if ($regValue.($config.SettingName)) { 1 } else { 0 }
+                    } else {
+                        $regValue.($config.SettingName)
+                    }
                     $source = "Registry ($managementType)"
                 }
             }
@@ -3390,6 +3398,7 @@ function Test-MDEDisableLocalAdminMerge {
             try {
                 $mpPreference = Get-MpPreference -ErrorAction Stop
                 if ($null -ne $mpPreference.DisableLocalAdminMerge) {
+                    # Convert boolean to integer for consistent comparison
                     $disableLocalAdminMerge = if ($mpPreference.DisableLocalAdminMerge) { 1 } else { 0 }
                     $source = 'Get-MpPreference'
                 }
@@ -3407,7 +3416,7 @@ function Test-MDEDisableLocalAdminMerge {
                 -Message "Disable Local Admin Merge is not configured. Local administrator exclusions may be applied." `
                 -Recommendation "Configure Disable Local Admin Merge via Group Policy or Intune to prevent local administrators from adding exclusions. Set DisableLocalAdminMerge to 1."
         }
-        elseif ($disableLocalAdminMerge -eq 1 -or $disableLocalAdminMerge -eq $true) {
+        elseif ($disableLocalAdminMerge -eq 1) {
             # Pass: Disabled (local admin merge is disabled = exclusions are ignored)
             Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message "Disable Local Admin Merge is enabled. Local administrator exclusions are ignored.$sourceInfo"

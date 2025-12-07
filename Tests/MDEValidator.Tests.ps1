@@ -171,8 +171,10 @@ Describe 'MDEValidator Module' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Get-MDEManagedDefenderProductType
             $result | Should -Not -BeNullOrEmpty
-            $result.ManagedDefenderProductType | Should -Not -Be $null -Or $result.ManagedDefenderProductType -eq $null
-            $result.EnrollmentStatus | Should -Not -Be $null -Or $result.EnrollmentStatus -eq $null
+            # ManagedDefenderProductType can be null or a value
+            $result.PSObject.Properties['ManagedDefenderProductType'] | Should -Not -BeNullOrEmpty
+            # EnrollmentStatus can be null or a value
+            $result.PSObject.Properties['EnrollmentStatus'] | Should -Not -BeNullOrEmpty
             $result.ManagementType | Should -Not -BeNullOrEmpty
             $result.IsManagedForExclusions | Should -BeOfType [bool]
         }
