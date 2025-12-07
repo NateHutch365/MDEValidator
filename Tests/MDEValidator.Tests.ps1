@@ -91,6 +91,14 @@ Describe 'MDEValidator Module' {
             Get-Command -Name 'Test-MDETamperProtection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
         
+        It 'Should export Test-MDETamperProtectionForExclusions function' {
+            Get-Command -Name 'Test-MDETamperProtectionForExclusions' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Get-MDEManagedDefenderProductType function' {
+            Get-Command -Name 'Get-MDEManagedDefenderProductType' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
         It 'Should export Test-MDECloudExtendedTimeout function' {
             Get-Command -Name 'Test-MDECloudExtendedTimeout' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
@@ -156,6 +164,28 @@ Describe 'MDEValidator Module' {
             # Verify the function documentation mentions the HideExclusionsFromLocalAdmins detection logic
             $functionDef = (Get-Command -Name 'Get-MDEManagementTypeFallback' -Module 'MDEValidator').Definition
             $functionDef | Should -Match 'HideExclusionsFromLocalAdmins'
+        }
+    }
+    
+    Context 'Get-MDEManagedDefenderProductType' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Get-MDEManagedDefenderProductType
+            $result | Should -Not -BeNullOrEmpty
+            $result.ManagedDefenderProductType | Should -Not -Be $null -Or $result.ManagedDefenderProductType -eq $null
+            $result.EnrollmentStatus | Should -Not -Be $null -Or $result.EnrollmentStatus -eq $null
+            $result.ManagementType | Should -Not -BeNullOrEmpty
+            $result.IsManagedForExclusions | Should -BeOfType [bool]
+        }
+        
+        It 'Should have ManagementType as a string' {
+            $result = Get-MDEManagedDefenderProductType
+            $result.ManagementType | Should -BeOfType [string]
+        }
+        
+        It 'Should indicate if device is managed for exclusions' {
+            $result = Get-MDEManagedDefenderProductType
+            # Should be either true or false
+            $result.IsManagedForExclusions | Should -BeIn @($true, $false)
         }
     }
     
