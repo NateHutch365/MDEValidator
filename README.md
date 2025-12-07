@@ -9,15 +9,34 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 ## Features
 
 - **Service Status Validation**: Checks if Windows Defender service is running and configured properly
+- **Passive Mode Detection**: Validates Windows Defender passive mode status
 - **Real-Time Protection**: Validates that real-time protection is enabled
 - **Cloud-Delivered Protection**: Verifies cloud-delivered protection (MAPS) settings
+- **Cloud Block Level**: Checks cloud block level configuration for immediate blocking
+- **Cloud Extended Timeout**: Validates extended cloud check timeout settings
 - **Automatic Sample Submission**: Checks sample submission configuration
 - **Behavior Monitoring**: Validates behavior monitoring status
 - **MDE Onboarding Status**: Verifies device onboarding to Microsoft Defender for Endpoint
 - **Network Protection**: Checks network protection configuration
+- **Network Protection (Windows Server)**: Validates network protection on Windows Server editions
+- **Datagram Processing (Windows Server)**: Checks datagram processing configuration on Windows Server
 - **Attack Surface Reduction (ASR) Rules**: Validates ASR rules configuration
 - **Threat Default Actions**: Checks default actions for threat severity levels (Low, Moderate, High, Severe) showing both registry values and settings (e.g., 2 (Quarantine))
+- **Tamper Protection**: Validates tamper protection status
+- **Tamper Protection for Exclusions**: Checks if Tamper Protection for Exclusions is properly configured
 - **Exclusion Visibility**: Validates settings that control whether local users and administrators can view exclusions (configurable via Group Policy or Intune)
+- **Edge SmartScreen Policies**: Comprehensive validation of Microsoft Edge SmartScreen settings including:
+  - SmartScreen enablement
+  - Potentially Unwanted Applications (PUA) blocking
+  - User override controls for prompts and downloads
+  - Domain exclusions
+  - Application reputation exclusions
+- **Catchup Quick Scan**: Validates catchup quick scan configuration
+- **Real-Time Scan Direction**: Checks scan direction settings (incoming/outgoing/both)
+- **Signature Update Settings**: Validates signature update fallback order and interval
+- **Disable Local Admin Merge**: Checks if local administrator exclusion merging is disabled
+- **File Hash Computation**: Validates file hash computation settings
+- **Policy Registry Verification**: Optional verification that Get-MpPreference settings match registry/policy entries based on management type (Intune, GPO, SCCM, SSM)
 - **Multiple Output Formats**: Console, HTML, and PowerShell object output options
 
 ## Requirements
@@ -95,42 +114,68 @@ $results = Test-MDEConfiguration
 
 # Include MDE onboarding status check
 $results = Test-MDEConfiguration -IncludeOnboarding
+
+# Include policy registry verification sub-tests
+$results = Test-MDEConfiguration -IncludePolicyVerification
+
+# Combine both options
+$results = Test-MDEConfiguration -IncludeOnboarding -IncludePolicyVerification
 ```
+
+**Note on -IncludePolicyVerification**: When `HideExclusionsFromLocalAdmins` is enabled via Intune, registry access to certain policy keys is restricted for SYSTEM/Administrator accounts. This means policy verification sub-tests may not be accurate for all settings when this security feature is enabled, as the tool cannot directly access the registry hive to verify policy values.
 
 #### Individual Test Functions
 
 You can run individual tests for specific validations:
 
 ```powershell
-# Test Windows Defender service status
+# Core Defender Status
 Test-MDEServiceStatus
+Test-MDEPassiveMode
 
-# Test real-time protection
+# Protection Features
 Test-MDERealTimeProtection
-
-# Test cloud-delivered protection
 Test-MDECloudProtection
-
-# Test automatic sample submission
+Test-MDECloudBlockLevel
+Test-MDECloudExtendedTimeout
 Test-MDESampleSubmission
-
-# Test behavior monitoring
 Test-MDEBehaviorMonitoring
-
-# Test MDE onboarding status
-Test-MDEOnboardingStatus
-
-# Test network protection
 Test-MDENetworkProtection
+Test-MDENetworkProtectionWindowsServer
+Test-MDEDatagramProcessingWindowsServer
 
-# Test Attack Surface Reduction rules
+# MDE Advanced Features
+Test-MDEOnboardingStatus
 Test-MDEAttackSurfaceReduction
-
-# Test threat default actions
 Test-MDEThreatDefaultActions
+Test-MDETamperProtection
+Test-MDETamperProtectionForExclusions
 
-# Test exclusion visibility settings
-Test-MDEExclusionVisibility
+# Exclusion Visibility
+Test-MDEExclusionVisibilityLocalAdmins
+Test-MDEExclusionVisibilityLocalUsers
+
+# Edge SmartScreen Policies
+Test-MDESmartScreen
+Test-MDESmartScreenPUA
+Test-MDESmartScreenPromptOverride
+Test-MDESmartScreenDownloadOverride
+Test-MDESmartScreenDomainExclusions
+Test-MDESmartScreenAppRepExclusions
+
+# Scan and Update Configuration
+Test-MDEDisableCatchupQuickScan
+Test-MDERealTimeScanDirection
+Test-MDESignatureUpdateFallbackOrder
+Test-MDESignatureUpdateInterval
+Test-MDEFileHashComputation
+
+# Policy Management
+Test-MDEDisableLocalAdminMerge
+
+# Policy Verification (helper functions)
+Test-MDEPolicyRegistryValue
+Test-MDEPolicyRegistryVerification
 ```
 
 ### Output Example
@@ -147,11 +192,20 @@ Console output:
 [PASS] Windows Defender Service Status
          Windows Defender service is running and set to start automatically.
 
+[INFO] Passive Mode
+         Windows Defender is in active mode (not passive).
+
 [PASS] Real-Time Protection
          Real-time protection is enabled.
 
 [PASS] Cloud-Delivered Protection
          Cloud-delivered protection is enabled at 'Advanced' level.
+
+[PASS] Cloud Block Level
+         Cloud block level is set to 'High' for enhanced protection.
+
+[PASS] Cloud Extended Timeout
+         Cloud extended timeout is set to 50 seconds for thorough analysis.
 
 [WARN] Automatic Sample Submission
          Automatic sample submission is set to 'Always Prompt'.
@@ -168,9 +222,28 @@ Console output:
          ASR rules configured: 10 total (0 enabled/blocked, 10 audit, 0 disabled). All configured rules are in Audit mode only.
          Recommendation: Consider enabling Block mode for ASR rules after validating Audit mode results.
 
+[PASS] Tamper Protection
+         Tamper protection is enabled.
+
+[WARN] Tamper Protection for Exclusions
+         Tamper Protection for Exclusions is not configured.
+         Recommendation: Enable Tamper Protection for Exclusions on supported platforms.
+
+[PASS] Exclusion Visibility (Local Admins)
+         Exclusions are hidden from local administrators. (via Intune)
+
+[PASS] Exclusion Visibility (Local Users)
+         Exclusions are hidden from local users. (via Intune)
+
+[PASS] Edge SmartScreen
+         Microsoft Edge SmartScreen is enabled.
+
+[PASS] Disable Local Admin Merge
+         Local administrator exclusion merge is disabled (DisableLocalAdminMerge=1).
+
 ========================================
-  Summary: 4/7 Passed
-  Passed: 4 | Failed: 1 | Warnings: 2
+  Summary: 11/16 Passed
+  Passed: 11 | Failed: 1 | Warnings: 3 | Info: 1
 ========================================
 ```
 
@@ -202,7 +275,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License. All content is free to use, modify, and distribute under the terms of the MIT License.
 
 ## Disclaimer
 
