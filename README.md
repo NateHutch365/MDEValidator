@@ -28,7 +28,8 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 - **Edge SmartScreen Policies**: Comprehensive validation of Microsoft Edge SmartScreen settings including:
   - SmartScreen enablement
   - Potentially Unwanted Applications (PUA) blocking
-  - User override controls for prompts and downloads
+  - User override controls for prompts
+  - User override controls for downloads
   - Domain exclusions
   - Application reputation exclusions
 - **Catchup Quick Scan**: Validates catchup quick scan configuration
@@ -123,6 +124,11 @@ $results = Test-MDEConfiguration -IncludeOnboarding -IncludePolicyVerification
 ```
 
 **Note on -IncludePolicyVerification**: When `HideExclusionsFromLocalAdmins` is enabled via Intune, registry access to certain policy keys is restricted for SYSTEM/Administrator accounts. This means policy verification sub-tests may not be accurate for all settings when this security feature is enabled, as the tool cannot directly access the registry hive to verify policy values.
+
+To identify if this limitation applies to your environment:
+- Check if exclusions appear as "{N/A: Administrators are not allowed to view exclusions}" when running Get-MpPreference
+- If you receive "Access Denied" errors when trying to read registry keys under HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager
+- If you're managing Windows Defender via Intune with HideExclusionsFromLocalAdmins enabled
 
 #### Individual Test Functions
 
