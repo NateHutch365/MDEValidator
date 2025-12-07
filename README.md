@@ -32,7 +32,7 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
   - User override controls for downloads
   - Domain exclusions
   - Application reputation exclusions
-- **Catchup Quick Scan**: Validates catchup quick scan configuration
+- **Catchup Quick Scan**: Validates that catchup quick scan is enabled to ensure missed scheduled scans are performed
 - **Real-Time Scan Direction**: Checks scan direction settings (incoming/outgoing/both)
 - **Signature Update Settings**: Validates signature update fallback order and interval
 - **Disable Local Admin Merge**: Checks if local administrator exclusion merging is disabled
