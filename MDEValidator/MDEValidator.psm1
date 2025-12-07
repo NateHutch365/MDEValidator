@@ -186,7 +186,7 @@ function Get-MDEManagedDefenderProductType {
         # Check ManagedDefenderProductType
         if (Test-Path $defenderPath) {
             $defenderInfo = Get-ItemProperty -Path $defenderPath -ErrorAction SilentlyContinue
-            if ($null -ne $defenderInfo.ManagedDefenderProductType) {
+            if ($null -ne $defenderInfo -and $defenderInfo.PSObject.Properties['ManagedDefenderProductType']) {
                 $managedDefenderProductType = $defenderInfo.ManagedDefenderProductType
             }
         }
@@ -194,7 +194,7 @@ function Get-MDEManagedDefenderProductType {
         # Check EnrollmentStatus
         if (Test-Path $senseCmPath) {
             $senseCmInfo = Get-ItemProperty -Path $senseCmPath -ErrorAction SilentlyContinue
-            if ($null -ne $senseCmInfo.EnrollmentStatus) {
+            if ($null -ne $senseCmInfo -and $senseCmInfo.PSObject.Properties['EnrollmentStatus']) {
                 $enrollmentStatus = $senseCmInfo.EnrollmentStatus
             }
         }
@@ -2956,7 +2956,7 @@ function Test-MDETamperProtectionForExclusions {
         
         if (Test-Path $featuresPath) {
             $features = Get-ItemProperty -Path $featuresPath -ErrorAction SilentlyContinue
-            if ($null -ne $features.TPExclusions) {
+            if ($null -ne $features -and $features.PSObject.Properties['TPExclusions']) {
                 $tpExclusions = $features.TPExclusions
             }
         }
