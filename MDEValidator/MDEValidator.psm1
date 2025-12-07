@@ -3343,7 +3343,7 @@ function Test-MDEDisableLocalAdminMerge {
         Configuration Manager-only devices, when HideExclusionsFromLocalAdmins is enabled,
         the registry location may be inaccessible. In such cases, if Tamper Protection
         for Exclusions is enabled (TPExclusions=1), DisableLocalAdminMerge is considered
-        enabled because Tamper Protection for Exclusions can only be enabled when 
+        enabled because Tamper Protection for Exclusions can only be enabled when
         DisableLocalAdminMerge is enforced.
     
     .EXAMPLE
@@ -3368,7 +3368,8 @@ function Test-MDEDisableLocalAdminMerge {
         
         Special logic for Intune-only and Configuration Manager-only devices:
         If Tamper Protection for Exclusions (TPExclusions=1) is enabled, DisableLocalAdminMerge
-        is inferred to be enabled because TPE requires DisableLocalAdminMerge to be enforced.
+        is inferred to be enabled because Tamper Protection for Exclusions requires
+        DisableLocalAdminMerge to be enforced.
     #>
     [CmdletBinding()]
     param()
