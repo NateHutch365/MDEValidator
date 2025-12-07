@@ -294,7 +294,7 @@ function Get-MDEManagementType {
         
         if (Test-Path $defenderPath) {
             $defenderInfo = Get-ItemProperty -Path $defenderPath -ErrorAction SilentlyContinue
-            if ($null -ne $defenderInfo.ManagedDefenderProductType) {
+            if ($null -ne $defenderInfo -and $defenderInfo.PSObject.Properties['ManagedDefenderProductType']) {
                 $managedDefenderProductType = $defenderInfo.ManagedDefenderProductType
                 
                 # Check if this is Intune-only (value 6)
@@ -307,7 +307,7 @@ function Get-MDEManagementType {
                     $senseCmPath = 'HKLM:\SOFTWARE\Microsoft\SenseCM'
                     if (Test-Path $senseCmPath) {
                         $senseCmInfo = Get-ItemProperty -Path $senseCmPath -ErrorAction SilentlyContinue
-                        if ($null -ne $senseCmInfo.EnrollmentStatus) {
+                        if ($null -ne $senseCmInfo -and $senseCmInfo.PSObject.Properties['EnrollmentStatus']) {
                             $enrollmentStatus = $senseCmInfo.EnrollmentStatus
                             
                             # EnrollmentStatus 4 = Configuration Manager only
