@@ -964,7 +964,7 @@ function Get-MDEOnboardingStatusString {
         if (Test-Path $onboardingPath) {
             $onboardingState = Get-ItemProperty -Path $onboardingPath -Name 'OnboardingState' -ErrorAction SilentlyContinue
             
-            if ($null -ne $onboardingState) {
+            if ($null -ne $onboardingState -and $null -ne $onboardingState.PSObject.Properties['OnboardingState']) {
                 if ($onboardingState.OnboardingState -eq 1) {
                     return "Onboarded"
                 } else {
