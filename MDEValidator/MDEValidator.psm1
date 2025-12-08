@@ -967,12 +967,12 @@ function Get-MDEOnboardingStatusString {
             if ($null -ne $onboardingState -and $onboardingState.OnboardingState -eq 1) {
                 return "Onboarded"
             } elseif ($null -ne $onboardingState) {
-                return "Partially Onboarded"
+                return "Partially Onboarded (State: $($onboardingState.OnboardingState))"
             }
         }
         
         # SENSE service is running but no registry confirmation
-        return "Unknown (Service Running)"
+        return "Partially Onboarded (Service Running, Registry Key Not Found)"
     }
     catch {
         return "Error retrieving status"
@@ -3900,7 +3900,7 @@ function Get-MDEValidationReport {
             
             # Force create the output directory if it doesn't exist
             $outputDirectory = Split-Path -Path $OutputPath -Parent
-            if (-not (Test-Path -Path $outputDirectory)) {
+            if (-not [string]::IsNullOrEmpty($outputDirectory) -and -not (Test-Path -Path $outputDirectory)) {
                 try {
                     New-Item -Path $outputDirectory -ItemType Directory -Force | Out-Null
                 }
