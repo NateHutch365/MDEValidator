@@ -37,6 +37,7 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 - **Signature Update Settings**: Validates signature update fallback order and interval
 - **Disable Local Admin Merge**: Checks if local administrator exclusion merging is disabled
 - **File Hash Computation**: Validates file hash computation settings
+- **MDE Cloud Connectivity Check**: Tests network connectivity to Microsoft Defender for Endpoint cloud service endpoints to ensure proper communication with Microsoft's cloud services
 - **Policy Registry Verification**: Optional verification that Get-MpPreference settings match registry/policy entries based on management type (Intune, GPO, SCCM, SSM)
 - **Multiple Output Formats**: Console, HTML, and PowerShell object output options
 
@@ -85,6 +86,15 @@ Get-MDEValidationReport
 
 # Run all tests including MDE onboarding status
 Get-MDEValidationReport -IncludeOnboarding
+
+# Run all tests including MDE cloud connectivity check
+Get-MDEValidationReport -ConnectivityCheck
+
+# Run connectivity check with specific region(s)
+Get-MDEValidationReport -ConnectivityCheck -ConnectivityRegion US, EU
+
+# Run connectivity check for all regions
+Get-MDEValidationReport -ConnectivityCheck -ConnectivityAllRegions
 ```
 
 ### Available Functions
@@ -103,6 +113,12 @@ Get-MDEValidationReport -OutputFormat HTML -OutputPath "C:\Reports\MDEReport.htm
 # PowerShell objects for further processing
 $results = Get-MDEValidationReport -OutputFormat Object
 $results | Where-Object { $_.Status -eq 'Fail' }
+
+# Include cloud connectivity check
+Get-MDEValidationReport -ConnectivityCheck
+
+# Include connectivity check with specific region
+Get-MDEValidationReport -ConnectivityCheck -ConnectivityRegion US
 ```
 
 #### Test-MDEConfiguration
@@ -119,8 +135,34 @@ $results = Test-MDEConfiguration -IncludeOnboarding
 # Include policy registry verification sub-tests
 $results = Test-MDEConfiguration -IncludePolicyVerification
 
-# Combine both options
-$results = Test-MDEConfiguration -IncludeOnboarding -IncludePolicyVerification
+# Include cloud connectivity check
+$results = Test-MDEConfiguration -ConnectivityCheck
+
+# Combine all options
+$results = Test-MDEConfiguration -IncludeOnboarding -IncludePolicyVerification -ConnectivityCheck
+```
+
+#### Test-MDEConnectivity
+
+Tests network connectivity to Microsoft Defender for Endpoint cloud service endpoints.
+
+```powershell
+# Test connectivity to common MDE endpoints
+Test-MDEConnectivity
+
+# Test connectivity including US region-specific endpoints
+Test-MDEConnectivity -Region US
+
+# Test connectivity to multiple regions
+Test-MDEConnectivity -Region US, EU, UK
+
+# Test connectivity to all regional endpoints
+Test-MDEConnectivity -IncludeAllRegions
+
+# View detailed connectivity results
+$connectivity = Test-MDEConnectivity
+$connectivity.SuccessfulEndpoints  # List of reachable endpoints
+$connectivity.FailedEndpoints      # List of unreachable endpoints
 ```
 
 **Note on -IncludePolicyVerification**: When `HideExclusionsFromLocalAdmins` is enabled via Intune, it restricts SYSTEM/Administrator access to the entire Intune policy registry path (`HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager`). This means policy verification sub-tests will not be able to access the registry to verify policy values when this security feature is enabled.
@@ -158,6 +200,7 @@ Test-MDEAttackSurfaceReduction
 Test-MDEThreatDefaultActions
 Test-MDETamperProtection
 Test-MDETamperProtectionForExclusions
+Test-MDEConnectivity
 
 # Exclusion Visibility
 Test-MDEExclusionVisibilityLocalAdmins

@@ -18,10 +18,8 @@ https://www.microsoft.com/pki/certs
 
 # Defender CSP/CnC
 https://enterpriseregistration.windows.net
-https://*.blob.core.windows.net
 
 # Security Intelligence Updates
-https://*.update.microsoft.com
 https://unitedstates.smartscreen-prod.microsoft.com
 https://europe.smartscreen-prod.microsoft.com
 
