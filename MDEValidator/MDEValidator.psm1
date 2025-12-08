@@ -3579,6 +3579,193 @@ function Test-MDEFileHashComputation {
     }
 }
 
+function Test-MDEConnectivity {
+    <#
+    .SYNOPSIS
+        Tests connectivity to Microsoft Defender for Endpoint cloud service endpoints.
+    
+    .DESCRIPTION
+        Checks network connectivity to MDE cloud service endpoints to ensure the device
+        can communicate with Microsoft's cloud services. Tests both common endpoints
+        and region-specific endpoints.
+        
+        The function loads endpoint URLs from:
+        - RegionsURLs.json: Region-specific MDE endpoints (US, EU, UK, AU, GCC, GCC-High)
+        - endpoints.txt: Common MDE service endpoints
+    
+    .PARAMETER Region
+        Optional parameter to test only specific region(s). Valid values are: US, EU, UK, AU, GCC, GCC-High.
+        If not specified, tests common endpoints only.
+    
+    .PARAMETER IncludeAllRegions
+        Switch to test all regional endpoints in addition to common endpoints.
+    
+    .EXAMPLE
+        Test-MDEConnectivity
+        
+        Tests connectivity to common MDE service endpoints.
+    
+    .EXAMPLE
+        Test-MDEConnectivity -Region US
+        
+        Tests connectivity to common endpoints and US region-specific endpoints.
+    
+    .EXAMPLE
+        Test-MDEConnectivity -IncludeAllRegions
+        
+        Tests connectivity to common endpoints and all regional endpoints.
+    
+    .OUTPUTS
+        PSCustomObject with validation results including detailed connectivity information.
+    #>
+    [CmdletBinding()]
+    param(
+        [Parameter()]
+        [ValidateSet('US', 'EU', 'UK', 'AU', 'GCC', 'GCC-High')]
+        [string[]]$Region,
+        
+        [Parameter()]
+        [switch]$IncludeAllRegions
+    )
+    
+    $testName = 'MDE Connectivity Check'
+    $results = @()
+    $failedEndpoints = @()
+    $successfulEndpoints = @()
+    
+    try {
+        # Get the module directory to locate data files
+        $moduleDir = Split-Path -Parent $PSCommandPath
+        $regionsJsonPath = Join-Path $moduleDir 'RegionsURLs.json'
+        $endpointsTxtPath = Join-Path $moduleDir 'endpoints.txt'
+        
+        # Load common endpoints from endpoints.txt
+        $commonEndpoints = @()
+        if (Test-Path $endpointsTxtPath) {
+            $commonEndpoints = Get-Content $endpointsTxtPath | Where-Object {
+                $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*$'
+            } | ForEach-Object { $_.Trim() }
+        } else {
+            Write-Warning "endpoints.txt not found at: $endpointsTxtPath"
+        }
+        
+        # Load regional endpoints from RegionsURLs.json
+        $regionalEndpoints = @{}
+        if (Test-Path $regionsJsonPath) {
+            try {
+                $regionsData = Get-Content $regionsJsonPath -Raw | ConvertFrom-Json
+                foreach ($prop in $regionsData.PSObject.Properties) {
+                    $regionalEndpoints[$prop.Name] = $prop.Value.Endpoints
+                }
+            } catch {
+                Write-Warning "Failed to parse RegionsURLs.json: $_"
+            }
+        } else {
+            Write-Warning "RegionsURLs.json not found at: $regionsJsonPath"
+        }
+        
+        # Determine which endpoints to test
+        $endpointsToTest = @()
+        
+        # Always include common endpoints
+        $endpointsToTest += $commonEndpoints | ForEach-Object { 
+            @{ URL = $_; Type = 'Common' }
+        }
+        
+        # Add regional endpoints if requested
+        if ($IncludeAllRegions) {
+            foreach ($regionName in $regionalEndpoints.Keys) {
+                $endpointsToTest += $regionalEndpoints[$regionName] | ForEach-Object {
+                    @{ URL = $_; Type = "Region: $regionName" }
+                }
+            }
+        } elseif ($Region) {
+            foreach ($regionName in $Region) {
+                if ($regionalEndpoints.ContainsKey($regionName)) {
+                    $endpointsToTest += $regionalEndpoints[$regionName] | ForEach-Object {
+                        @{ URL = $_; Type = "Region: $regionName" }
+                    }
+                }
+            }
+        }
+        
+        if ($endpointsToTest.Count -eq 0) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "No endpoints configured for testing." `
+                -Recommendation "Ensure RegionsURLs.json and endpoints.txt files are present in the module directory."
+            return
+        }
+        
+        Write-Verbose "Testing connectivity to $($endpointsToTest.Count) endpoints..."
+        
+        # Test connectivity to each endpoint
+        foreach ($endpoint in $endpointsToTest) {
+            $url = $endpoint.URL
+            $type = $endpoint.Type
+            
+            try {
+                Write-Verbose "Testing $type endpoint: $url"
+                
+                # Use Invoke-WebRequest with a short timeout for connectivity testing
+                $response = Invoke-WebRequest -Uri $url -Method Head -TimeoutSec 10 -UseBasicParsing -ErrorAction Stop
+                
+                $successfulEndpoints += "$url ($type) - Status: $($response.StatusCode)"
+                Write-Verbose "  SUCCESS: $url returned status code $($response.StatusCode)"
+            }
+            catch {
+                $errorMsg = $_.Exception.Message
+                
+                # Some endpoints may return errors but still be reachable (e.g., 403, 404)
+                if ($_.Exception.Response) {
+                    $statusCode = [int]$_.Exception.Response.StatusCode
+                    if ($statusCode -in @(200, 204, 301, 302, 400, 401, 403, 404, 405)) {
+                        # These status codes indicate the endpoint is reachable
+                        $successfulEndpoints += "$url ($type) - Status: $statusCode"
+                        Write-Verbose "  SUCCESS: $url is reachable (Status: $statusCode)"
+                    } else {
+                        $failedEndpoints += "$url ($type) - Error: HTTP $statusCode"
+                        Write-Verbose "  FAILED: $url returned HTTP $statusCode"
+                    }
+                } else {
+                    # Connection failed completely
+                    $failedEndpoints += "$url ($type) - Error: $errorMsg"
+                    Write-Verbose "  FAILED: $url - $errorMsg"
+                }
+            }
+        }
+        
+        # Generate result
+        $totalEndpoints = $endpointsToTest.Count
+        $successCount = $successfulEndpoints.Count
+        $failCount = $failedEndpoints.Count
+        
+        if ($failCount -eq 0) {
+            $result = Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Successfully connected to all $totalEndpoints tested endpoints."
+        } elseif ($successCount -eq 0) {
+            $result = Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "Failed to connect to all $totalEndpoints tested endpoints." `
+                -Recommendation "Check network connectivity, proxy settings, and firewall rules. Ensure outbound HTTPS (port 443) is allowed to Microsoft Defender endpoints."
+        } else {
+            $result = Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Connected to $successCount of $totalEndpoints endpoints. $failCount endpoint(s) failed." `
+                -Recommendation "Review failed endpoints and verify firewall/proxy configuration allows access to all required MDE endpoints."
+        }
+        
+        # Add custom properties for detailed HTML rendering
+        $result | Add-Member -MemberType NoteProperty -Name 'ConnectivitySummary' -Value "$successCount of $totalEndpoints endpoints reachable"
+        $result | Add-Member -MemberType NoteProperty -Name 'SuccessfulEndpoints' -Value $successfulEndpoints
+        $result | Add-Member -MemberType NoteProperty -Name 'FailedEndpoints' -Value $failedEndpoints
+        
+        return $result
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to perform connectivity check: $_" `
+            -Recommendation "Ensure the module files (RegionsURLs.json, endpoints.txt) are present and accessible."
+    }
+}
+
 function Test-MDEConfiguration {
     <#
     .SYNOPSIS
@@ -3604,6 +3791,17 @@ function Test-MDEConfiguration {
         for Security Settings Management as only Antivirus, ASR, EDR, and Firewall
         policies are supported.
     
+    .PARAMETER ConnectivityCheck
+        Include MDE cloud service connectivity checks. Tests network connectivity to
+        Microsoft Defender for Endpoint cloud endpoints.
+    
+    .PARAMETER ConnectivityRegion
+        Optional parameter to specify which region(s) to test for connectivity.
+        Valid values: US, EU, UK, AU, GCC, GCC-High. Only used when -ConnectivityCheck is specified.
+    
+    .PARAMETER ConnectivityAllRegions
+        Test connectivity to all regional endpoints. Only used when -ConnectivityCheck is specified.
+    
     .EXAMPLE
         Test-MDEConfiguration
         
@@ -3619,6 +3817,16 @@ function Test-MDEConfiguration {
         
         Runs all tests with policy registry verification sub-tests.
     
+    .EXAMPLE
+        Test-MDEConfiguration -ConnectivityCheck
+        
+        Runs all tests including MDE cloud connectivity check.
+    
+    .EXAMPLE
+        Test-MDEConfiguration -ConnectivityCheck -ConnectivityRegion US
+        
+        Runs all tests including connectivity check for US region endpoints.
+    
     .OUTPUTS
         Array of PSCustomObjects with validation results.
     #>
@@ -3628,7 +3836,17 @@ function Test-MDEConfiguration {
         [switch]$IncludeOnboarding,
         
         [Parameter()]
-        [switch]$IncludePolicyVerification
+        [switch]$IncludePolicyVerification,
+        
+        [Parameter()]
+        [switch]$ConnectivityCheck,
+        
+        [Parameter()]
+        [ValidateSet('US', 'EU', 'UK', 'AU', 'GCC', 'GCC-High')]
+        [string[]]$ConnectivityRegion,
+        
+        [Parameter()]
+        [switch]$ConnectivityAllRegions
     )
     
     $results = @()
@@ -3758,6 +3976,19 @@ function Test-MDEConfiguration {
         $results += Test-MDEOnboardingStatus
     }
     
+    if ($ConnectivityCheck) {
+        # Build parameters for connectivity check
+        $connectivityParams = @{}
+        if ($ConnectivityRegion) {
+            $connectivityParams['Region'] = $ConnectivityRegion
+        }
+        if ($ConnectivityAllRegions) {
+            $connectivityParams['IncludeAllRegions'] = $true
+        }
+        
+        $results += Test-MDEConnectivity @connectivityParams
+    }
+    
     Write-Verbose "MDE configuration validation completed."
     
     return $results
@@ -3787,6 +4018,17 @@ function Get-MDEValidationReport {
         settings returned by Get-MpPreference match the corresponding registry/policy
         entries based on the device's management type (Intune vs Security Settings Management).
     
+    .PARAMETER ConnectivityCheck
+        Include MDE cloud service connectivity checks. Tests network connectivity to
+        Microsoft Defender for Endpoint cloud endpoints.
+    
+    .PARAMETER ConnectivityRegion
+        Optional parameter to specify which region(s) to test for connectivity.
+        Valid values: US, EU, UK, AU, GCC, GCC-High. Only used when -ConnectivityCheck is specified.
+    
+    .PARAMETER ConnectivityAllRegions
+        Test connectivity to all regional endpoints. Only used when -ConnectivityCheck is specified.
+    
     .EXAMPLE
         Get-MDEValidationReport
         
@@ -3807,6 +4049,16 @@ function Get-MDEValidationReport {
         
         Displays a validation report with policy registry verification sub-tests.
     
+    .EXAMPLE
+        Get-MDEValidationReport -ConnectivityCheck
+        
+        Displays a validation report including MDE cloud connectivity checks.
+    
+    .EXAMPLE
+        Get-MDEValidationReport -ConnectivityCheck -ConnectivityRegion US, EU
+        
+        Displays a validation report with connectivity checks for US and EU regions.
+    
     .OUTPUTS
         Console output, HTML file, or array of PSCustomObjects depending on OutputFormat.
     #>
@@ -3823,11 +4075,34 @@ function Get-MDEValidationReport {
         [switch]$IncludeOnboarding,
         
         [Parameter()]
-        [switch]$IncludePolicyVerification
+        [switch]$IncludePolicyVerification,
+        
+        [Parameter()]
+        [switch]$ConnectivityCheck,
+        
+        [Parameter()]
+        [ValidateSet('US', 'EU', 'UK', 'AU', 'GCC', 'GCC-High')]
+        [string[]]$ConnectivityRegion,
+        
+        [Parameter()]
+        [switch]$ConnectivityAllRegions
     )
     
     # Run all validation tests
-    $results = Test-MDEConfiguration -IncludeOnboarding:$IncludeOnboarding -IncludePolicyVerification:$IncludePolicyVerification
+    # Build parameters for Test-MDEConfiguration
+    $configParams = @{
+        IncludeOnboarding = $IncludeOnboarding
+        IncludePolicyVerification = $IncludePolicyVerification
+        ConnectivityCheck = $ConnectivityCheck
+    }
+    if ($ConnectivityRegion) {
+        $configParams['ConnectivityRegion'] = $ConnectivityRegion
+    }
+    if ($ConnectivityAllRegions) {
+        $configParams['ConnectivityAllRegions'] = $true
+    }
+    
+    $results = Test-MDEConfiguration @configParams
     
     # Get OS information for the report header
     $osInfo = Get-MDEOperatingSystemInfo
@@ -4125,6 +4400,54 @@ $rulesList
                 </td>
             </tr>
 "@
+                # Special handling for connectivity check with expandable details
+                } elseif ($result.PSObject.Properties.Name -contains 'ConnectivitySummary' -and 
+                    (($result.PSObject.Properties.Name -contains 'SuccessfulEndpoints' -and $result.SuccessfulEndpoints.Count -gt 0) -or
+                     ($result.PSObject.Properties.Name -contains 'FailedEndpoints' -and $result.FailedEndpoints.Count -gt 0))) {
+                    
+                    $encodedSummary = ConvertTo-HtmlEncodedString $result.ConnectivitySummary
+                    $expanderId = $expanderIndex++
+                    
+                    # Build lists for successful and failed endpoints
+                    $endpointDetails = ""
+                    
+                    if ($result.SuccessfulEndpoints -and $result.SuccessfulEndpoints.Count -gt 0) {
+                        $successListItems = $result.SuccessfulEndpoints | ForEach-Object {
+                            $encodedEndpoint = ConvertTo-HtmlEncodedString $_
+                            "                    <li style='color: #107c10;'>✓ $encodedEndpoint</li>"
+                        }
+                        $endpointDetails += "                <strong>Successful Connections:</strong>`n"
+                        $endpointDetails += "                <ul>`n"
+                        $endpointDetails += $successListItems -join "`n"
+                        $endpointDetails += "`n                </ul>`n"
+                    }
+                    
+                    if ($result.FailedEndpoints -and $result.FailedEndpoints.Count -gt 0) {
+                        $failListItems = $result.FailedEndpoints | ForEach-Object {
+                            $encodedEndpoint = ConvertTo-HtmlEncodedString $_
+                            "                    <li style='color: #d13438;'>✗ $encodedEndpoint</li>"
+                        }
+                        if ($endpointDetails) { $endpointDetails += "                <br>`n" }
+                        $endpointDetails += "                <strong>Failed Connections:</strong>`n"
+                        $endpointDetails += "                <ul>`n"
+                        $endpointDetails += $failListItems -join "`n"
+                        $endpointDetails += "`n                </ul>`n"
+                    }
+                    
+                    $htmlContent += @"
+            <tr>
+                <td>$encodedTestName</td>
+                <td><span class="status $statusClass">$($result.Status.ToUpper())</span></td>
+                <td>
+                    $encodedSummary
+                    <div class="expander" id="expander-$expanderId" onclick="toggleDetails($expanderId)">Show endpoint details</div>
+                    <div class="details-content" id="details-$expanderId">
+$endpointDetails
+                    </div>
+                    $recommendation
+                </td>
+            </tr>
+"@
                 } else {
                     # Normal handling for other tests
                     $encodedMessage = ConvertTo-HtmlEncodedString $result.Message
@@ -4197,5 +4520,6 @@ Export-ModuleMember -Function @(
     'Test-MDESignatureUpdateFallbackOrder',
     'Test-MDESignatureUpdateInterval',
     'Test-MDEDisableLocalAdminMerge',
-    'Test-MDEFileHashComputation'
+    'Test-MDEFileHashComputation',
+    'Test-MDEConnectivity'
 )

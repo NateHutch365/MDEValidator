@@ -1,0 +1,57 @@
+{
+  "US": {
+    "Description": "United States (US) region endpoints",
+    "Endpoints": [
+      "https://winatp-gw-cus.microsoft.com/test",
+      "https://winatp-gw-eus.microsoft.com/test",
+      "https://unitedstates.x.cp.wd.microsoft.com",
+      "https://us-v20.events.data.microsoft.com/ping",
+      "https://us.vortex-win.data.microsoft.com/health/keepalive"
+    ]
+  },
+  "EU": {
+    "Description": "European Union (EU) region endpoints",
+    "Endpoints": [
+      "https://winatp-gw-neu.microsoft.com/test",
+      "https://winatp-gw-weu.microsoft.com/test",
+      "https://europe.x.cp.wd.microsoft.com",
+      "https://eu-v20.events.data.microsoft.com/ping",
+      "https://eu.vortex-win.data.microsoft.com/health/keepalive"
+    ]
+  },
+  "UK": {
+    "Description": "United Kingdom (UK) region endpoints",
+    "Endpoints": [
+      "https://winatp-gw-uks.microsoft.com/test",
+      "https://winatp-gw-ukw.microsoft.com/test",
+      "https://uk.x.cp.wd.microsoft.com",
+      "https://uk-v20.events.data.microsoft.com/ping",
+      "https://uk.vortex-win.data.microsoft.com/health/keepalive"
+    ]
+  },
+  "AU": {
+    "Description": "Australia (AU) region endpoints",
+    "Endpoints": [
+      "https://winatp-gw-aue.microsoft.com/test",
+      "https://winatp-gw-aus.microsoft.com/test",
+      "https://au.x.cp.wd.microsoft.com",
+      "https://au-v20.events.data.microsoft.com/ping",
+      "https://au.vortex-win.data.microsoft.com/health/keepalive"
+    ]
+  },
+  "GCC": {
+    "Description": "US Government GCC endpoints",
+    "Endpoints": [
+      "https://winatp-gw-usgv.microsoft.com/test",
+      "https://usgovvirginia.x.cp.wd.microsoft.com",
+      "https://us-v20.events.data.microsoft.com/ping"
+    ]
+  },
+  "GCC-High": {
+    "Description": "US Government GCC-High endpoints",
+    "Endpoints": [
+      "https://winatp-gw-usgovtx.microsoft.us/test",
+      "https://usgovtexas.x.cp.wd.microsoft.us"
+    ]
+  }
+}

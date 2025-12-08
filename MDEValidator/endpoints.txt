@@ -1,0 +1,34 @@
+# Microsoft Defender for Endpoint - Common Service Endpoints
+# These are common endpoints that all MDE deployments should be able to reach
+# Lines starting with # are comments and will be ignored
+
+# MDE Security Intelligence Updates
+https://go.microsoft.com/fwlink/?linkid=2144709
+https://definitionupdates.microsoft.com
+
+# MDE Cloud Service
+https://login.windows.net
+https://login.microsoftonline.com
+
+# Microsoft Update Service
+https://www.microsoft.com/pkiops/crl
+https://www.microsoft.com/pkiops/certs
+https://crl.microsoft.com/pki/crl/products
+https://www.microsoft.com/pki/certs
+
+# Defender CSP/CnC
+https://enterpriseregistration.windows.net
+https://*.blob.core.windows.net
+
+# Security Intelligence Updates
+https://*.update.microsoft.com
+https://unitedstates.smartscreen-prod.microsoft.com
+https://europe.smartscreen-prod.microsoft.com
+
+# Automation & Investigation
+https://automatedirstrprdcus.blob.core.windows.net
+https://automatedirstrprdeus.blob.core.windows.net
+https://automatedirstrprdeus2.blob.core.windows.net
+
+# CRL and OCSP
+http://ctldl.windowsupdate.com

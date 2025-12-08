@@ -72,7 +72,8 @@
         'Test-MDESignatureUpdateFallbackOrder',
         'Test-MDESignatureUpdateInterval',
         'Test-MDEDisableLocalAdminMerge',
-        'Test-MDEFileHashComputation'
+        'Test-MDEFileHashComputation',
+        'Test-MDEConnectivity'
     )
 
     # Cmdlets to export from this module

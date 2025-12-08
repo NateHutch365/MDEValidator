@@ -114,6 +114,24 @@ Describe 'MDEValidator Module' {
         It 'Should export Test-MDESignatureUpdateFallbackOrder function' {
             Get-Command -Name 'Test-MDESignatureUpdateFallbackOrder' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+        
+        It 'Should export Test-MDEConnectivity function' {
+            Get-Command -Name 'Test-MDEConnectivity' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+    }
+    
+    Context 'Test-MDEConnectivity' {
+        It 'Should return a result object' {
+            $result = Test-MDEConnectivity
+            $result | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should have required properties' {
+            $result = Test-MDEConnectivity
+            $result.TestName | Should -Be 'MDE Connectivity Check'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+        }
     }
     
     Context 'Get-MDEOperatingSystemInfo' {
