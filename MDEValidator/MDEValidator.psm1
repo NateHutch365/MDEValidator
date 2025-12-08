@@ -927,6 +927,60 @@ function Get-MDESecuritySettingsManagementStatus {
     }
 }
 
+function Get-MDEOnboardingStatusString {
+    <#
+    .SYNOPSIS
+        Gets a simple string representation of the MDE onboarding status.
+    
+    .DESCRIPTION
+        Retrieves the MDE onboarding status and returns a simple string
+        suitable for display in report headers.
+    
+    .EXAMPLE
+        Get-MDEOnboardingStatusString
+        
+        Returns a string like "Onboarded", "Not Onboarded", or "Partially Onboarded".
+    
+    .OUTPUTS
+        String containing the onboarding status.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    try {
+        # Check for SENSE service (Microsoft Defender for Endpoint Service)
+        $senseService = Get-Service -Name 'Sense' -ErrorAction SilentlyContinue
+        
+        if ($null -eq $senseService) {
+            return "Not Onboarded"
+        }
+        
+        if ($senseService.Status -ne 'Running') {
+            return "Not Onboarded (Service Not Running)"
+        }
+        
+        # Check onboarding state in registry
+        $onboardingPath = 'HKLM:\SOFTWARE\Microsoft\Windows Advanced Threat Protection\Status'
+        if (Test-Path $onboardingPath) {
+            $onboardingState = Get-ItemProperty -Path $onboardingPath -Name 'OnboardingState' -ErrorAction SilentlyContinue
+            
+            if ($null -ne $onboardingState -and ($onboardingState.PSObject.Properties.Name -contains 'OnboardingState')) {
+                if ($onboardingState.OnboardingState -eq 1) {
+                    return "Onboarded"
+                } else {
+                    return "Partially Onboarded (State: $($onboardingState.OnboardingState))"
+                }
+            }
+        }
+        
+        # SENSE service is running but no registry confirmation
+        return "Partially Onboarded (Service Running, Registry Key Not Found)"
+    }
+    catch {
+        return "Error retrieving status"
+    }
+}
+
 function Get-MDEManagementTypeFallback {
     <#
     .SYNOPSIS
@@ -3781,6 +3835,9 @@ function Get-MDEValidationReport {
     # Get management status for the report header
     $managedByStatus = Get-MDESecuritySettingsManagementStatus
     
+    # Get MDE onboarding status for the report header
+    $onboardingStatus = Get-MDEOnboardingStatusString
+    
     switch ($OutputFormat) {
         'Object' {
             return $results
@@ -3793,6 +3850,7 @@ function Get-MDEValidationReport {
             Write-Host "  Computer: $env:COMPUTERNAME" -ForegroundColor Cyan
             Write-Host "  OS: $osInfo" -ForegroundColor Cyan
             Write-Host "  Managed By: $managedByStatus" -ForegroundColor Cyan
+            Write-Host "  MDE Onboarding: $onboardingStatus" -ForegroundColor Cyan
             Write-Host "========================================`n" -ForegroundColor Cyan
             
             foreach ($result in $results) {
@@ -3840,6 +3898,21 @@ function Get-MDEValidationReport {
             if ([string]::IsNullOrEmpty($OutputPath)) {
                 $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
                 $OutputPath = Join-Path $tempDir "MDEValidationReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').html"
+            }
+            
+            # Resolve to absolute path to ensure Split-Path works correctly
+            $OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
+            
+            # Force create the output directory if it doesn't exist
+            $outputDirectory = Split-Path -Path $OutputPath -Parent
+            if (-not [string]::IsNullOrEmpty($outputDirectory) -and -not (Test-Path -Path $outputDirectory)) {
+                try {
+                    New-Item -Path $outputDirectory -ItemType Directory -Force | Out-Null
+                }
+                catch {
+                    Write-Error "Failed to create output directory: $outputDirectory. Error: $_"
+                    return
+                }
             }
             
             $passCount = @($results | Where-Object { $_.Status -eq 'Pass' }).Count
@@ -3984,6 +4057,7 @@ function Get-MDEValidationReport {
             <p><strong>Computer:</strong> $(ConvertTo-HtmlEncodedString $env:COMPUTERNAME)</p>
             <p><strong>OS:</strong> $(ConvertTo-HtmlEncodedString $osInfo)</p>
             <p><strong>Managed By:</strong> $(ConvertTo-HtmlEncodedString $managedByStatus)</p>
+            <p><strong>MDE Onboarding:</strong> $(ConvertTo-HtmlEncodedString $onboardingStatus)</p>
             <p><strong>Generated:</strong> $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')</p>
         </div>
         
@@ -4086,6 +4160,7 @@ Export-ModuleMember -Function @(
     'Get-MDEValidationReport',
     'Get-MDEOperatingSystemInfo',
     'Get-MDESecuritySettingsManagementStatus',
+    'Get-MDEOnboardingStatusString',
     'Get-MDEManagementType',
     'Get-MDEManagedDefenderProductType',
     'Get-MDEManagementTypeFallback',

@@ -35,6 +35,7 @@
         'Get-MDEValidationReport',
         'Get-MDEOperatingSystemInfo',
         'Get-MDESecuritySettingsManagementStatus',
+        'Get-MDEOnboardingStatusString',
         'Get-MDEManagementType',
         'Get-MDEManagedDefenderProductType',
         'Get-MDEManagementTypeFallback',
