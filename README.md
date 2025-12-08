@@ -255,6 +255,10 @@ Console output:
 ========================================
 ```
 
+HTML report output:
+
+![MDE HTML Report](images/html_report_screenshot.png)
+
 ## Test Status Values
 
 | Status | Description |
