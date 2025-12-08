@@ -1768,20 +1768,26 @@ function Test-MDEAttackSurfaceReduction {
         $fullMessage = "$summaryMessage`nRules:`n$detailedRules"
         
         if ($enabledCount -gt 0) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            $result = Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message $fullMessage
         } elseif ($auditCount -gt 0 -or $warnCount -gt 0) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            $result = Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "$fullMessage. No rules are in Block mode." `
                 -Recommendation "Consider enabling Block mode for ASR rules after validating Audit mode results."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            $result = Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "$fullMessage. All configured rules are disabled." `
                 -Recommendation "Enable ASR rules for enhanced protection against common attack techniques."
         }
+        
+        # Add custom properties for HTML rendering
+        $result | Add-Member -MemberType NoteProperty -Name 'ASRSummary' -Value $summaryMessage -Force
+        $result | Add-Member -MemberType NoteProperty -Name 'ASRRuleDetails' -Value $ruleDetails -Force
+        
+        return $result
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        return Write-ValidationResult -TestName $testName -Status 'Fail' `
             -Message "Unable to query ASR rules status: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }
@@ -3918,7 +3924,58 @@ function Get-MDEValidationReport {
             color: #666;
             margin-top: 5px;
         }
+        .expander {
+            cursor: pointer;
+            user-select: none;
+            color: #0078d4;
+            font-weight: bold;
+            margin-top: 8px;
+            display: inline-block;
+        }
+        .expander:hover {
+            text-decoration: underline;
+        }
+        .expander::before {
+            content: '▶ ';
+            display: inline-block;
+            transition: transform 0.2s;
+        }
+        .expander.expanded::before {
+            transform: rotate(90deg);
+        }
+        .details-content {
+            display: none;
+            margin-top: 8px;
+            padding: 10px;
+            background-color: #f8f8f8;
+            border-left: 3px solid #0078d4;
+            border-radius: 4px;
+        }
+        .details-content.show {
+            display: block;
+        }
+        .details-content ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .details-content li {
+            margin: 4px 0;
+        }
     </style>
+    <script>
+        function toggleDetails(expanderId) {
+            const expander = document.getElementById('expander-' + expanderId);
+            const details = document.getElementById('details-' + expanderId);
+            
+            if (details.classList.contains('show')) {
+                details.classList.remove('show');
+                expander.classList.remove('expanded');
+            } else {
+                details.classList.add('show');
+                expander.classList.add('expanded');
+            }
+        }
+    </script>
 </head>
 <body>
     <div class="container">
@@ -3953,22 +4010,58 @@ function Get-MDEValidationReport {
             </tr>
 "@
             
+            $expanderIndex = 0
             foreach ($result in $results) {
                 $statusClass = $result.Status.ToLower()
                 $encodedTestName = ConvertTo-HtmlEncodedString $result.TestName
-                $encodedMessage = ConvertTo-HtmlEncodedString $result.Message
                 $encodedRecommendation = ConvertTo-HtmlEncodedString $result.Recommendation
                 $recommendation = if ($result.Recommendation) {
                     "<div class='recommendation'><strong>Recommendation:</strong> $encodedRecommendation</div>"
                 } else { '' }
                 
-                $htmlContent += @"
+                # Special handling for ASR rules with expandable details
+                if ($result.PSObject.Properties.Name -contains 'ASRSummary' -and 
+                    $result.PSObject.Properties.Name -contains 'ASRRuleDetails' -and
+                    $null -ne $result.ASRRuleDetails -and 
+                    $result.ASRRuleDetails.Count -gt 0) {
+                    
+                    $encodedSummary = ConvertTo-HtmlEncodedString $result.ASRSummary
+                    $expanderId = $expanderIndex++
+                    
+                    # Build the list of rules using array join for better performance
+                    $rulesListItems = $result.ASRRuleDetails | ForEach-Object {
+                        $encodedRule = ConvertTo-HtmlEncodedString $_
+                        "                    <li>$encodedRule</li>"
+                    }
+                    $rulesList = $rulesListItems -join "`n"
+                    
+                    $htmlContent += @"
+            <tr>
+                <td>$encodedTestName</td>
+                <td><span class="status $statusClass">$($result.Status.ToUpper())</span></td>
+                <td>
+                    $encodedSummary
+                    <div class="expander" id="expander-$expanderId" onclick="toggleDetails($expanderId)">Show configured rules</div>
+                    <div class="details-content" id="details-$expanderId">
+                        <ul>
+$rulesList
+                        </ul>
+                    </div>
+                    $recommendation
+                </td>
+            </tr>
+"@
+                } else {
+                    # Normal handling for other tests
+                    $encodedMessage = ConvertTo-HtmlEncodedString $result.Message
+                    $htmlContent += @"
             <tr>
                 <td>$encodedTestName</td>
                 <td><span class="status $statusClass">$($result.Status.ToUpper())</span></td>
                 <td>$encodedMessage$recommendation</td>
             </tr>
 "@
+                }
             }
             
             $htmlContent += @"
