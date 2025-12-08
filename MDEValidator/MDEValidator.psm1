@@ -964,10 +964,12 @@ function Get-MDEOnboardingStatusString {
         if (Test-Path $onboardingPath) {
             $onboardingState = Get-ItemProperty -Path $onboardingPath -Name 'OnboardingState' -ErrorAction SilentlyContinue
             
-            if ($null -ne $onboardingState -and $onboardingState.OnboardingState -eq 1) {
-                return "Onboarded"
-            } elseif ($null -ne $onboardingState) {
-                return "Partially Onboarded (State: $($onboardingState.OnboardingState))"
+            if ($null -ne $onboardingState) {
+                if ($onboardingState.OnboardingState -eq 1) {
+                    return "Onboarded"
+                } else {
+                    return "Partially Onboarded (State: $($onboardingState.OnboardingState))"
+                }
             }
         }
         
@@ -3897,6 +3899,9 @@ function Get-MDEValidationReport {
                 $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
                 $OutputPath = Join-Path $tempDir "MDEValidationReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').html"
             }
+            
+            # Resolve to absolute path to ensure Split-Path works correctly
+            $OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
             
             # Force create the output directory if it doesn't exist
             $outputDirectory = Split-Path -Path $OutputPath -Parent
