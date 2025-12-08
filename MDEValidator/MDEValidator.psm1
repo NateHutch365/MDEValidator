@@ -1287,7 +1287,7 @@ function Test-MDERealTimeProtection {
         } else {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Real-time protection is disabled." `
-                -Recommendation "Enable real-time protection via Group Policy or 'Set-MpPreference -DisableRealtimeMonitoring `$false'."
+                -Recommendation "Enable real-time protection via Intune or Group Policy."
         }
     }
     catch {
@@ -1333,7 +1333,7 @@ function Test-MDECloudProtection {
         } else {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Cloud-delivered protection is disabled." `
-                -Recommendation "Enable cloud-delivered protection via Group Policy or 'Set-MpPreference -MAPSReporting 2' for advanced protection."
+                -Recommendation "Enable cloud-delivered protection via Intune or Group Policy for advanced protection."
         }
     }
     catch {
@@ -1374,15 +1374,15 @@ function Test-MDESampleSubmission {
         } elseif ($mpPreference.SubmitSamplesConsent -eq 1) {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "Automatic sample submission is set to 'Safe samples only'." `
-                -Recommendation "Consider enabling 'Send all samples automatically' for better threat detection via 'Set-MpPreference -SubmitSamplesConsent 3'."
+                -Recommendation "Consider enabling 'Send all samples automatically' for better threat detection via Intune or Group Policy."
         } elseif ($mpPreference.SubmitSamplesConsent -eq 0) {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "Automatic sample submission is set to 'Always Prompt'." `
-                -Recommendation "Consider enabling automatic sample submission for better threat detection via 'Set-MpPreference -SubmitSamplesConsent 3'."
+                -Recommendation "Consider enabling automatic sample submission for better threat detection via Intune or Group Policy."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Automatic sample submission is disabled." `
-                -Recommendation "Enable automatic sample submission via Group Policy or 'Set-MpPreference -SubmitSamplesConsent 3'."
+                -Recommendation "Enable automatic sample submission via Intune or Group Policy."
         }
     }
     catch {
@@ -1422,7 +1422,7 @@ function Test-MDEBehaviorMonitoring {
         } else {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Behavior monitoring is disabled." `
-                -Recommendation "Enable behavior monitoring via Group Policy or 'Set-MpPreference -DisableBehaviorMonitoring `$false'."
+                -Recommendation "Enable behavior monitoring via Intune or Group Policy."
         }
     }
     catch {
@@ -1527,7 +1527,7 @@ function Test-MDENetworkProtection {
             0 {
                 Write-ValidationResult -TestName $testName -Status 'Fail' `
                     -Message "Network protection is disabled." `
-                    -Recommendation "Enable network protection via Group Policy or 'Set-MpPreference -EnableNetworkProtection Enabled'."
+                    -Recommendation "Enable network protection via Intune or Group Policy."
             }
             1 {
                 Write-ValidationResult -TestName $testName -Status 'Pass' `
@@ -1951,7 +1951,7 @@ function Test-MDEThreatDefaultActions {
         } elseif ($issues.Count -gt 0) {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "$message. Potential issues: $($issues -join '; ')." `
-                -Recommendation "Consider setting threat actions to Quarantine (2) or Remove (3) for all severity levels via Group Policy or Set-MpPreference."
+                -Recommendation "Consider setting threat actions to Quarantine (2) or Remove (3) for all severity levels via Intune or Group Policy."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message $message
@@ -3095,7 +3095,7 @@ function Test-MDECloudExtendedTimeout {
             # Warning: 21-40 seconds
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "Cloud Extended Timeout is set to $cloudExtendedTimeout seconds (total: $($cloudExtendedTimeout + 10) seconds including built-in 10 seconds)." `
-                -Recommendation "Consider increasing CloudExtendedTimeout to 50 seconds via Group Policy or 'Set-MpPreference -CloudExtendedTimeout 50'. $recommendationNote"
+                -Recommendation "Consider increasing CloudExtendedTimeout to 50 seconds via Intune or Group Policy. $recommendationNote"
         } else {
             # Fail: 0-20 seconds or not configured
             $message = if ($cloudExtendedTimeout -eq 0) {
@@ -3105,7 +3105,7 @@ function Test-MDECloudExtendedTimeout {
             }
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message $message `
-                -Recommendation "Configure CloudExtendedTimeout to 50 seconds via Group Policy or 'Set-MpPreference -CloudExtendedTimeout 50'. $recommendationNote"
+                -Recommendation "Configure CloudExtendedTimeout to 50 seconds via Intune or Group Policy. $recommendationNote"
         }
     }
     catch {
@@ -3156,7 +3156,7 @@ function Test-MDEDisableCatchupQuickScan {
         } else {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Catchup Quick Scan is disabled." `
-                -Recommendation "Enable Catchup Quick Scan via Group Policy or 'Set-MpPreference -DisableCatchupQuickScan `$false' to ensure missed scans are performed."
+                -Recommendation "Enable Catchup Quick Scan via Intune or Group Policy to ensure missed scans are performed."
         }
     }
     catch {
@@ -3212,7 +3212,7 @@ function Test-MDERealTimeScanDirection {
         if ($null -eq $scanDirection) {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Real Time Scan Direction is not configured." `
-                -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Group Policy or 'Set-MpPreference -RealTimeScanDirection 0'."
+                -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Intune or Group Policy."
             return
         }
         
@@ -3234,13 +3234,13 @@ function Test-MDERealTimeScanDirection {
                 # Incoming only - Warning
                 Write-ValidationResult -TestName $testName -Status 'Warning' `
                     -Message "$message. Only incoming files are monitored." `
-                    -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Group Policy or 'Set-MpPreference -RealTimeScanDirection 0' for comprehensive protection."
+                    -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Intune or Group Policy for comprehensive protection."
             }
             2 {
                 # Outgoing only - Warning
                 Write-ValidationResult -TestName $testName -Status 'Warning' `
                     -Message "$message. Only outgoing files are monitored." `
-                    -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Group Policy or 'Set-MpPreference -RealTimeScanDirection 0' for comprehensive protection."
+                    -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Intune or Group Policy for comprehensive protection."
             }
             default {
                 # Unknown value - Warning
@@ -3296,7 +3296,7 @@ function Test-MDESignatureUpdateFallbackOrder {
         if ([string]::IsNullOrEmpty($fallbackOrder)) {
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "Signature Update Fallback Order is not configured." `
-                -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Group Policy or 'Set-MpPreference -SignatureFallbackOrder `"$recommendedOrder`"'."
+                -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
             return
         }
         
@@ -3308,7 +3308,7 @@ function Test-MDESignatureUpdateFallbackOrder {
         } else {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "$message. This differs from the recommended order." `
-                -Recommendation "Consider configuring Signature Update Fallback Order to '$recommendedOrder' via Group Policy or 'Set-MpPreference -SignatureFallbackOrder `"$recommendedOrder`"'."
+                -Recommendation "Consider configuring Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
         }
     }
     catch {
@@ -3365,7 +3365,7 @@ function Test-MDESignatureUpdateInterval {
             # Fail: Disabled
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "$message. Automatic signature update checking is disabled." `
-                -Recommendation "Set Signature Update Interval to 1 hour via Group Policy or 'Set-MpPreference -SignatureUpdateInterval 1' to ensure delta updates are applied frequently."
+                -Recommendation "Set Signature Update Interval to 1 hour via Intune or Group Policy to ensure delta updates are applied frequently."
         } elseif ($signatureUpdateInterval -ge 1 -and $signatureUpdateInterval -le 4) {
             # Pass: 1-4 hours
             Write-ValidationResult -TestName $testName -Status 'Pass' `
@@ -3374,12 +3374,12 @@ function Test-MDESignatureUpdateInterval {
             # Warning: 5-24 hours
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "$message. Signature updates are checked less frequently than recommended." `
-                -Recommendation "Set Signature Update Interval to 1 hour via Group Policy or 'Set-MpPreference -SignatureUpdateInterval 1' to ensure delta updates are applied frequently."
+                -Recommendation "Set Signature Update Interval to 1 hour via Intune or Group Policy to ensure delta updates are applied frequently."
         } else {
             # Unknown/invalid value - Warning
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "$message. Unexpected Signature Update Interval value." `
-                -Recommendation "Set Signature Update Interval to 1 hour via Group Policy or 'Set-MpPreference -SignatureUpdateInterval 1' to ensure delta updates are applied frequently."
+                -Recommendation "Set Signature Update Interval to 1 hour via Intune or Group Policy to ensure delta updates are applied frequently."
         }
     }
     catch {
@@ -3551,7 +3551,7 @@ function Test-MDEFileHashComputation {
     param()
     
     $testName = 'File Hash Computation'
-    $enableRecommendation = "Enable File Hash Computation via Group Policy or 'Set-MpPreference -EnableFileHashComputation `$true' to enable file hash-based threat detection and IoC matching."
+    $enableRecommendation = "Enable File Hash Computation via Intune or Group Policy to enable file hash-based threat detection and IoC matching."
     
     try {
         $mpPreference = Get-MpPreference -ErrorAction Stop
