@@ -1787,7 +1787,7 @@ function Test-MDEAttackSurfaceReduction {
         return $result
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        return Write-ValidationResult -TestName $testName -Status 'Fail' `
             -Message "Unable to query ASR rules status: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }
