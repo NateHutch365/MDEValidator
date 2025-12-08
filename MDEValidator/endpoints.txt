@@ -29,4 +29,5 @@ https://automatedirstrprdeus.blob.core.windows.net
 https://automatedirstrprdeus2.blob.core.windows.net
 
 # CRL and OCSP
+# Note: HTTP is used for CRL downloads per RFC 5280 standard - CRLs are signed, so transport security is not required
 http://ctldl.windowsupdate.com

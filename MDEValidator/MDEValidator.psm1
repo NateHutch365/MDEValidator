@@ -3646,7 +3646,11 @@ function Test-MDEConnectivity {
     $successfulEndpoints = @()
     
     # Define HTTP status codes that indicate endpoint is reachable
-    # Includes both success codes and certain client/server error codes that confirm the endpoint exists
+    # 200, 204: Success responses - endpoint is fully accessible
+    # 301, 302: Redirect responses - endpoint exists and is redirecting
+    # 400, 401, 403, 404, 405: Client/server errors - endpoint is reachable but may require auth or specific paths
+    # Note: 404 is included because MDE endpoints may return 404 for HEAD requests but still be operational
+    # The key is that we received an HTTP response, indicating network connectivity exists
     $reachableStatusCodes = @(200, 204, 301, 302, 400, 401, 403, 404, 405)
     
     try {
