@@ -4028,12 +4028,12 @@ function Get-MDEValidationReport {
                     $encodedSummary = ConvertTo-HtmlEncodedString $result.ASRSummary
                     $expanderId = $expanderIndex++
                     
-                    # Build the list of rules
-                    $rulesList = ""
-                    foreach ($rule in $result.ASRRuleDetails) {
-                        $encodedRule = ConvertTo-HtmlEncodedString $rule
-                        $rulesList += "                    <li>$encodedRule</li>`n"
+                    # Build the list of rules using array join for better performance
+                    $rulesListItems = $result.ASRRuleDetails | ForEach-Object {
+                        $encodedRule = ConvertTo-HtmlEncodedString $_
+                        "                    <li>$encodedRule</li>"
                     }
+                    $rulesList = $rulesListItems -join "`n"
                     
                     $htmlContent += @"
             <tr>
@@ -4044,7 +4044,8 @@ function Get-MDEValidationReport {
                     <div class="expander" id="expander-$expanderId" onclick="toggleDetails($expanderId)">Show configured rules</div>
                     <div class="details-content" id="details-$expanderId">
                         <ul>
-$rulesList                        </ul>
+$rulesList
+                        </ul>
                     </div>
                     $recommendation
                 </td>
