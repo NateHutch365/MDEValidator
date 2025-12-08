@@ -3600,6 +3600,9 @@ function Test-MDEConnectivity {
     .PARAMETER IncludeAllRegions
         Switch to test all regional endpoints in addition to common endpoints.
     
+    .PARAMETER TimeoutSeconds
+        Timeout in seconds for each endpoint connectivity test. Default is 5 seconds.
+    
     .EXAMPLE
         Test-MDEConnectivity
         
@@ -3615,6 +3618,11 @@ function Test-MDEConnectivity {
         
         Tests connectivity to common endpoints and all regional endpoints.
     
+    .EXAMPLE
+        Test-MDEConnectivity -TimeoutSeconds 10
+        
+        Tests connectivity with a 10-second timeout per endpoint.
+    
     .OUTPUTS
         PSCustomObject with validation results including detailed connectivity information.
     #>
@@ -3625,13 +3633,21 @@ function Test-MDEConnectivity {
         [string[]]$Region,
         
         [Parameter()]
-        [switch]$IncludeAllRegions
+        [switch]$IncludeAllRegions,
+        
+        [Parameter()]
+        [ValidateRange(1, 60)]
+        [int]$TimeoutSeconds = 5
     )
     
     $testName = 'MDE Connectivity Check'
     $results = @()
     $failedEndpoints = @()
     $successfulEndpoints = @()
+    
+    # Define HTTP status codes that indicate endpoint is reachable
+    # Includes both success codes and certain client/server error codes that confirm the endpoint exists
+    $reachableStatusCodes = @(200, 204, 301, 302, 400, 401, 403, 404, 405)
     
     try {
         # Get the module directory to locate data files
@@ -3646,7 +3662,7 @@ function Test-MDEConnectivity {
                 $_ -notmatch '^\s*#' -and $_ -notmatch '^\s*$'
             } | ForEach-Object { $_.Trim() }
         } else {
-            Write-Warning "endpoints.txt not found at: $endpointsTxtPath"
+            Write-Warning "endpoints.txt file not found at: $endpointsTxtPath. This file should be included with the module. Try reinstalling the module or verify the installation directory."
         }
         
         # Load regional endpoints from RegionsURLs.json
@@ -3658,10 +3674,10 @@ function Test-MDEConnectivity {
                     $regionalEndpoints[$prop.Name] = $prop.Value.Endpoints
                 }
             } catch {
-                Write-Warning "Failed to parse RegionsURLs.json: $_"
+                Write-Warning "Failed to parse RegionsURLs.json: $_. This file should contain valid JSON. Try reinstalling the module or verify the file integrity."
             }
         } else {
-            Write-Warning "RegionsURLs.json not found at: $regionsJsonPath"
+            Write-Warning "RegionsURLs.json file not found at: $regionsJsonPath. This file should be included with the module. Try reinstalling the module or verify the installation directory."
         }
         
         # Determine which endpoints to test
@@ -3690,10 +3706,9 @@ function Test-MDEConnectivity {
         }
         
         if ($endpointsToTest.Count -eq 0) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            return Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "No endpoints configured for testing." `
                 -Recommendation "Ensure RegionsURLs.json and endpoints.txt files are present in the module directory."
-            return
         }
         
         Write-Verbose "Testing connectivity to $($endpointsToTest.Count) endpoints..."
@@ -3706,8 +3721,8 @@ function Test-MDEConnectivity {
             try {
                 Write-Verbose "Testing $type endpoint: $url"
                 
-                # Use Invoke-WebRequest with a short timeout for connectivity testing
-                $response = Invoke-WebRequest -Uri $url -Method Head -TimeoutSec 10 -UseBasicParsing -ErrorAction Stop
+                # Use Invoke-WebRequest with configurable timeout for connectivity testing
+                $response = Invoke-WebRequest -Uri $url -Method Head -TimeoutSec $TimeoutSeconds -UseBasicParsing -ErrorAction Stop
                 
                 $successfulEndpoints += "$url ($type) - Status: $($response.StatusCode)"
                 Write-Verbose "  SUCCESS: $url returned status code $($response.StatusCode)"
@@ -3718,7 +3733,7 @@ function Test-MDEConnectivity {
                 # Some endpoints may return errors but still be reachable (e.g., 403, 404)
                 if ($_.Exception.Response) {
                     $statusCode = [int]$_.Exception.Response.StatusCode
-                    if ($statusCode -in @(200, 204, 301, 302, 400, 401, 403, 404, 405)) {
+                    if ($statusCode -in $reachableStatusCodes) {
                         # These status codes indicate the endpoint is reachable
                         $successfulEndpoints += "$url ($type) - Status: $statusCode"
                         Write-Verbose "  SUCCESS: $url is reachable (Status: $statusCode)"
@@ -3760,7 +3775,7 @@ function Test-MDEConnectivity {
         return $result
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        return Write-ValidationResult -TestName $testName -Status 'Fail' `
             -Message "Unable to perform connectivity check: $_" `
             -Recommendation "Ensure the module files (RegionsURLs.json, endpoints.txt) are present and accessible."
     }
