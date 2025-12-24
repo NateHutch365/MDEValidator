@@ -1855,6 +1855,15 @@ function Test-MDEThreatDefaultActions {
     .DESCRIPTION
         Checks the default actions (Quarantine, Remove, Ignore, etc.) configured for
         Low, Moderate, High, and Severe threat severity levels in Windows Defender.
+        
+        The control only fails if any default action is explicitly set to NoAction (9), 
+        Allow (6), or UserDefined (8). It passes when all actions are set to Clean (1), 
+        Quarantine (2), or Block (10).
+        
+        Unknown (0) values are treated as follows:
+        - If Tamper Protection is enabled: Pass (Unknown is acceptable)
+        - If Tamper Protection is not enabled: Warning (Unknown should be investigated)
+        - If Troubleshooting Mode is active: Warning (may affect reported values)
     
     .EXAMPLE
         Test-MDEThreatDefaultActions
@@ -1866,13 +1875,13 @@ function Test-MDEThreatDefaultActions {
     
     .NOTES
         Threat action values:
-        0 = Unknown (may indicate Tamper Protection is enabled)
+        0 = Unknown (may indicate Tamper Protection is enabled or Troubleshooting Mode is active)
         1 = Clean (repairs infected files)
         2 = Quarantine
         3 = Remove (deletes the file)
-        6 = Allow (Ignore)
-        8 = UserDefined
-        9 = NoAction
+        6 = Allow (Ignore) - Fail
+        8 = UserDefined - Fail
+        9 = NoAction - Fail
         10 = Block
     #>
     [CmdletBinding()]
@@ -1881,8 +1890,6 @@ function Test-MDEThreatDefaultActions {
     $testName = 'Threat Default Actions'
     
     # Map action values to human-readable names
-    # Note: Value 0 (Unknown) typically occurs when Tamper Protection is enabled,
-    # as it prevents reading these settings for security purposes
     $actionNames = @{
         0 = 'Unknown'
         1 = 'Clean'
@@ -1894,16 +1901,15 @@ function Test-MDEThreatDefaultActions {
         10 = 'Block'
     }
     
-    # Recommended actions for each threat level
-    $recommendedActions = @{
-        'LowThreatDefaultAction' = @(1, 2, 3)      # Clean, Quarantine or Remove
-        'ModerateThreatDefaultAction' = @(1, 2, 3) # Clean, Quarantine or Remove
-        'HighThreatDefaultAction' = @(1, 2, 3)     # Clean, Quarantine or Remove
-        'SevereThreatDefaultAction' = @(1, 2, 3)   # Clean, Quarantine or Remove
-    }
+    # Acceptable actions (Pass criteria)
+    $acceptableActions = @(1, 2, 10)  # Clean, Quarantine, Block
+    
+    # Explicitly failing actions
+    $failingActions = @(6, 8, 9)  # Allow, UserDefined, NoAction
     
     try {
         $mpPreference = Get-MpPreference -ErrorAction Stop
+        $mpStatus = Get-MpComputerStatus -ErrorAction Stop
         
         $threatActions = @{
             'LowThreatDefaultAction' = $mpPreference.LowThreatDefaultAction
@@ -1912,9 +1918,10 @@ function Test-MDEThreatDefaultActions {
             'SevereThreatDefaultAction' = $mpPreference.SevereThreatDefaultAction
         }
         
-        $issues = @()
+        $failingIssues = @()
         $details = @()
         $unknownCount = 0
+        $hasFailingActions = $false
         
         foreach ($threatLevel in @('LowThreatDefaultAction', 'ModerateThreatDefaultAction', 'HighThreatDefaultAction', 'SevereThreatDefaultAction')) {
             $actionValue = $threatActions[$threatLevel]
@@ -1928,31 +1935,38 @@ function Test-MDEThreatDefaultActions {
                 $unknownCount++
             }
             
-            # Check if the action is recommended
-            if ($actionValue -notin $recommendedActions[$threatLevel]) {
-                if ($actionValue -eq 6 -or $actionValue -eq 9) {
-                    # Allow or NoAction are concerning
-                    $issues += "$levelName threats are set to $actionValue ($actionName)"
-                }
+            # Check for explicitly failing actions
+            if ($actionValue -in $failingActions) {
+                $hasFailingActions = $true
+                $failingIssues += "$levelName threats are set to $actionValue ($actionName)"
             }
         }
         
         $message = "Threat default actions: $($details -join '; ')"
         
-        # Check if all values are 0 (Unknown) - indicates Tamper Protection may be blocking
-        if ($unknownCount -eq 4) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
-                -Message "$message. All threat default actions show as 0 (Unknown), which typically indicates Tamper Protection is enabled and preventing these settings from being read." `
-                -Recommendation "Review the threat default action settings in Group Policy or Intune. Alternatively, temporarily disable Tamper Protection using Troubleshooting Mode to confirm the current threat default actions configuration."
+        # Get Tamper Protection status
+        $isTamperProtected = $mpStatus.IsTamperProtected
+        
+        # Determine result based on logic
+        if ($hasFailingActions) {
+            # Explicit failure - any action set to NoAction, Allow, or UserDefined
+            Write-ValidationResult -TestName $testName -Status 'Fail' `
+                -Message "$message. Critical issues found: $($failingIssues -join '; ')." `
+                -Recommendation "Configure threat default actions to Clean (1), Quarantine (2), or Block (10) for all severity levels via Intune or Group Policy. Avoid NoAction (9), Allow (6), and UserDefined (8)."
         } elseif ($unknownCount -gt 0) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
-                -Message "$message. Some threat default actions show as 0 (Unknown), which may indicate Tamper Protection is partially blocking access to these settings." `
-                -Recommendation "Review the threat default action settings in Group Policy or Intune. Consider using Troubleshooting Mode to temporarily disable Tamper Protection and verify the configuration."
-        } elseif ($issues.Count -gt 0) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
-                -Message "$message. Potential issues: $($issues -join '; ')." `
-                -Recommendation "Consider setting threat actions to Quarantine (2) or Remove (3) for all severity levels via Intune or Group Policy."
+            # Handle Unknown values based on Tamper Protection status
+            if ($isTamperProtected) {
+                # Pass when Tamper Protection is enabled
+                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                    -Message "$message. $unknownCount threat default action(s) show as Unknown, which is acceptable when Tamper Protection is enabled. Tamper Protection: Enabled."
+            } else {
+                # Warning when Tamper Protection is not enabled (including Troubleshooting Mode scenarios)
+                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                    -Message "$message. $unknownCount threat default action(s) show as Unknown. Tamper Protection: Disabled." `
+                    -Recommendation "Unknown values may indicate Troubleshooting Mode is active or configuration issues. Review threat default action settings in Group Policy or Intune. If Troubleshooting Mode is enabled, this is expected behavior during troubleshooting."
+            }
         } else {
+            # All actions are acceptable (Clean, Quarantine, Block, or Remove)
             Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message $message
         }
@@ -1961,6 +1975,69 @@ function Test-MDEThreatDefaultActions {
         Write-ValidationResult -TestName $testName -Status 'Fail' `
             -Message "Unable to query threat default actions: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
+    }
+}
+
+function Test-MDETroubleshootingMode {
+    <#
+    .SYNOPSIS
+        Tests if Microsoft Defender Troubleshooting Mode is enabled.
+    
+    .DESCRIPTION
+        Checks the TroubleshootingMode property from Get-MpPreference to determine if
+        Microsoft Defender Troubleshooting Mode is enabled. This is intended to be a
+        temporary state and may affect the reliability of reported Defender configuration values.
+        
+        If Troubleshooting Mode is enabled, the control returns a Warning as this should be
+        a temporary state. If disabled, the control returns a Pass.
+    
+    .EXAMPLE
+        Test-MDETroubleshootingMode
+        
+        Tests if Troubleshooting Mode is enabled.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        TroubleshootingMode values:
+        Enabled = Troubleshooting Mode is active (temporary state, may affect reported values)
+        Disabled = Normal operation
+        
+        Troubleshooting Mode is designed to be a temporary state for diagnostic purposes.
+        When enabled, it may affect the reliability of certain reported configuration values,
+        including threat default actions.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'Troubleshooting Mode'
+    
+    try {
+        $mpPreference = Get-MpPreference -ErrorAction Stop
+        
+        # Check TroubleshootingMode property
+        $troubleshootingMode = $mpPreference.TroubleshootingMode
+        
+        if ($null -eq $troubleshootingMode) {
+            # Property not available or not set - treat as disabled
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Troubleshooting Mode is disabled (property not available or not set)."
+        } elseif ($troubleshootingMode -eq 'Enabled' -or $troubleshootingMode -eq $true -or $troubleshootingMode -eq 1) {
+            # Troubleshooting Mode is enabled - Warning
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "Troubleshooting Mode is enabled. This is intended to be a temporary state and may affect the reliability of reported Defender configuration values." `
+                -Recommendation "Disable Troubleshooting Mode when diagnostic work is complete. Prolonged use of Troubleshooting Mode is not recommended for production systems."
+        } else {
+            # Troubleshooting Mode is disabled - Pass
+            Write-ValidationResult -TestName $testName -Status 'Pass' `
+                -Message "Troubleshooting Mode is disabled."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Fail' `
+            -Message "Unable to query Troubleshooting Mode status: $_" `
+            -Recommendation "Ensure Windows Defender is properly installed and configured. The TroubleshootingMode property may not be available on all versions of Windows Defender."
     }
 }
 
@@ -3697,6 +3774,7 @@ function Test-MDEConfiguration {
     }
     
     $results += Test-MDEThreatDefaultActions
+    $results += Test-MDETroubleshootingMode
     $results += Test-MDETamperProtection
     $results += Test-MDETamperProtectionForExclusions
     
@@ -4182,6 +4260,7 @@ Export-ModuleMember -Function @(
     'Test-MDEDatagramProcessingWindowsServer',
     'Test-MDEAttackSurfaceReduction',
     'Test-MDEThreatDefaultActions',
+    'Test-MDETroubleshootingMode',
     'Test-MDETamperProtection',
     'Test-MDETamperProtectionForExclusions',
     'Test-MDEExclusionVisibilityLocalAdmins',
