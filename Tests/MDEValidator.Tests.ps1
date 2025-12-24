@@ -456,6 +456,26 @@ Describe 'MDEValidator Module' {
         }
     }
     
+    Context 'Test-MDETroubleshootingMode' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDETroubleshootingMode
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Troubleshooting Mode'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+            $result.Timestamp | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should export Test-MDETroubleshootingMode function' {
+            Get-Command -Name 'Test-MDETroubleshootingMode' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Troubleshooting Mode or error message in the message' {
+            $result = Test-MDETroubleshootingMode
+            $result.Message | Should -Match '(Troubleshooting Mode|Unable to query)'
+        }
+    }
+    
     Context 'Test-MDEExclusionVisibilityLocalAdmins' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Test-MDEExclusionVisibilityLocalAdmins
@@ -693,6 +713,7 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Datagram Processing (Windows Server)'
             $testNames | Should -Contain 'Attack Surface Reduction Rules'
             $testNames | Should -Contain 'Threat Default Actions'
+            $testNames | Should -Contain 'Troubleshooting Mode'
             $testNames | Should -Contain 'Tamper Protection'
             $testNames | Should -Contain 'Exclusion Visibility (Local Admins)'
             $testNames | Should -Contain 'Exclusion Visibility (Local Users)'
