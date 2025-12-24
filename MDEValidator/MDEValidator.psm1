@@ -1857,8 +1857,8 @@ function Test-MDEThreatDefaultActions {
         Low, Moderate, High, and Severe threat severity levels in Windows Defender.
         
         The control only fails if any default action is explicitly set to NoAction (9), 
-        Allow (6), or UserDefined (8). It passes when all actions are set to Clean (1), 
-        Quarantine (2), or Block (10).
+        Allow (6), or UserDefined (8). It passes when all actions are set to acceptable 
+        values including Clean (1), Quarantine (2), Remove (3), or Block (10).
         
         Unknown (0) values are treated as follows:
         - If Tamper Protection is enabled: Pass (Unknown is acceptable)
@@ -1876,13 +1876,13 @@ function Test-MDEThreatDefaultActions {
     .NOTES
         Threat action values:
         0 = Unknown (may indicate Tamper Protection is enabled or Troubleshooting Mode is active)
-        1 = Clean (repairs infected files)
-        2 = Quarantine
-        3 = Remove (deletes the file)
+        1 = Clean (repairs infected files) - Pass
+        2 = Quarantine - Pass
+        3 = Remove (deletes the file) - Pass
         6 = Allow (Ignore) - Fail
         8 = UserDefined - Fail
         9 = NoAction - Fail
-        10 = Block
+        10 = Block - Pass
     #>
     [CmdletBinding()]
     param()
@@ -1900,9 +1900,6 @@ function Test-MDEThreatDefaultActions {
         9 = 'NoAction'
         10 = 'Block'
     }
-    
-    # Acceptable actions (Pass criteria)
-    $acceptableActions = @(1, 2, 10)  # Clean, Quarantine, Block
     
     # Explicitly failing actions
     $failingActions = @(6, 8, 9)  # Allow, UserDefined, NoAction
@@ -1952,7 +1949,7 @@ function Test-MDEThreatDefaultActions {
             # Explicit failure - any action set to NoAction, Allow, or UserDefined
             Write-ValidationResult -TestName $testName -Status 'Fail' `
                 -Message "$message. Critical issues found: $($failingIssues -join '; ')." `
-                -Recommendation "Configure threat default actions to Clean (1), Quarantine (2), or Block (10) for all severity levels via Intune or Group Policy. Avoid NoAction (9), Allow (6), and UserDefined (8)."
+                -Recommendation "Configure threat default actions to Clean (1), Quarantine (2), Remove (3), or Block (10) for all severity levels via Intune or Group Policy. Avoid NoAction (9), Allow (6), and UserDefined (8)."
         } elseif ($unknownCount -gt 0) {
             # Handle Unknown values based on Tamper Protection status
             if ($isTamperProtected) {
@@ -1967,6 +1964,7 @@ function Test-MDEThreatDefaultActions {
             }
         } else {
             # All actions are acceptable (Clean, Quarantine, Block, or Remove)
+            # No failing actions detected - Pass
             Write-ValidationResult -TestName $testName -Status 'Pass' `
                 -Message $message
         }
