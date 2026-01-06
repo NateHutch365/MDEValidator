@@ -55,6 +55,10 @@ Describe 'MDEValidator Module' {
             Get-Command -Name 'Test-MDENetworkProtection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
         
+        It 'Should export Test-MDEAutoExclusionsWindowsServer function' {
+            Get-Command -Name 'Test-MDEAutoExclusionsWindowsServer' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
         It 'Should export Test-MDEAttackSurfaceReduction function' {
             Get-Command -Name 'Test-MDEAttackSurfaceReduction' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
@@ -306,6 +310,24 @@ Describe 'MDEValidator Module' {
         It 'Should mention Windows Server or NotApplicable in the message' {
             $result = Test-MDEDatagramProcessingWindowsServer
             $result.Message | Should -Match '(Windows Server|This check only applies|Unable to query)'
+        }
+    }
+    
+    Context 'Test-MDEAutoExclusionsWindowsServer' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEAutoExclusionsWindowsServer
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Auto Exclusions for Servers (DisableAutoExclusions)'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+        }
+        
+        It 'Should export Test-MDEAutoExclusionsWindowsServer function' {
+            Get-Command -Name 'Test-MDEAutoExclusionsWindowsServer' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
+        It 'Should mention Auto Exclusions, Windows Server or NotApplicable in the message' {
+            $result = Test-MDEAutoExclusionsWindowsServer
+            $result.Message | Should -Match '(Auto Exclusions|Windows Server|This check only applies|Unable to query)'
         }
     }
     
@@ -711,6 +733,7 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Network Protection'
             $testNames | Should -Contain 'Network Protection (Windows Server)'
             $testNames | Should -Contain 'Datagram Processing (Windows Server)'
+            $testNames | Should -Contain 'Auto Exclusions for Servers (DisableAutoExclusions)'
             $testNames | Should -Contain 'Attack Surface Reduction Rules'
             $testNames | Should -Contain 'Threat Default Actions'
             $testNames | Should -Contain 'Troubleshooting Mode'
