@@ -20,6 +20,7 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 - **Network Protection**: Checks network protection configuration
 - **Network Protection (Windows Server)**: Validates network protection on Windows Server editions
 - **Datagram Processing (Windows Server)**: Checks datagram processing configuration on Windows Server
+- **Auto Exclusions for Servers**: Checks if DisableAutoExclusions is enabled on Windows Server (Pass if enabled, Warning if not)
 - **Attack Surface Reduction (ASR) Rules**: Validates ASR rules configuration
 - **Threat Default Actions**: Checks default actions for threat severity levels (Low, Moderate, High, Severe) showing both registry values and settings (e.g., 2 (Quarantine))
 - **Tamper Protection**: Validates tamper protection status
@@ -151,6 +152,7 @@ Test-MDEBehaviorMonitoring
 Test-MDENetworkProtection
 Test-MDENetworkProtectionWindowsServer
 Test-MDEDatagramProcessingWindowsServer
+Test-MDEAutoExclusionsWindowsServer
 
 # MDE Advanced Features
 Test-MDEOnboardingStatus

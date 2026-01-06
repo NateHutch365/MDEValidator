@@ -55,6 +55,7 @@
         'Test-MDENetworkProtection',
         'Test-MDENetworkProtectionWindowsServer',
         'Test-MDEDatagramProcessingWindowsServer',
+        'Test-MDEAutoExclusionsWindowsServer',
         'Test-MDEAttackSurfaceReduction',
         'Test-MDEThreatDefaultActions',
         'Test-MDETamperProtection',
