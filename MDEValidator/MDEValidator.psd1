@@ -58,6 +58,7 @@
         'Test-MDEAutoExclusionsWindowsServer',
         'Test-MDEAttackSurfaceReduction',
         'Test-MDEThreatDefaultActions',
+        'Test-MDETroubleshootingMode',
         'Test-MDETamperProtection',
         'Test-MDETamperProtectionForExclusions',
         'Test-MDEExclusionVisibilityLocalAdmins',
