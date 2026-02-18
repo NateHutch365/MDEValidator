@@ -1533,24 +1533,18 @@ function Test-MDEDeviceTags {
         
         if (Test-Path $deviceTagPath) {
             $deviceTagReg = Get-ItemProperty -Path $deviceTagPath -ErrorAction SilentlyContinue
+            $tagValue = $deviceTagReg.Group
             
-            if ($null -ne $deviceTagReg -and $null -ne $deviceTagReg.Group) {
-                $tagValue = $deviceTagReg.Group
-                
-                if ([string]::IsNullOrWhiteSpace($tagValue)) {
-                    Write-ValidationResult -TestName $testName -Status 'Info' `
-                        -Message "MDE device tag registry value exists but is empty."
-                } else {
-                    Write-ValidationResult -TestName $testName -Status 'Info' `
-                        -Message "MDE device tag: $tagValue"
-                }
+            if (-not [string]::IsNullOrWhiteSpace($tagValue)) {
+                Write-ValidationResult -TestName $testName -Status 'Info' `
+                    -Message "MDE device tag: $tagValue"
             } else {
                 Write-ValidationResult -TestName $testName -Status 'Info' `
-                    -Message "No MDE device tags configured (registry path exists but 'Group' value not found)."
+                    -Message "No MDE device tags configured."
             }
         } else {
             Write-ValidationResult -TestName $testName -Status 'Info' `
-                -Message "No MDE device tags configured (registry path not found)."
+                -Message "No MDE device tags configured."
         }
     }
     catch {
