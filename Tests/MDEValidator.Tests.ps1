@@ -51,6 +51,10 @@ Describe 'MDEValidator Module' {
             Get-Command -Name 'Test-MDEOnboardingStatus' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
         
+        It 'Should export Test-MDEDeviceTags function' {
+            Get-Command -Name 'Test-MDEDeviceTags' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+        
         It 'Should export Test-MDENetworkProtection function' {
             Get-Command -Name 'Test-MDENetworkProtection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }

@@ -1498,6 +1498,67 @@ function Test-MDEOnboardingStatus {
     }
 }
 
+function Test-MDEDeviceTags {
+    <#
+    .SYNOPSIS
+        Lists any MDE device tags assigned to the device.
+    
+    .DESCRIPTION
+        Checks the Windows registry for Microsoft Defender for Endpoint (MDE) device tags
+        that have been assigned to the device. Device tags are used for grouping and
+        organizing devices in the Microsoft 365 Defender portal.
+        
+        Registry location: HKLM:\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection\DeviceTagging
+        Value name: Group (REG_SZ)
+    
+    .EXAMPLE
+        Test-MDEDeviceTags
+        
+        Lists the MDE device tags assigned to the device.
+    
+    .OUTPUTS
+        PSCustomObject with validation results.
+    
+    .NOTES
+        This is an informational check that displays any configured device tags.
+        Device tags are typically set via Group Policy, Intune, or the MDE onboarding script.
+    #>
+    [CmdletBinding()]
+    param()
+    
+    $testName = 'MDE Device Tags'
+    
+    try {
+        $deviceTagPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection\DeviceTagging'
+        
+        if (Test-Path $deviceTagPath) {
+            $deviceTagReg = Get-ItemProperty -Path $deviceTagPath -ErrorAction SilentlyContinue
+            
+            if ($null -ne $deviceTagReg -and $null -ne $deviceTagReg.Group) {
+                $tagValue = $deviceTagReg.Group
+                
+                if ([string]::IsNullOrWhiteSpace($tagValue)) {
+                    Write-ValidationResult -TestName $testName -Status 'Info' `
+                        -Message "MDE device tag registry value exists but is empty."
+                } else {
+                    Write-ValidationResult -TestName $testName -Status 'Info' `
+                        -Message "MDE device tag: $tagValue"
+                }
+            } else {
+                Write-ValidationResult -TestName $testName -Status 'Info' `
+                    -Message "No MDE device tags configured (registry path exists but 'Group' value not found)."
+            }
+        } else {
+            Write-ValidationResult -TestName $testName -Status 'Info' `
+                -Message "No MDE device tags configured (registry path not found)."
+        }
+    }
+    catch {
+        Write-ValidationResult -TestName $testName -Status 'Info' `
+            -Message "Unable to query MDE device tags: $_"
+    }
+}
+
 function Test-MDENetworkProtection {
     <#
     .SYNOPSIS
@@ -3919,6 +3980,8 @@ function Test-MDEConfiguration {
         $results += Test-MDEOnboardingStatus
     }
     
+    $results += Test-MDEDeviceTags
+    
     Write-Verbose "MDE configuration validation completed."
     
     return $results
@@ -4338,6 +4401,7 @@ Export-ModuleMember -Function @(
     'Test-MDESampleSubmission',
     'Test-MDEBehaviorMonitoring',
     'Test-MDEOnboardingStatus',
+    'Test-MDEDeviceTags',
     'Test-MDENetworkProtection',
     'Test-MDENetworkProtectionWindowsServer',
     'Test-MDEDatagramProcessingWindowsServer',
