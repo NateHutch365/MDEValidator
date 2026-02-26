@@ -17,6 +17,7 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 - **Automatic Sample Submission**: Checks sample submission configuration
 - **Behavior Monitoring**: Validates behavior monitoring status
 - **MDE Onboarding Status**: Verifies device onboarding to Microsoft Defender for Endpoint
+- **MDE Device Tags**: Lists any MDE device tags assigned to the device for grouping and organization in the Microsoft 365 Defender portal
 - **Network Protection**: Checks network protection configuration
 - **Network Protection (Windows Server)**: Validates network protection on Windows Server editions
 - **Datagram Processing (Windows Server)**: Checks datagram processing configuration on Windows Server
@@ -156,6 +157,7 @@ Test-MDEAutoExclusionsWindowsServer
 
 # MDE Advanced Features
 Test-MDEOnboardingStatus
+Test-MDEDeviceTags
 Test-MDEAttackSurfaceReduction
 Test-MDEThreatDefaultActions
 Test-MDETamperProtection

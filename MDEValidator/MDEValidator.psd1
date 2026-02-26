@@ -52,6 +52,7 @@
         'Test-MDESampleSubmission',
         'Test-MDEBehaviorMonitoring',
         'Test-MDEOnboardingStatus',
+        'Test-MDEDeviceTags',
         'Test-MDENetworkProtection',
         'Test-MDENetworkProtectionWindowsServer',
         'Test-MDEDatagramProcessingWindowsServer',
