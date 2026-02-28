@@ -17,7 +17,7 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 - **Automatic Sample Submission**: Checks sample submission configuration
 - **Behavior Monitoring**: Validates behavior monitoring status
 - **MDE Onboarding Status**: Verifies device onboarding to Microsoft Defender for Endpoint
-- **MDE Device Tags**: Lists any MDE device tags assigned to the device for grouping and organization in the Microsoft 365 Defender portal
+- **MDE Device Tags**: Lists any locally added MDE tags
 - **Network Protection**: Checks network protection configuration
 - **Network Protection (Windows Server)**: Validates network protection on Windows Server editions
 - **Datagram Processing (Windows Server)**: Checks datagram processing configuration on Windows Server
@@ -51,6 +51,18 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 
 ## Installation
 
+### Install from PowerShell Gallery (Recommended)
+
+```powershell
+Install-Module -Name MDEValidator -Scope CurrentUser
+```
+
+To update an existing installation:
+
+```powershell
+Update-Module -Name MDEValidator
+```
+
 ### Manual Installation
 
 1. Download or clone this repository
@@ -74,6 +86,15 @@ You can also import the module directly without installing:
 Import-Module .\MDEValidator\MDEValidator.psd1
 ```
 
+## What's New in v2.0
+
+- **Performance**: `Get-MpPreference` and `Get-MpComputerStatus` are fetched once and shared across all tests via optional parameters, significantly reducing execution time.
+- **Code Structure**: Monolithic module split into categorised dot-sourced files under `Private/` and `Public/` folders for easier maintenance and contributions.
+- **Verbose/Debug Logging**: Every function emits `Write-Verbose` and `Write-Debug` output for troubleshooting. Use `-Verbose` or `-Debug` with any command.
+- **WPF GUI**: New `Show-MDEValidatorUI` function provides a graphical interface on Windows Desktop PowerShell.
+- **CI/CD**: GitHub Actions pipeline for linting (PSScriptAnalyzer), Pester testing, and PSGallery publishing on tagged releases.
+- **Unit Tests**: Pester tests with mocks that run cross-platform without requiring a Windows endpoint.
+
 ## Usage
 
 ### Quick Start
@@ -87,6 +108,13 @@ Get-MDEValidationReport
 
 # Run all tests including MDE onboarding status
 Get-MDEValidationReport -IncludeOnboarding
+```
+
+### Graphical Interface (Windows Desktop PowerShell only)
+
+```powershell
+# Launch the WPF validation UI
+Show-MDEValidatorUI
 ```
 
 ### Available Functions
