@@ -62,6 +62,7 @@ function Test-MDEPassiveMode {
         catch {
             # Get-MpComputerStatus may not be available on non-Windows systems or if Defender is not installed
             # Fall back to registry checks below
+            Write-Debug "Get-MpComputerStatus unavailable: $_"
         }
         
         # Check registry for Passive Mode indicator

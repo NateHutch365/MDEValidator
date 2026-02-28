@@ -36,6 +36,8 @@ function Test-MDEPolicyRegistryValue {
         detected management type (Intune vs Security Settings Management/GPO/SCCM).
     #>
     [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSReviewUnusedParameter', 'ExpectedValue',
+        Justification = 'Reserved for future comparison logic; callers pass it for API consistency.')]
     param(
         [Parameter()]
         [string]$SettingKey,

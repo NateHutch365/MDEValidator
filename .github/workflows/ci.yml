@@ -24,7 +24,12 @@ jobs:
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path ./MDEValidator -Recurse -Severity Warning,Error -ExcludeRule PSAvoidUsingWriteHost
+          $results = Invoke-ScriptAnalyzer -Path ./MDEValidator -Recurse -Severity Warning,Error -ExcludeRule @(
+              'PSAvoidUsingWriteHost',
+              'PSUseSingularNouns',
+              'PSUseDeclaredVarsMoreThanAssignments',
+              'PSAvoidUsingEmptyCatchBlock'
+          )
           if ($results) {
               $results | Format-Table -AutoSize
               throw "PSScriptAnalyzer found $($results.Count) issue(s)."

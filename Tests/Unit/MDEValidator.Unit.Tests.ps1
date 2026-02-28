@@ -14,6 +14,17 @@
 #>
 
 BeforeAll {
+    # Define stub functions for Windows-only cmdlets so Pester can mock them on Linux/macOS
+    if (-not (Get-Command -Name 'Get-Service' -ErrorAction SilentlyContinue)) {
+        function global:Get-Service { param($Name) }
+    }
+    if (-not (Get-Command -Name 'Get-MpPreference' -ErrorAction SilentlyContinue)) {
+        function global:Get-MpPreference { }
+    }
+    if (-not (Get-Command -Name 'Get-MpComputerStatus' -ErrorAction SilentlyContinue)) {
+        function global:Get-MpComputerStatus { }
+    }
+
     # Import the module under test
     $modulePath = Join-Path $PSScriptRoot '../../MDEValidator/MDEValidator.psm1'
     Import-Module $modulePath -Force
@@ -21,6 +32,10 @@ BeforeAll {
 
 AfterAll {
     Remove-Module MDEValidator -ErrorAction SilentlyContinue
+    # Clean up global stubs created for cross-platform compatibility
+    Remove-Item Function:\Get-Service -ErrorAction SilentlyContinue
+    Remove-Item Function:\Get-MpPreference -ErrorAction SilentlyContinue
+    Remove-Item Function:\Get-MpComputerStatus -ErrorAction SilentlyContinue
 }
 
 # ──────────────────────────────────────────────

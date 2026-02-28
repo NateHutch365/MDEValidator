@@ -84,6 +84,7 @@ function Test-MDEExclusionVisibilityLocalUsers {
             }
             catch {
                 # Continue even if MpPreference fails - we may have registry values
+                Write-Debug "MpPreference check failed: $_"
             }
         }
         

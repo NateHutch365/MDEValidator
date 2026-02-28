@@ -81,6 +81,7 @@ function Test-MDEExclusionVisibilityLocalAdmins {
         }
         catch {
             # Continue even if MpPreference fails - we may have registry values
+            Write-Debug "MpPreference check failed: $_"
         }
         
         Write-Debug "HideExclusionsFromLocalAdmins after MpPreference check: $hideFromLocalAdmins (Source: $source)"
