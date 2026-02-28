@@ -78,13 +78,12 @@ function Test-MDEPassiveMode {
         $atpPolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection'
         $featuresPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features'
         
-        $forcePassiveMode = $null
         $passiveModeBehavior = $null
         
         if (Test-Path $atpPolicyPath) {
             $atpPolicy = Get-ItemProperty -Path $atpPolicyPath -ErrorAction SilentlyContinue
-            if ($null -ne $atpPolicy.ForceDefenderPassiveMode) {
-                $forcePassiveMode = $atpPolicy.ForceDefenderPassiveMode
+            if ($null -ne $atpPolicy.ForceDefenderPassiveMode -and $atpPolicy.ForceDefenderPassiveMode -eq 1) {
+                $isPassiveMode = $true
             }
         }
         
@@ -95,7 +94,7 @@ function Test-MDEPassiveMode {
             }
         }
         
-        Write-Debug "isPassiveMode: $isPassiveMode, isEDRBlockMode: $isEDRBlockMode, forcePassiveMode: $forcePassiveMode, passiveModeBehavior: $passiveModeBehavior"
+        Write-Debug "isPassiveMode: $isPassiveMode, isEDRBlockMode: $isEDRBlockMode, passiveModeBehavior: $passiveModeBehavior"
         
         # EDR Block Mode detection via registry
         # EDR Block Mode allows Defender to perform remediation even when in passive mode

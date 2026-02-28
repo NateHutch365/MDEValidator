@@ -1,4 +1,5 @@
 #Requires -Version 5.1
+
 <#
 .SYNOPSIS
     MDEValidator - Microsoft Defender for Endpoint Configuration Validation Module
