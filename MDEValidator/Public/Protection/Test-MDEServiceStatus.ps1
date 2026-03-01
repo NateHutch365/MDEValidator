@@ -1,19 +1,27 @@
 function Test-MDEServiceStatus {
     <#
     .SYNOPSIS
-        Tests the status of the Windows Defender service.
+        Tests the status of critical Microsoft Defender for Endpoint services.
     
     .DESCRIPTION
-        Checks if the Windows Defender Antivirus Service (WinDefend) is running
-        and configured to start automatically.
+        Checks the status of both the Windows Defender Antivirus Service (WinDefend)
+        and the Microsoft Defender for Endpoint sensor service (Sense).
+        
+        Both services must be running for full MDE functionality. A device with
+        WinDefend running but Sense stopped is not onboarded to MDE.
     
     .EXAMPLE
         Test-MDEServiceStatus
         
-        Tests if the Windows Defender service is running properly.
+        Tests if both the Windows Defender and MDE sensor services are running.
     
     .OUTPUTS
         PSCustomObject with validation results.
+    
+    .NOTES
+        Services checked:
+        - WinDefend  : Microsoft Defender Antivirus Service
+        - Sense      : Microsoft Defender for Endpoint sensor service (MDE onboarding)
     #>
     [CmdletBinding()]
     param()
@@ -21,30 +29,51 @@ function Test-MDEServiceStatus {
     $testName = 'Windows Defender Service Status'
     Write-Verbose "Checking $testName..."
     
-    try {
-        $service = Get-Service -Name 'WinDefend' -ErrorAction Stop
-        Write-Debug "WinDefend service status: $($service.Status)"
-        
-        if ($service.Status -eq 'Running') {
-            $startType = (Get-Service -Name 'WinDefend').StartType
-            Write-Debug "WinDefend start type: $startType"
-            if ($startType -eq 'Automatic') {
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
-                    -Message "Windows Defender service is running and set to start automatically."
-            } else {
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
-                    -Message "Windows Defender service is running but start type is '$startType'." `
-                    -Recommendation "Set the service to start automatically for optimal protection."
+    $services = @(
+        @{ Name = 'WinDefend'; DisplayName = 'Microsoft Defender Antivirus Service' },
+        @{ Name = 'Sense';     DisplayName = 'Microsoft Defender for Endpoint Service' }
+    )
+    
+    $allRunning      = $true
+    $messages        = @()
+    $recommendations = @()
+    
+    foreach ($svc in $services) {
+        Write-Debug "Checking service: $($svc.Name) ($($svc.DisplayName))"
+        try {
+            $service = Get-Service -Name $svc.Name -ErrorAction Stop
+            Write-Debug "Service '$($svc.Name)' status: $($service.Status)"
+            
+            if ($service.Status -eq 'Running') {
+                $messages += "$($svc.DisplayName) ($($svc.Name)): Running"
             }
-        } else {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
-                -Message "Windows Defender service is not running. Current status: $($service.Status)" `
-                -Recommendation "Start the Windows Defender service and ensure it's set to start automatically."
+            else {
+                $allRunning = $false
+                $messages += "$($svc.DisplayName) ($($svc.Name)): $($service.Status)"
+                $recommendations += "Start the $($svc.DisplayName) service: Start-Service $($svc.Name)"
+            }
+        }
+        catch {
+            Write-Debug "Failed to query service '$($svc.Name)': $_"
+            $allRunning = $false
+            $messages += "$($svc.DisplayName) ($($svc.Name)): Not found"
+            $recommendations += "The $($svc.DisplayName) service was not found. MDE may not be installed or onboarded."
         }
     }
-    catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
-            -Message "Unable to query Windows Defender service: $_" `
-            -Recommendation "Verify that Windows Defender is installed on this system."
+    
+    if ($allRunning) {
+        $status = 'Pass'
+        $recommendation = 'Both MDE services are running correctly.'
     }
+    else {
+        $status = 'Fail'
+        $recommendation = $recommendations -join ' '
+    }
+    
+    $message = $messages -join ' | '
+    
+    Write-Verbose "Service status check result: $status"
+    
+    Write-ValidationResult -TestName $testName -Status $status `
+        -Message $message -Recommendation $recommendation
 }

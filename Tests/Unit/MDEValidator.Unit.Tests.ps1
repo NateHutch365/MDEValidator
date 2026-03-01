@@ -46,18 +46,24 @@ Describe 'Test-MDEServiceStatus' {
     BeforeAll {
         # Mock Get-Service so we never touch real services
         Mock Get-Service -ModuleName MDEValidator {
-            [PSCustomObject]@{
-                Name      = 'WinDefend'
-                Status    = 'Running'
-                StartType = 'Automatic'
+            param([string]$Name)
+            switch ($Name) {
+                'WinDefend' { [PSCustomObject]@{ Name = 'WinDefend'; Status = 'Running'; StartType = 'Automatic' } }
+                'Sense'     { [PSCustomObject]@{ Name = 'Sense';     Status = 'Running'; StartType = 'Automatic' } }
+                default     { throw "Service '$Name' not found" }
             }
         }
     }
 
-    Context 'WinDefend is Running and Automatic' {
+    Context 'Both WinDefend and Sense are Running' {
         It 'Should return Pass' {
             Mock Get-Service -ModuleName MDEValidator {
-                [PSCustomObject]@{ Name = 'WinDefend'; Status = 'Running'; StartType = 'Automatic' }
+                param([string]$Name)
+                switch ($Name) {
+                    'WinDefend' { [PSCustomObject]@{ Name = 'WinDefend'; Status = 'Running'; StartType = 'Automatic' } }
+                    'Sense'     { [PSCustomObject]@{ Name = 'Sense';     Status = 'Running'; StartType = 'Automatic' } }
+                    default     { throw "Service '$Name' not found" }
+                }
             }
             $result = Test-MDEServiceStatus
             $result | Should -Not -BeNullOrEmpty
@@ -66,22 +72,31 @@ Describe 'Test-MDEServiceStatus' {
         }
     }
 
-    Context 'WinDefend is Running but Manual start type' {
-        It 'Should return Warning' {
+    Context 'WinDefend is Running but Sense is Stopped' {
+        It 'Should return Fail (not onboarded)' {
             Mock Get-Service -ModuleName MDEValidator {
-                [PSCustomObject]@{ Name = 'WinDefend'; Status = 'Running'; StartType = 'Manual' }
+                param([string]$Name)
+                switch ($Name) {
+                    'WinDefend' { [PSCustomObject]@{ Name = 'WinDefend'; Status = 'Running'; StartType = 'Automatic' } }
+                    'Sense'     { [PSCustomObject]@{ Name = 'Sense';     Status = 'Stopped'; StartType = 'Manual' } }
+                    default     { throw "Service '$Name' not found" }
+                }
             }
             $result = Test-MDEServiceStatus
             $result | Should -Not -BeNullOrEmpty
-            $result.Status | Should -Be 'Warning'
-            $result.TestName | Should -Be 'Windows Defender Service Status'
+            $result.Status | Should -Be 'Fail'
         }
     }
 
     Context 'WinDefend is Stopped' {
         It 'Should return Fail' {
             Mock Get-Service -ModuleName MDEValidator {
-                [PSCustomObject]@{ Name = 'WinDefend'; Status = 'Stopped'; StartType = 'Manual' }
+                param([string]$Name)
+                switch ($Name) {
+                    'WinDefend' { [PSCustomObject]@{ Name = 'WinDefend'; Status = 'Stopped'; StartType = 'Manual' } }
+                    'Sense'     { [PSCustomObject]@{ Name = 'Sense';     Status = 'Running'; StartType = 'Automatic' } }
+                    default     { throw "Service '$Name' not found" }
+                }
             }
             $result = Test-MDEServiceStatus
             $result | Should -Not -BeNullOrEmpty
@@ -698,7 +713,7 @@ Describe 'Test-MDESignatureUpdateFallbackOrder' {
     Context 'Recommended fallback order is configured' {
         It 'Should return Pass' {
             $mockPref = [PSCustomObject]@{
-                SignatureFallbackOrder = 'MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer'
+                SignatureFallbackOrder = 'MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer'
             }
             $result = Test-MDESignatureUpdateFallbackOrder -MpPreference $mockPref
             $result | Should -Not -BeNullOrEmpty

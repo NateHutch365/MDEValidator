@@ -21,10 +21,10 @@ function Test-MDESignatureUpdateFallbackOrder {
     
     .NOTES
         The recommended SignatureFallbackOrder is:
-        MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer
+        MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer
         
-        This ensures that Microsoft Malware Protection Center (MMPC) is tried first,
-        followed by Microsoft Update Server, and then internal definition update servers.
+        This ensures that Microsoft Update Server is tried first,
+        followed by Microsoft Malware Protection Center (MMPC), and then internal definition update servers.
     #>
     [CmdletBinding()]
     param(
@@ -33,7 +33,7 @@ function Test-MDESignatureUpdateFallbackOrder {
     )
     
     $testName = 'Signature Update Fallback Order'
-    $recommendedOrder = 'MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer'
+    $recommendedOrder = 'MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer'
     Write-Verbose "Checking $testName..."
     
     try {

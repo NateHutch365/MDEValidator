@@ -114,7 +114,7 @@ function Test-MDESmartScreenAppRepExclusions {
             }) -join ' | '
             
             Write-ValidationResult -TestName $testName -Status 'Warning' `
-                -Message "SmartScreen AppRep exclusions are configured via $source. The following file types on these domains bypass SmartScreen AppRep protection: $exclusionList" `
+                -Message "SmartScreen AppRep exclusions are configured via Group Policy or Intune. The following file types on these domains bypass SmartScreen AppRep protection: $exclusionList" `
                 -Recommendation "Review the configured AppRep exclusions to ensure they are necessary. Each exclusion bypasses SmartScreen application reputation warnings for the specified file types."
         }
     }

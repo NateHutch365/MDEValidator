@@ -62,7 +62,7 @@ function Test-MDESmartScreenPromptOverride {
                 -Recommendation "Configure 'Prevent bypassing Microsoft Defender SmartScreen prompts for sites' via Group Policy or Intune. Set PreventSmartScreenPromptOverride to 1."
         } elseif ($preventOverride -eq 1) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
-                -Message "SmartScreen prompt override prevention is enabled via $source. Users cannot bypass SmartScreen warnings for sites."
+                -Message "SmartScreen prompt override prevention is enabled via Group Policy or Intune. Users cannot bypass SmartScreen warnings for sites."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "SmartScreen prompt override prevention is disabled via $source. Users can bypass SmartScreen warnings for sites." `

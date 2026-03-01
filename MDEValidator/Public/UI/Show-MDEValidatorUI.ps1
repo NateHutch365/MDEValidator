@@ -122,6 +122,7 @@ function Show-MDEValidatorUI {
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -162,8 +163,37 @@ function Show-MDEValidatorUI {
             </WrapPanel>
         </Border>
 
+        <!-- Device info panel -->
+        <Border Grid.Row="2" x:Name="pnlDeviceInfo" Background="#F7F9FB" Padding="16,8" BorderBrush="#D8DCE3"
+                BorderThickness="0,0,0,1" Visibility="Collapsed">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="4,0">
+                    <TextBlock Text="Computer" FontSize="10" Foreground="#6B7280" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtComputer" Text="---" FontSize="13" Foreground="#1B2A4A" Margin="0,2,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="4,0">
+                    <TextBlock Text="Operating System" FontSize="10" Foreground="#6B7280" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtOS" Text="---" FontSize="13" Foreground="#1B2A4A" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Margin="4,0">
+                    <TextBlock Text="Managed By" FontSize="10" Foreground="#6B7280" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtManagedBy" Text="---" FontSize="13" Foreground="#1B2A4A" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+                <StackPanel Grid.Column="3" Margin="4,0">
+                    <TextBlock Text="MDE Onboarding" FontSize="10" Foreground="#6B7280" FontWeight="SemiBold"/>
+                    <TextBlock x:Name="txtOnboarding" Text="---" FontSize="13" Foreground="#1B2A4A" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- DataGrid -->
-        <DataGrid Grid.Row="2" x:Name="dgResults"
+        <DataGrid Grid.Row="3" x:Name="dgResults"
                   AutoGenerateColumns="False"
                   IsReadOnly="True"
                   SelectionMode="Single"
@@ -176,8 +206,28 @@ function Show-MDEValidatorUI {
                   RowHeaderWidth="0"
                   CanUserResizeRows="False"
                   Margin="0"
-                  FontSize="13"
-                  AlternatingRowBackground="#F7F9FB">
+                  FontSize="13">
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Status}" Value="Pass">
+                            <Setter Property="Background" Value="#E6F4EA"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="Fail">
+                            <Setter Property="Background" Value="#FDECEA"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="Warning">
+                            <Setter Property="Background" Value="#FFF8E1"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="Info">
+                            <Setter Property="Background" Value="#E3F2FD"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding Status}" Value="NotApplicable">
+                            <Setter Property="Background" Value="#F3E5F5"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Status" Binding="{Binding StatusDisplay}" Width="100">
                     <DataGridTextColumn.ElementStyle>
@@ -216,7 +266,7 @@ function Show-MDEValidatorUI {
         </DataGrid>
 
         <!-- Summary panel -->
-        <Border Grid.Row="3" Background="White" Padding="16,8" BorderBrush="#D8DCE3"
+        <Border Grid.Row="4" Background="White" Padding="16,8" BorderBrush="#D8DCE3"
                 BorderThickness="0,1,0,0">
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Border Background="#E6F4EA" CornerRadius="4" Padding="14,6" Margin="4,0">
@@ -243,7 +293,7 @@ function Show-MDEValidatorUI {
         </Border>
 
         <!-- Status bar -->
-        <Border Grid.Row="4" Background="#1B2A4A" Padding="14,7">
+        <Border Grid.Row="5" Background="#1B2A4A" Padding="14,7">
             <TextBlock x:Name="txtStatus" Text="Ready - click Run Validation to begin."
                        Foreground="#A8BFE0" FontSize="12"/>
         </Border>
@@ -270,6 +320,11 @@ function Show-MDEValidatorUI {
         $txtWarning    = $window.FindName('txtWarning')
         $txtInfo       = $window.FindName('txtInfo')
         $txtNA         = $window.FindName('txtNA')
+        $pnlDeviceInfo = $window.FindName('pnlDeviceInfo')
+        $txtComputer   = $window.FindName('txtComputer')
+        $txtOS         = $window.FindName('txtOS')
+        $txtManagedBy  = $window.FindName('txtManagedBy')
+        $txtOnboarding = $window.FindName('txtOnboarding')
 
         # Keep validation results in a script-scope list for export
         $script:uiResults = $null
@@ -308,6 +363,15 @@ function Show-MDEValidatorUI {
                     Write-Verbose "IncludePolicyVerification enabled."
                 }
 
+                # --- Populate device info panel ---
+                Write-Verbose "Gathering device information..."
+                $txtComputer.Text = $env:COMPUTERNAME
+                try { $txtOS.Text = Get-MDEOperatingSystemInfo } catch { $txtOS.Text = 'Unknown' }
+                try { $txtManagedBy.Text = Get-MDESecuritySettingsManagementStatus } catch { $txtManagedBy.Text = 'Unknown' }
+                try { $txtOnboarding.Text = Get-MDEOnboardingStatusString } catch { $txtOnboarding.Text = 'Unknown' }
+                $pnlDeviceInfo.Visibility = [System.Windows.Visibility]::Visible
+                $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Background, [Action]{})
+
                 Write-Verbose "Calling Test-MDEConfiguration..."
                 $script:uiResults = @(Test-MDEConfiguration @params)
                 Write-Verbose "Received $($script:uiResults.Count) results."
@@ -324,22 +388,6 @@ function Show-MDEValidatorUI {
                 }
 
                 $dgResults.ItemsSource = $displayRows
-
-                # --- Apply row-level background colours ---
-                $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Loaded, [Action]{
-                    for ($i = 0; $i -lt $dgResults.Items.Count; $i++) {
-                        $row = $dgResults.ItemContainerGenerator.ContainerFromIndex($i)
-                        if ($null -ne $row) {
-                            switch ($dgResults.Items[$i].Status) {
-                                'Pass'          { $row.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom('#E6F4EA') }
-                                'Fail'          { $row.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom('#FDECEA') }
-                                'Warning'       { $row.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom('#FFF8E1') }
-                                'Info'          { $row.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom('#E3F2FD') }
-                                'NotApplicable' { $row.Background = [System.Windows.Media.BrushConverter]::new().ConvertFrom('#F3E5F5') }
-                            }
-                        }
-                    }
-                })
 
                 # --- Update summary counts ---
                 $counts = $script:uiResults | Group-Object Status -AsHashTable -AsString

@@ -69,7 +69,7 @@ function Test-MDESmartScreenDomainExclusions {
         } else {
             $domainList = $domains -join ', '
             Write-ValidationResult -TestName $testName -Status 'Warning' `
-                -Message "SmartScreen domain exclusions are configured via $source. The following domains bypass SmartScreen protection: $domainList" `
+                -Message "SmartScreen domain exclusions are configured via Group Policy or Intune. The following domains bypass SmartScreen protection: $domainList" `
                 -Recommendation "Review the configured domain exclusions to ensure they are necessary. Each excluded domain bypasses SmartScreen protection. Domains: $domainList"
         }
     }

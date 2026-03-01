@@ -62,7 +62,7 @@ function Test-MDESmartScreenPUA {
                 -Recommendation "Configure 'Configure Microsoft Defender SmartScreen to block potentially unwanted apps' via Group Policy or Intune. Set SmartScreenPuaEnabled to 1."
         } elseif ($smartScreenPuaEnabled -eq 1) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
-                -Message "SmartScreen PUA protection is enabled via $source. Potentially unwanted apps will be blocked."
+                -Message "SmartScreen PUA protection is enabled via Group Policy or Intune. Potentially unwanted apps will be blocked."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "SmartScreen PUA protection is disabled via $source." `

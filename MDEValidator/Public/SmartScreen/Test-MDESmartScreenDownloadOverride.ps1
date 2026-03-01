@@ -62,7 +62,7 @@ function Test-MDESmartScreenDownloadOverride {
                 -Recommendation "Configure 'Prevent bypassing of Microsoft Defender SmartScreen warnings about downloads' via Group Policy or Intune. Set PreventSmartScreenPromptOverrideForFiles to 1."
         } elseif ($preventOverride -eq 1) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
-                -Message "SmartScreen download override prevention is enabled via $source. Users cannot bypass SmartScreen warnings about downloads."
+                -Message "SmartScreen download override prevention is enabled via Group Policy or Intune. Users cannot bypass SmartScreen warnings about downloads."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
                 -Message "SmartScreen download override prevention is disabled via $source. Users can bypass SmartScreen warnings about downloads." `
