@@ -343,11 +343,17 @@ function Show-MDEValidatorUI {
 
                 # --- Update summary counts ---
                 $counts = $script:uiResults | Group-Object Status -AsHashTable -AsString
-                $txtPass.Text    = "Pass: $(    if ($counts['Pass'])          { $counts['Pass'].Count }          else { 0 })"
-                $txtFail.Text    = "Fail: $(    if ($counts['Fail'])          { $counts['Fail'].Count }          else { 0 })"
-                $txtWarning.Text = "Warning: $( if ($counts['Warning'])       { $counts['Warning'].Count }       else { 0 })"
-                $txtInfo.Text    = "Info: $(    if ($counts['Info'])          { $counts['Info'].Count }          else { 0 })"
-                $txtNA.Text      = "N/A: $(     if ($counts['NotApplicable']) { $counts['NotApplicable'].Count } else { 0 })"
+                $passCount    = if ($counts -and $counts['Pass'])          { $counts['Pass'].Count }          else { 0 }
+                $failCount    = if ($counts -and $counts['Fail'])          { $counts['Fail'].Count }          else { 0 }
+                $warningCount = if ($counts -and $counts['Warning'])       { $counts['Warning'].Count }       else { 0 }
+                $infoCount    = if ($counts -and $counts['Info'])          { $counts['Info'].Count }          else { 0 }
+                $naCount      = if ($counts -and $counts['NotApplicable']) { $counts['NotApplicable'].Count } else { 0 }
+
+                $txtPass.Text    = "Pass: $passCount"
+                $txtFail.Text    = "Fail: $failCount"
+                $txtWarning.Text = "Warning: $warningCount"
+                $txtInfo.Text    = "Info: $infoCount"
+                $txtNA.Text      = "N/A: $naCount"
 
                 $txtStatus.Text  = "Validation complete — $($script:uiResults.Count) tests evaluated."
             }
