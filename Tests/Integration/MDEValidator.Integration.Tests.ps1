@@ -9,14 +9,14 @@
 
 BeforeAll {
     # Import the module
-    $modulePath = Join-Path $PSScriptRoot '..' 'MDEValidator' 'MDEValidator.psm1'
+    $modulePath = Join-Path $PSScriptRoot '../../MDEValidator/MDEValidator.psm1'
     Import-Module $modulePath -Force
 }
 
 Describe 'MDEValidator Module' {
     Context 'Module Import' {
         It 'Should import the module without errors' {
-            { Import-Module (Join-Path $PSScriptRoot '..' 'MDEValidator' 'MDEValidator.psm1') -Force } | Should -Not -Throw
+            { Import-Module (Join-Path $PSScriptRoot '../../MDEValidator/MDEValidator.psm1') -Force } | Should -Not -Throw
         }
         
         It 'Should export Test-MDEConfiguration function' {
