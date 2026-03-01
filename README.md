@@ -51,6 +51,18 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 
 ## Installation
 
+### Install from PowerShell Gallery (Recommended)
+
+```powershell
+Install-Module -Name MDEValidator -Scope CurrentUser
+```
+
+To update an existing installation:
+
+```powershell
+Update-Module -Name MDEValidator
+```
+
 ### Manual Installation
 
 1. Download or clone this repository
@@ -74,6 +86,33 @@ You can also import the module directly without installing:
 Import-Module .\MDEValidator\MDEValidator.psd1
 ```
 
+### Execution Policy
+
+If you are prompted to approve each command when importing the module, your execution policy is set to `Restricted` or `AllSigned`. Run one of the following **before** importing:
+
+```powershell
+# Option 1: Allow for the current session only (safest, no permanent change)
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+# Option 2: Allow local scripts permanently for your user account
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+Then import as normal:
+
+```powershell
+Import-Module MDEValidator -Force
+```
+
+## What's New in v2.0
+
+- **Performance**: `Get-MpPreference` and `Get-MpComputerStatus` are fetched once and shared across all tests via optional parameters, significantly reducing execution time.
+- **Code Structure**: Monolithic module split into categorised dot-sourced files under `Private/` and `Public/` folders for easier maintenance and contributions.
+- **Verbose/Debug Logging**: Every function emits `Write-Verbose` and `Write-Debug` output for troubleshooting. Use `-Verbose` or `-Debug` with any command.
+- **WPF GUI**: New `Show-MDEValidatorUI` function provides a graphical interface on Windows Desktop PowerShell.
+- **CI/CD**: GitHub Actions pipeline for linting (PSScriptAnalyzer), Pester testing, and PSGallery publishing on tagged releases.
+- **Unit Tests**: Pester tests with mocks that run cross-platform without requiring a Windows endpoint.
+
 ## Usage
 
 ### Quick Start
@@ -87,6 +126,13 @@ Get-MDEValidationReport
 
 # Run all tests including MDE onboarding status
 Get-MDEValidationReport -IncludeOnboarding
+```
+
+### Graphical Interface (Windows Desktop PowerShell only)
+
+```powershell
+# Launch the WPF validation UI
+Show-MDEValidatorUI
 ```
 
 ### Available Functions

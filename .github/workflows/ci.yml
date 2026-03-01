@@ -1,0 +1,124 @@
+name: CI
+
+"on":
+  push:
+    branches: [main, 'feature/**']
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Lint with PSScriptAnalyzer ──────────────────────────────
+  lint:
+    name: PSScriptAnalyzer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path ./MDEValidator -Recurse -Severity Warning,Error -ExcludeRule @(
+              'PSAvoidUsingWriteHost',
+              'PSUseSingularNouns',
+              'PSUseDeclaredVarsMoreThanAssignments',
+              'PSAvoidUsingEmptyCatchBlock',
+              'PSUseBOMForUnicodeEncodedFile'
+          )
+          if ($results) {
+              $results | Format-Table -AutoSize
+              throw "PSScriptAnalyzer found $($results.Count) issue(s)."
+          }
+          Write-Host 'PSScriptAnalyzer: No issues found.' -ForegroundColor Green
+
+  # ── Unit Tests (cross-platform) ─────────────────────────────
+  unit-tests:
+    name: Unit Tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
+
+      - name: Run Unit Tests
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = './Tests/Unit'
+          $config.Output.Verbosity = 'Detailed'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputPath = './unit-test-results.xml'
+          $config.TestResult.OutputFormat = 'NUnitXML'
+          Invoke-Pester -Configuration $config
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results-${{ matrix.os }}
+          path: unit-test-results.xml
+
+  # ── Integration Tests (Windows only) ────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: windows-latest
+    needs: [lint, unit-tests]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: |
+          Set-PSRepository PSGallery -InstallationPolicy Trusted
+          Install-Module -Name Pester -MinimumVersion 5.0 -Force -Scope CurrentUser
+
+      - name: Run Integration Tests
+        shell: pwsh
+        run: |
+          $config = New-PesterConfiguration
+          $config.Run.Path = './Tests/Integration'
+          $config.Output.Verbosity = 'Detailed'
+          $config.TestResult.Enabled = $true
+          $config.TestResult.OutputPath = './integration-test-results.xml'
+          $config.TestResult.OutputFormat = 'NUnitXML'
+          Invoke-Pester -Configuration $config
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: integration-test-results.xml
+
+  # ── Publish to PSGallery on tag ─────────────────────────────
+  publish:
+    name: Publish to PSGallery
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Publish Module
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.PSGALLERY_API_KEY }}
+        run: |
+          Publish-Module -Path ./MDEValidator -NuGetApiKey $env:NUGET_API_KEY -Verbose
