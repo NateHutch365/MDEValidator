@@ -86,6 +86,24 @@ You can also import the module directly without installing:
 Import-Module .\MDEValidator\MDEValidator.psd1
 ```
 
+### Execution Policy
+
+If you are prompted to approve each command when importing the module, your execution policy is set to `Restricted` or `AllSigned`. Run one of the following **before** importing:
+
+```powershell
+# Option 1: Allow for the current session only (safest, no permanent change)
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+# Option 2: Allow local scripts permanently for your user account
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+Then import as normal:
+
+```powershell
+Import-Module MDEValidator -Force
+```
+
 ## What's New in v2.0
 
 - **Performance**: `Get-MpPreference` and `Get-MpComputerStatus` are fetched once and shared across all tests via optional parameters, significantly reducing execution time.
