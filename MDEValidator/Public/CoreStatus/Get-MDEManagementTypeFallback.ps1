@@ -50,7 +50,7 @@ function Get-MDEManagementTypeFallback {
         }
         
         if ($isAccessDenied) {
-            Write-Verbose "Access denied to Policy Manager path — indicates Intune management"
+            Write-Verbose "Access denied to Policy Manager path - indicates Intune management"
             return "Intune"
         }
     }
@@ -90,7 +90,7 @@ function Get-MDEManagementTypeFallback {
             }
         }
         
-        Write-Verbose "No policy entries found — returning 'Not Configured'"
+        Write-Verbose "No policy entries found - returning 'Not Configured'"
         return "Not Configured"
     }
     catch {

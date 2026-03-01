@@ -137,7 +137,7 @@ function Show-MDEValidatorUI {
                 <StackPanel Grid.Column="0">
                     <TextBlock Text="MDEValidator" FontSize="22" FontWeight="Bold"
                                Foreground="White"/>
-                    <TextBlock Text="Microsoft Defender for Endpoint — Configuration Validation"
+                    <TextBlock Text="Microsoft Defender for Endpoint - Configuration Validation"
                                FontSize="12" Foreground="#A8BFE0" Margin="0,2,0,0"/>
                 </StackPanel>
                 <TextBlock Grid.Column="1" Text="v$moduleVersion" FontSize="12"
@@ -244,7 +244,7 @@ function Show-MDEValidatorUI {
 
         <!-- Status bar -->
         <Border Grid.Row="4" Background="#1B2A4A" Padding="14,7">
-            <TextBlock x:Name="txtStatus" Text="Ready — click Run Validation to begin."
+            <TextBlock x:Name="txtStatus" Text="Ready - click Run Validation to begin."
                        Foreground="#A8BFE0" FontSize="12"/>
         </Border>
     </Grid>
@@ -293,7 +293,7 @@ function Show-MDEValidatorUI {
 
             $btnRun.IsEnabled    = $false
             $btnExport.IsEnabled = $false
-            $txtStatus.Text      = "Running validation — please wait..."
+            $txtStatus.Text      = "Running validation - please wait..."
             $window.Dispatcher.Invoke([System.Windows.Threading.DispatcherPriority]::Background, [Action]{})
 
             try {
@@ -355,7 +355,7 @@ function Show-MDEValidatorUI {
                 $txtInfo.Text    = "Info: $infoCount"
                 $txtNA.Text      = "N/A: $naCount"
 
-                $txtStatus.Text  = "Validation complete — $($script:uiResults.Count) tests evaluated."
+                $txtStatus.Text  = "Validation complete - $($script:uiResults.Count) tests evaluated."
             }
             catch {
                 $txtStatus.Text = "Error: $_"

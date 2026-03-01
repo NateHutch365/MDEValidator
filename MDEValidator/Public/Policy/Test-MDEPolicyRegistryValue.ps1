@@ -103,7 +103,7 @@ function Test-MDEPolicyRegistryValue {
         $result.Found = $false
     }
     
-    Write-Debug "Registry value result — Found: $($result.Found), Value: $($result.Value)"
+    Write-Debug "Registry value result - Found: $($result.Found), Value: $($result.Value)"
     
     return $result
 }
