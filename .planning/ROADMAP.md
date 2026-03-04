@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: Planned 2026-03-04
 
 Plans:
-- [ ] 01-01: Audit function inventory, confirm public/private classification, capture parameter baselines
+- [x] 01-01: Audit function inventory, confirm public/private classification, capture parameter baselines
 - [ ] 01-02: Extract 49 functions to Public/ and Private/ files, replace .psm1 with dot-source loader
 - [ ] 01-03: Verify exports match baseline, private helpers not exported, Pester tests pass
 
@@ -106,11 +106,11 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Module Restructuring | 0/3 | Planned | - |
-| 2. Testing Infrastructure | 0/3 | Not started | - |
-| 3. Code Quality | 0/2 | Not started | - |
-| 4. CI/CD Pipeline | 0/3 | Not started | - |
-| 5. PSGallery Publishing | 0/2 | Not started | - |
+| 1. Module Restructuring | 1/3 | In Progress | 01-01 ✓ |
+| 2. Testing Infrastructure | 0/3 | Not started | — |
+| 3. Code Quality | 0/2 | Not started | — |
+| 4. CI/CD Pipeline | 0/3 | Not started | — |
+| 5. PSGallery Publishing | 0/2 | Not started | — |
 
 ---
 *Roadmap created: 2026-03-04*
