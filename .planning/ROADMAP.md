@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01: Audit function inventory, confirm public/private classification, capture parameter baselines
-- [ ] 01-02: Extract 49 functions to Public/ and Private/ files, replace .psm1 with dot-source loader
+- [x] 01-02: Extract 49 functions to Public/ and Private/ files, replace .psm1 with dot-source loader
 - [ ] 01-03: Verify exports match baseline, private helpers not exported, Pester tests pass
 
 ### Phase 2: Testing Infrastructure
