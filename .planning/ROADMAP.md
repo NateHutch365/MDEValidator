@@ -30,12 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Running `Import-Module MDEValidator` loads all functions via dot-source loader without errors
   4. All 45 exported function names, parameters, and output shapes are identical to the monolithic version
   5. FunctionsToExport in .psd1 matches the actual exported function set exactly
-**Plans**: TBD
+**Plans**: Planned 2026-03-04
 
 Plans:
-- [ ] 01-01: TBD
-- [ ] 01-02: TBD
-- [ ] 01-03: TBD
+- [ ] 01-01: Audit function inventory, confirm public/private classification, capture parameter baselines
+- [ ] 01-02: Extract 49 functions to Public/ and Private/ files, replace .psm1 with dot-source loader
+- [ ] 01-03: Verify exports match baseline, private helpers not exported, Pester tests pass
 
 ### Phase 2: Testing Infrastructure
 **Goal**: Every validation function has mock-based Pester tests that run without Defender or admin privileges
@@ -106,7 +106,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Module Restructuring | 0/3 | Not started | - |
+| 1. Module Restructuring | 0/3 | Planned | - |
 | 2. Testing Infrastructure | 0/3 | Not started | - |
 | 3. Code Quality | 0/2 | Not started | - |
 | 4. CI/CD Pipeline | 0/3 | Not started | - |
