@@ -12,7 +12,7 @@ Transform MDEValidator from a working monolithic ~2000-line .psm1 into a maintai
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Module Restructuring** - Split monolithic .psm1 into function-per-file layout preserving all 45 exports
+- [x] **Phase 1: Module Restructuring** - Split monolithic .psm1 into function-per-file layout preserving all 45 exports
 - [ ] **Phase 2: Testing Infrastructure** - Mock-based Pester tests for every function, runnable without Defender or admin
 - [ ] **Phase 3: Code Quality** - PSScriptAnalyzer compliance and publish-ready manifest metadata
 - [ ] **Phase 4: CI/CD Pipeline** - GitHub Actions for automated testing, linting, coverage, and publish triggers
@@ -30,12 +30,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. Running `Import-Module MDEValidator` loads all functions via dot-source loader without errors
   4. All 45 exported function names, parameters, and output shapes are identical to the monolithic version
   5. FunctionsToExport in .psd1 matches the actual exported function set exactly
-**Plans**: Planned 2026-03-04
+**Plans**: Completed 2026-03-04
 
 Plans:
 - [x] 01-01: Audit function inventory, confirm public/private classification, capture parameter baselines
 - [x] 01-02: Extract 49 functions to Public/ and Private/ files, replace .psm1 with dot-source loader
-- [ ] 01-03: Verify exports match baseline, private helpers not exported, Pester tests pass
+- [x] 01-03: Verify exports match baseline, private helpers not exported, Pester tests pass
 
 ### Phase 2: Testing Infrastructure
 **Goal**: Every validation function has mock-based Pester tests that run without Defender or admin privileges
