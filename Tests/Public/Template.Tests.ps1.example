@@ -1,0 +1,61 @@
+# Tests/Public/Template.Tests.ps1.example
+#
+# Copy this file to Tests/Public/<FunctionName>.Tests.ps1 and replace every
+# occurrence of "Test-MDEServiceStatus" with the actual function name.
+# Update the Mock return values and Should assertions to match what the
+# function under test actually returns.
+#
+# REQUIRED PATTERNS (enforced by TEST-02 / TEST-03 / TEST-04):
+#   - BeforeAll dot-sources TestBootstrap.ps1 and MockBuilders.ps1
+#   - BeforeAll calls Initialize-MDEValidatorTest (imports module with -Force)
+#   - All Mock statements use -ModuleName MDEValidator
+#   - Each Describe block has a 'Pass path' Context and a 'Fail path' Context
+#   - Should -Invoke assertions verify external calls were made
+
+BeforeAll {
+    . "$PSScriptRoot/../Helpers/TestBootstrap.ps1"
+    Initialize-MDEValidatorTest
+
+    . "$PSScriptRoot/../Helpers/MockBuilders.ps1"
+}
+
+Describe 'Test-MDEServiceStatus' {
+
+    Context 'Pass path' {
+
+        It 'returns Pass when WinDefend is Running and start type is Automatic' {
+            Mock Get-Service -ModuleName MDEValidator {
+                New-ServiceMock -Name 'WinDefend' -Status 'Running' -StartType 'Automatic'
+            }
+
+            $result = Test-MDEServiceStatus
+
+            $result.Status | Should -Be 'Pass'
+            Should -Invoke Get-Service -ModuleName MDEValidator -Times 1 -Exactly
+        }
+    }
+
+    Context 'Fail path' {
+
+        It 'returns Fail when WinDefend is Stopped' {
+            Mock Get-Service -ModuleName MDEValidator {
+                New-ServiceMock -Name 'WinDefend' -Status 'Stopped' -StartType 'Automatic'
+            }
+
+            $result = Test-MDEServiceStatus
+
+            $result.Status | Should -Be 'Fail'
+            Should -Invoke Get-Service -ModuleName MDEValidator -Times 1 -Exactly
+        }
+
+        It 'returns Fail when WinDefend start type is Disabled' {
+            Mock Get-Service -ModuleName MDEValidator {
+                New-ServiceMock -Name 'WinDefend' -Status 'Stopped' -StartType 'Disabled'
+            }
+
+            $result = Test-MDEServiceStatus
+
+            $result.Status | Should -Be 'Fail'
+        }
+    }
+}
