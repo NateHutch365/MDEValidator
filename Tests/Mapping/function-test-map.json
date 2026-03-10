@@ -1,192 +1,192 @@
 {
-  "generated_at": "2026-03-10T20:23:40.1183132+00:00",
+  "generated_at": "2026-03-10T21:08:23Z",
   "public_function_count": 45,
-  "test_file_count": 0,
+  "test_file_count": 45,
   "coverage": {
-    "covered": 0,
+    "covered": 45,
     "total": 45,
-    "percentage": 0.0
+    "percentage": 100.0
   },
   "functions": {
-    "Get-MDEManagedDefenderProductType": {
-      "test_file": "Get-MDEManagedDefenderProductType.Tests.ps1",
-      "has_test": false
-    },
-    "Get-MDEManagementType": {
-      "test_file": "Get-MDEManagementType.Tests.ps1",
-      "has_test": false
-    },
-    "Get-MDEManagementTypeFallback": {
-      "test_file": "Get-MDEManagementTypeFallback.Tests.ps1",
-      "has_test": false
-    },
-    "Get-MDEOnboardingStatusString": {
-      "test_file": "Get-MDEOnboardingStatusString.Tests.ps1",
-      "has_test": false
-    },
-    "Get-MDEOperatingSystemInfo": {
-      "test_file": "Get-MDEOperatingSystemInfo.Tests.ps1",
-      "has_test": false
-    },
-    "Get-MDEPolicyRegistryPath": {
-      "test_file": "Get-MDEPolicyRegistryPath.Tests.ps1",
-      "has_test": false
+    "Test-MDEDisableCatchupQuickScan": {
+      "has_test": true,
+      "test_file": "Test-MDEDisableCatchupQuickScan.Tests.ps1"
     },
     "Get-MDEPolicySettingConfig": {
-      "test_file": "Get-MDEPolicySettingConfig.Tests.ps1",
-      "has_test": false
+      "has_test": true,
+      "test_file": "Get-MDEPolicySettingConfig.Tests.ps1"
     },
-    "Get-MDESecuritySettingsManagementStatus": {
-      "test_file": "Get-MDESecuritySettingsManagementStatus.Tests.ps1",
-      "has_test": false
-    },
-    "Get-MDEValidationReport": {
-      "test_file": "Get-MDEValidationReport.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEAttackSurfaceReduction": {
-      "test_file": "Test-MDEAttackSurfaceReduction.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEAutoExclusionsWindowsServer": {
-      "test_file": "Test-MDEAutoExclusionsWindowsServer.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEBehaviorMonitoring": {
-      "test_file": "Test-MDEBehaviorMonitoring.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDECloudBlockLevel": {
-      "test_file": "Test-MDECloudBlockLevel.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDECloudExtendedTimeout": {
-      "test_file": "Test-MDECloudExtendedTimeout.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDECloudProtection": {
-      "test_file": "Test-MDECloudProtection.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEConfiguration": {
-      "test_file": "Test-MDEConfiguration.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEDatagramProcessingWindowsServer": {
-      "test_file": "Test-MDEDatagramProcessingWindowsServer.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEDeviceTags": {
-      "test_file": "Test-MDEDeviceTags.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEDisableCatchupQuickScan": {
-      "test_file": "Test-MDEDisableCatchupQuickScan.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEDisableLocalAdminMerge": {
-      "test_file": "Test-MDEDisableLocalAdminMerge.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEExclusionVisibilityLocalAdmins": {
-      "test_file": "Test-MDEExclusionVisibilityLocalAdmins.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEExclusionVisibilityLocalUsers": {
-      "test_file": "Test-MDEExclusionVisibilityLocalUsers.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEFileHashComputation": {
-      "test_file": "Test-MDEFileHashComputation.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDENetworkProtection": {
-      "test_file": "Test-MDENetworkProtection.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDENetworkProtectionWindowsServer": {
-      "test_file": "Test-MDENetworkProtectionWindowsServer.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEOnboardingStatus": {
-      "test_file": "Test-MDEOnboardingStatus.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEPassiveMode": {
-      "test_file": "Test-MDEPassiveMode.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEPolicyRegistryValue": {
-      "test_file": "Test-MDEPolicyRegistryValue.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEPolicyRegistryVerification": {
-      "test_file": "Test-MDEPolicyRegistryVerification.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDERealTimeProtection": {
-      "test_file": "Test-MDERealTimeProtection.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDERealTimeScanDirection": {
-      "test_file": "Test-MDERealTimeScanDirection.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESampleSubmission": {
-      "test_file": "Test-MDESampleSubmission.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEServiceStatus": {
-      "test_file": "Test-MDEServiceStatus.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESignatureUpdateFallbackOrder": {
-      "test_file": "Test-MDESignatureUpdateFallbackOrder.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESignatureUpdateInterval": {
-      "test_file": "Test-MDESignatureUpdateInterval.Tests.ps1",
-      "has_test": false
+    "Get-MDEManagementType": {
+      "has_test": true,
+      "test_file": "Get-MDEManagementType.Tests.ps1"
     },
     "Test-MDESmartScreen": {
-      "test_file": "Test-MDESmartScreen.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESmartScreenAppRepExclusions": {
-      "test_file": "Test-MDESmartScreenAppRepExclusions.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESmartScreenDomainExclusions": {
-      "test_file": "Test-MDESmartScreenDomainExclusions.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESmartScreenDownloadOverride": {
-      "test_file": "Test-MDESmartScreenDownloadOverride.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESmartScreenPromptOverride": {
-      "test_file": "Test-MDESmartScreenPromptOverride.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDESmartScreenPUA": {
-      "test_file": "Test-MDESmartScreenPUA.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDETamperProtection": {
-      "test_file": "Test-MDETamperProtection.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDETamperProtectionForExclusions": {
-      "test_file": "Test-MDETamperProtectionForExclusions.Tests.ps1",
-      "has_test": false
-    },
-    "Test-MDEThreatDefaultActions": {
-      "test_file": "Test-MDEThreatDefaultActions.Tests.ps1",
-      "has_test": false
+      "has_test": true,
+      "test_file": "Test-MDESmartScreen.Tests.ps1"
     },
     "Test-MDETroubleshootingMode": {
-      "test_file": "Test-MDETroubleshootingMode.Tests.ps1",
-      "has_test": false
+      "has_test": true,
+      "test_file": "Test-MDETroubleshootingMode.Tests.ps1"
+    },
+    "Test-MDETamperProtection": {
+      "has_test": true,
+      "test_file": "Test-MDETamperProtection.Tests.ps1"
+    },
+    "Test-MDENetworkProtectionWindowsServer": {
+      "has_test": true,
+      "test_file": "Test-MDENetworkProtectionWindowsServer.Tests.ps1"
+    },
+    "Test-MDEDeviceTags": {
+      "has_test": true,
+      "test_file": "Test-MDEDeviceTags.Tests.ps1"
+    },
+    "Test-MDECloudExtendedTimeout": {
+      "has_test": true,
+      "test_file": "Test-MDECloudExtendedTimeout.Tests.ps1"
+    },
+    "Test-MDESignatureUpdateInterval": {
+      "has_test": true,
+      "test_file": "Test-MDESignatureUpdateInterval.Tests.ps1"
+    },
+    "Get-MDEValidationReport": {
+      "has_test": true,
+      "test_file": "Get-MDEValidationReport.Tests.ps1"
+    },
+    "Test-MDEAutoExclusionsWindowsServer": {
+      "has_test": true,
+      "test_file": "Test-MDEAutoExclusionsWindowsServer.Tests.ps1"
+    },
+    "Get-MDEPolicyRegistryPath": {
+      "has_test": true,
+      "test_file": "Get-MDEPolicyRegistryPath.Tests.ps1"
+    },
+    "Test-MDEPolicyRegistryVerification": {
+      "has_test": true,
+      "test_file": "Test-MDEPolicyRegistryVerification.Tests.ps1"
+    },
+    "Test-MDEPolicyRegistryValue": {
+      "has_test": true,
+      "test_file": "Test-MDEPolicyRegistryValue.Tests.ps1"
+    },
+    "Test-MDENetworkProtection": {
+      "has_test": true,
+      "test_file": "Test-MDENetworkProtection.Tests.ps1"
+    },
+    "Test-MDECloudBlockLevel": {
+      "has_test": true,
+      "test_file": "Test-MDECloudBlockLevel.Tests.ps1"
+    },
+    "Test-MDEThreatDefaultActions": {
+      "has_test": true,
+      "test_file": "Test-MDEThreatDefaultActions.Tests.ps1"
+    },
+    "Test-MDEExclusionVisibilityLocalAdmins": {
+      "has_test": true,
+      "test_file": "Test-MDEExclusionVisibilityLocalAdmins.Tests.ps1"
+    },
+    "Get-MDEManagedDefenderProductType": {
+      "has_test": true,
+      "test_file": "Get-MDEManagedDefenderProductType.Tests.ps1"
+    },
+    "Test-MDETamperProtectionForExclusions": {
+      "has_test": true,
+      "test_file": "Test-MDETamperProtectionForExclusions.Tests.ps1"
+    },
+    "Test-MDEDisableLocalAdminMerge": {
+      "has_test": true,
+      "test_file": "Test-MDEDisableLocalAdminMerge.Tests.ps1"
+    },
+    "Test-MDEServiceStatus": {
+      "has_test": true,
+      "test_file": "Test-MDEServiceStatus.Tests.ps1"
+    },
+    "Test-MDERealTimeScanDirection": {
+      "has_test": true,
+      "test_file": "Test-MDERealTimeScanDirection.Tests.ps1"
+    },
+    "Test-MDESmartScreenAppRepExclusions": {
+      "has_test": true,
+      "test_file": "Test-MDESmartScreenAppRepExclusions.Tests.ps1"
+    },
+    "Test-MDEAttackSurfaceReduction": {
+      "has_test": true,
+      "test_file": "Test-MDEAttackSurfaceReduction.Tests.ps1"
+    },
+    "Test-MDEExclusionVisibilityLocalUsers": {
+      "has_test": true,
+      "test_file": "Test-MDEExclusionVisibilityLocalUsers.Tests.ps1"
+    },
+    "Test-MDEConfiguration": {
+      "has_test": true,
+      "test_file": "Test-MDEConfiguration.Tests.ps1"
+    },
+    "Test-MDESampleSubmission": {
+      "has_test": true,
+      "test_file": "Test-MDESampleSubmission.Tests.ps1"
+    },
+    "Get-MDESecuritySettingsManagementStatus": {
+      "has_test": true,
+      "test_file": "Get-MDESecuritySettingsManagementStatus.Tests.ps1"
+    },
+    "Test-MDEBehaviorMonitoring": {
+      "has_test": true,
+      "test_file": "Test-MDEBehaviorMonitoring.Tests.ps1"
+    },
+    "Test-MDESignatureUpdateFallbackOrder": {
+      "has_test": true,
+      "test_file": "Test-MDESignatureUpdateFallbackOrder.Tests.ps1"
+    },
+    "Test-MDEPassiveMode": {
+      "has_test": true,
+      "test_file": "Test-MDEPassiveMode.Tests.ps1"
+    },
+    "Test-MDESmartScreenPromptOverride": {
+      "has_test": true,
+      "test_file": "Test-MDESmartScreenPromptOverride.Tests.ps1"
+    },
+    "Test-MDESmartScreenDownloadOverride": {
+      "has_test": true,
+      "test_file": "Test-MDESmartScreenDownloadOverride.Tests.ps1"
+    },
+    "Get-MDEManagementTypeFallback": {
+      "has_test": true,
+      "test_file": "Get-MDEManagementTypeFallback.Tests.ps1"
+    },
+    "Test-MDEDatagramProcessingWindowsServer": {
+      "has_test": true,
+      "test_file": "Test-MDEDatagramProcessingWindowsServer.Tests.ps1"
+    },
+    "Test-MDESmartScreenPUA": {
+      "has_test": true,
+      "test_file": "Test-MDESmartScreenPUA.Tests.ps1"
+    },
+    "Test-MDERealTimeProtection": {
+      "has_test": true,
+      "test_file": "Test-MDERealTimeProtection.Tests.ps1"
+    },
+    "Test-MDECloudProtection": {
+      "has_test": true,
+      "test_file": "Test-MDECloudProtection.Tests.ps1"
+    },
+    "Test-MDEFileHashComputation": {
+      "has_test": true,
+      "test_file": "Test-MDEFileHashComputation.Tests.ps1"
+    },
+    "Get-MDEOnboardingStatusString": {
+      "has_test": true,
+      "test_file": "Get-MDEOnboardingStatusString.Tests.ps1"
+    },
+    "Get-MDEOperatingSystemInfo": {
+      "has_test": true,
+      "test_file": "Get-MDEOperatingSystemInfo.Tests.ps1"
+    },
+    "Test-MDESmartScreenDomainExclusions": {
+      "has_test": true,
+      "test_file": "Test-MDESmartScreenDomainExclusions.Tests.ps1"
+    },
+    "Test-MDEOnboardingStatus": {
+      "has_test": true,
+      "test_file": "Test-MDEOnboardingStatus.Tests.ps1"
     }
   }
 }
