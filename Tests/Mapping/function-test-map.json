@@ -1,10 +1,11 @@
 {
-  "generated_at": "2026-03-10T21:08:23Z",
+  "generated_at": "2026-03-10T21:12:00Z",
   "public_function_count": 45,
-  "test_file_count": 45,
+  "private_function_count": 4,
+  "test_file_count": 49,
   "coverage": {
-    "covered": 45,
-    "total": 45,
+    "covered": 49,
+    "total": 49,
     "percentage": 100.0
   },
   "functions": {
@@ -187,6 +188,26 @@
     "Test-MDEOnboardingStatus": {
       "has_test": true,
       "test_file": "Test-MDEOnboardingStatus.Tests.ps1"
+    },
+    "ConvertTo-HtmlEncodedString": {
+      "has_test": true,
+      "test_file": "ConvertTo-HtmlEncodedString.Tests.ps1",
+      "visibility": "private"
+    },
+    "Write-ValidationResult": {
+      "has_test": true,
+      "test_file": "Write-ValidationResult.Tests.ps1",
+      "visibility": "private"
+    },
+    "Test-IsElevated": {
+      "has_test": true,
+      "test_file": "Test-IsElevated.Tests.ps1",
+      "visibility": "private"
+    },
+    "Test-IsWindowsServer": {
+      "has_test": true,
+      "test_file": "Test-IsWindowsServer.Tests.ps1",
+      "visibility": "private"
     }
   }
 }
