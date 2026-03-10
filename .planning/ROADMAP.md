@@ -50,9 +50,9 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: TBD
-- [ ] 02-02: TBD
-- [ ] 02-03: TBD
+- [x] 02-01: Create test folder structure, shared helpers (TestBootstrap, MockBuilders), Pester 5 runner, and mapping checklist
+- [ ] 02-02: Create Pester 5 test files for all 45 public functions
+- [ ] 02-03: Create test files for 4 private helpers + parity gate (full suite green)
 
 ### Phase 3: Code Quality
 **Goal**: Module passes static analysis and has complete, publish-ready manifest metadata
