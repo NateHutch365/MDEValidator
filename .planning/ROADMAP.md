@@ -13,7 +13,7 @@ Transform MDEValidator from a working monolithic ~2000-line .psm1 into a maintai
 Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Module Restructuring** - Split monolithic .psm1 into function-per-file layout preserving all 45 exports
-- [ ] **Phase 2: Testing Infrastructure** - Mock-based Pester tests for every function, runnable without Defender or admin
+- [x] **Phase 2: Testing Infrastructure** - Mock-based Pester tests for every function, runnable without Defender or admin
 - [ ] **Phase 3: Code Quality** - PSScriptAnalyzer compliance and publish-ready manifest metadata
 - [ ] **Phase 4: CI/CD Pipeline** - GitHub Actions for automated testing, linting, coverage, and publish triggers
 - [ ] **Phase 5: PSGallery Publishing** - Module installable via Install-Module from PowerShell Gallery
@@ -51,8 +51,8 @@ Plans:
 
 Plans:
 - [x] 02-01: Create test folder structure, shared helpers (TestBootstrap, MockBuilders), Pester 5 runner, and mapping checklist
-- [ ] 02-02: Create Pester 5 test files for all 45 public functions
-- [ ] 02-03: Create test files for 4 private helpers + parity gate (full suite green)
+- [x] 02-02: Create Pester 5 test files for all 45 public functions
+- [x] 02-03: Create test files for 4 private helpers + parity gate (full suite green)
 
 ### Phase 3: Code Quality
 **Goal**: Module passes static analysis and has complete, publish-ready manifest metadata
