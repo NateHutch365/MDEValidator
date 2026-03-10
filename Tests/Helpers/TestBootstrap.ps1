@@ -1,0 +1,43 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+    Common test bootstrap for MDEValidator Pester tests.
+
+.DESCRIPTION
+    Provides shared module import and setup for all test files.
+    All test files should dot-source this file and call Initialize-MDEValidatorTest
+    inside a BeforeAll block before running any test assertions.
+
+.EXAMPLE
+    BeforeAll {
+        . $PSScriptRoot/../Helpers/TestBootstrap.ps1
+        Initialize-MDEValidatorTest
+    }
+#>
+
+function Initialize-MDEValidatorTest {
+    <#
+    .SYNOPSIS
+        Imports the MDEValidator module with -Force for a clean test session.
+
+    .DESCRIPTION
+        Resolves the module manifest path relative to this bootstrap file and
+        imports it. Called once per test file inside a BeforeAll block.
+
+    .OUTPUTS
+        [PSModuleInfo] The imported module object returned by Get-Module.
+
+    .EXAMPLE
+        BeforeAll {
+            . $PSScriptRoot/../Helpers/TestBootstrap.ps1
+            Initialize-MDEValidatorTest
+        }
+    #>
+    param()
+
+    $manifestPath = Resolve-Path (Join-Path $PSScriptRoot '..\..\MDEValidator\MDEValidator.psd1')
+    Import-Module $manifestPath -Force -ErrorAction Stop
+    Get-Module MDEValidator
+}
+
+Export-ModuleMember -Function Initialize-MDEValidatorTest
