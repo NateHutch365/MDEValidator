@@ -69,7 +69,8 @@
             }
         }
         catch {
-            # Continue even if MpPreference fails - we may have registry values
+            # Intentionally suppressed: MpPreference unavailability is non-fatal; registry fallback follows
+            Write-Verbose "MpPreference unavailable: $_"
         }
         
         # Check registry settings for exclusion visibility

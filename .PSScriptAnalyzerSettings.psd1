@@ -1,5 +1,5 @@
 @{
-    Severity    = @('Error', 'Warning', 'Information')
+    Severity    = @('Error', 'Warning')
     ExcludeRules = @(
         # Intentional: Get-MDEValidationReport uses Write-Host for color-coded console output
         # (Pass=Green, Fail=Red, Warning=Yellow). Converting to Write-Information breaks colored output.

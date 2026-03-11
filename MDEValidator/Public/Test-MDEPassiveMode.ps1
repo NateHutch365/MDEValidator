@@ -49,8 +49,8 @@
             }
         }
         catch {
-            # Get-MpComputerStatus may not be available on non-Windows systems or if Defender is not installed
-            # Fall back to registry checks below
+            # Intentionally suppressed: Get-MpComputerStatus unavailability is non-fatal; registry fallback follows
+            Write-Verbose "Get-MpComputerStatus unavailable: $_"
         }
         
         # Check registry for Passive Mode indicator
@@ -62,21 +62,9 @@
             }
         }
         
-        # Check for EDR Block Mode configuration
-        # EDR Block Mode is when passive mode is forced but block mode behavior is enabled
-        $atpPolicyPath = 'HKLM:\SOFTWARE\Policies\Microsoft\Windows Advanced Threat Protection'
         $featuresPath = 'HKLM:\SOFTWARE\Microsoft\Windows Defender\Features'
-        
-        $forcePassiveMode = $null
         $passiveModeBehavior = $null
-        
-        if (Test-Path $atpPolicyPath) {
-            $atpPolicy = Get-ItemProperty -Path $atpPolicyPath -ErrorAction SilentlyContinue
-            if ($null -ne $atpPolicy.ForceDefenderPassiveMode) {
-                $forcePassiveMode = $atpPolicy.ForceDefenderPassiveMode
-            }
-        }
-        
+
         if (Test-Path $featuresPath) {
             $features = Get-ItemProperty -Path $featuresPath -ErrorAction SilentlyContinue
             if ($null -ne $features.PassiveModeBehavior) {

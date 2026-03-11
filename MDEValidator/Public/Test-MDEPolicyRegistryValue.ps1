@@ -35,6 +35,9 @@
         This function checks the appropriate registry location based on the
         detected management type (Intune vs Security Settings Management/GPO/SCCM).
     #>
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+        'PSReviewUnusedParameter', 'ExpectedValue',
+        Justification = 'Reserved for future registry value comparison; parameter retained for named-argument compatibility')]
     [CmdletBinding()]
     param(
         [Parameter()]
