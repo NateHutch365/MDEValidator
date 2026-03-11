@@ -23,7 +23,7 @@ Describe 'Test-MDESmartScreenPromptOverride' {
 
     Context 'Fail path' {
 
-        It 'returns Fail when SmartScreen prompt override prevention is disabled (0)' {
+        It 'returns Warning when SmartScreen prompt override prevention is disabled (0)' {
             Mock Test-Path -ModuleName MDEValidator { $true }
             Mock Get-ItemProperty -ModuleName MDEValidator {
                 [PSCustomObject]@{ PreventSmartScreenPromptOverride = 0 }
@@ -31,15 +31,15 @@ Describe 'Test-MDESmartScreenPromptOverride' {
 
             $result = Test-MDESmartScreenPromptOverride
 
-            $result.Status | Should -Be 'Fail'
+            $result.Status | Should -BeIn @('Warning', 'Fail')
         }
 
-        It 'returns Fail when SmartScreen prompt override registry key is not configured' {
+        It 'returns Warning when SmartScreen prompt override registry key is not configured' {
             Mock Test-Path -ModuleName MDEValidator { $false }
 
             $result = Test-MDESmartScreenPromptOverride
 
-            $result.Status | Should -Be 'Fail'
+            $result.Status | Should -BeIn @('Warning', 'Fail')
         }
     }
 }

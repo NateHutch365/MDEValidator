@@ -107,7 +107,6 @@ Describe 'Test-MDEConfiguration' {
             Mock Test-MDEDatagramProcessingWindowsServer -ModuleName MDEValidator {
                 [PSCustomObject]@{ TestName = 'Datagram WS'; Status = 'Pass' }
             }
-            Mock Test-MDEIsWindowsServer -ModuleName MDEValidator { $false }
             Mock Test-IsWindowsServer -ModuleName MDEValidator { $false }
 
             $result = Test-MDEConfiguration

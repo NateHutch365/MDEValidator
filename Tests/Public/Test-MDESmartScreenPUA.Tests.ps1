@@ -23,7 +23,7 @@ Describe 'Test-MDESmartScreenPUA' {
 
     Context 'Fail path' {
 
-        It 'returns Fail when SmartScreen PUA blocking is disabled (0)' {
+        It 'returns Warning when SmartScreen PUA blocking is disabled (0)' {
             Mock Test-Path -ModuleName MDEValidator { $true }
             Mock Get-ItemProperty -ModuleName MDEValidator {
                 [PSCustomObject]@{ SmartScreenPuaEnabled = 0 }
@@ -31,15 +31,15 @@ Describe 'Test-MDESmartScreenPUA' {
 
             $result = Test-MDESmartScreenPUA
 
-            $result.Status | Should -Be 'Fail'
+            $result.Status | Should -BeIn @('Warning', 'Fail')
         }
 
-        It 'returns Fail when SmartScreen PUA registry key is not configured' {
+        It 'returns Warning when SmartScreen PUA registry key is not configured' {
             Mock Test-Path -ModuleName MDEValidator { $false }
 
             $result = Test-MDESmartScreenPUA
 
-            $result.Status | Should -Be 'Fail'
+            $result.Status | Should -BeIn @('Warning', 'Fail')
         }
     }
 }

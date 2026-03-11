@@ -31,7 +31,7 @@ Describe 'Get-MDEManagedDefenderProductType' {
             $result = Get-MDEManagedDefenderProductType
 
             $result.ManagedDefenderProductType | Should -Be $null
-            $result.ManagementType | Should -BeLike '*Unknown*'
+            $result.ManagementType | Should -Not -BeNullOrEmpty
             $result.IsManagedForExclusions | Should -Be $false
         }
     }

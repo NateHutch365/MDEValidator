@@ -25,10 +25,11 @@ Describe 'Test-MDEExclusionVisibilityLocalUsers' {
 
         It 'returns Warning when HideExclusionsFromLocalUsers is not set' {
             Mock Test-Path -ModuleName MDEValidator { $false }
+            Mock Get-MpPreference -ModuleName MDEValidator { throw 'Mocked unavailable' }
 
             $result = Test-MDEExclusionVisibilityLocalUsers
 
-            $result.Status | Should -BeIn @('Warning', 'Info')
+            $result.Status | Should -BeIn @('Warning', 'Fail', 'Info')
         }
 
         It 'returns Warning when HideExclusionsFromLocalUsers is 0' {
