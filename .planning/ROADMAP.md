@@ -2,7 +2,7 @@
 
 ## Overview
 
-Transform MDEValidator from a working monolithic ~2000-line .psm1 into a maintainable, tested, CI-gated, PSGallery-published module. Five phases move from restructuring the codebase, through testing and quality gates, to automated publishing — each delivering a verifiable capability that unblocks the next.
+Transform MDEValidator from a working monolithic ~2000-line .psm1 into a maintainable, tested, CI-gated module. Four phases move from restructuring the codebase, through testing and quality gates, to automated publishing — each delivering a verifiable capability that unblocks the next.
 
 ## Phases
 
@@ -16,7 +16,6 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 2: Testing Infrastructure** - Mock-based Pester tests for every function, runnable without Defender or admin
 - [x] **Phase 3: Code Quality** - PSScriptAnalyzer compliance and publish-ready manifest metadata
 - [ ] **Phase 4: CI/CD Pipeline** - GitHub Actions for automated testing, linting, coverage, and publish triggers
-- [ ] **Phase 5: PSGallery Publishing** - Module installable via Install-Module from PowerShell Gallery
 
 ## Phase Details
 
@@ -85,24 +84,10 @@ Plans:
 - [ ] 04-02: TBD
 - [ ] 04-03: TBD
 
-### Phase 5: PSGallery Publishing
-**Goal**: Module is installable by anyone via `Install-Module MDEValidator` from PowerShell Gallery
-**Depends on**: Phase 4
-**Requirements**: PUBL-01, PUBL-02, PUBL-03
-**Success Criteria** (what must be TRUE):
-  1. Running `Install-Module MDEValidator` from PSGallery succeeds and the module imports correctly
-  2. Published module version follows SemVer (major.minor.patch)
-  3. Published module package includes all function files, manifest, and required assets
-**Plans**: TBD
-
-Plans:
-- [ ] 05-01: TBD
-- [ ] 05-02: TBD
-
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
+Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
@@ -110,7 +95,10 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 | 2. Testing Infrastructure | 3/3 | Complete | 02-01 ✓, 02-02 ✓, 02-03 ✓ |
 | 3. Code Quality | 2/2 | Complete | 03-01 ✓, 03-02 ✓ |
 | 4. CI/CD Pipeline | 0/3 | Not started | — |
-| 5. PSGallery Publishing | 0/2 | Not started | — |
+
+---
+*Roadmap created: 2026-03-04*
+*Last updated: 2026-03-11*
 
 ---
 *Roadmap created: 2026-03-04*

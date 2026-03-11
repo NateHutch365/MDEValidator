@@ -62,6 +62,7 @@ Recent decisions affecting current work:
 ### Pending Todos
 
 - Execute Phase 4: CI/CD Pipeline
+- Publish module to PSGallery (after Phase 4) — see .planning/todos/pending/2026-03-11-publish-module-to-psgallery.md
 
 ### Blockers/Concerns
 
