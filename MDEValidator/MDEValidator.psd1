@@ -94,10 +94,10 @@
             Tags = @('Security', 'Defender', 'MDE', 'Endpoint', 'Validation', 'Windows')
 
             # A URL to the license for this module
-            LicenseUri = ''
+            LicenseUri = 'https://github.com/mdavis-xyz/MDEValidator/blob/main/LICENSE'
 
             # A URL to the main website for this project
-            ProjectUri = ''
+            ProjectUri = 'https://github.com/mdavis-xyz/MDEValidator'
 
             # ReleaseNotes of this module
             ReleaseNotes = 'Initial release of MDEValidator module.'
