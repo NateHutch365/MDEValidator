@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Module Restructuring** - Split monolithic .psm1 into function-per-file layout preserving all 45 exports
 - [x] **Phase 2: Testing Infrastructure** - Mock-based Pester tests for every function, runnable without Defender or admin
-- [ ] **Phase 3: Code Quality** - PSScriptAnalyzer compliance and publish-ready manifest metadata
+- [x] **Phase 3: Code Quality** - PSScriptAnalyzer compliance and publish-ready manifest metadata
 - [ ] **Phase 4: CI/CD Pipeline** - GitHub Actions for automated testing, linting, coverage, and publish triggers
 - [ ] **Phase 5: PSGallery Publishing** - Module installable via Install-Module from PowerShell Gallery
 
@@ -66,7 +66,7 @@ Plans:
 
 Plans:
 - [x] 03-01: PSScriptAnalyzer settings + fix 5 code violations (3 empty catch blocks, 1 unused variable, 1 unused parameter)
-- [ ] 03-02: Manifest metadata (LicenseUri, ProjectUri) + final QUAL-01/02/03 verification gate
+- [x] 03-02: Manifest metadata (LicenseUri, ProjectUri) + final QUAL-01/02/03 verification gate
 
 ### Phase 4: CI/CD Pipeline
 **Goal**: Every push and PR to main is automatically tested, linted, and coverage-reported via GitHub Actions
@@ -106,12 +106,12 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Module Restructuring | 1/3 | In Progress | 01-01 ✓ |
-| 2. Testing Infrastructure | 0/3 | Not started | — |
-| 3. Code Quality | 0/2 | Not started | — |
+| 1. Module Restructuring | 3/3 | Complete | 01-01 ✓, 01-02 ✓, 01-03 ✓ |
+| 2. Testing Infrastructure | 3/3 | Complete | 02-01 ✓, 02-02 ✓, 02-03 ✓ |
+| 3. Code Quality | 2/2 | Complete | 03-01 ✓, 03-02 ✓ |
 | 4. CI/CD Pipeline | 0/3 | Not started | — |
 | 5. PSGallery Publishing | 0/2 | Not started | — |
 
 ---
 *Roadmap created: 2026-03-04*
-*Last updated: 2026-03-04*
+*Last updated: 2026-03-11*

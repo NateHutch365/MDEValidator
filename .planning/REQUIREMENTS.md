@@ -26,9 +26,9 @@ Requirements for the restructured, tested, published module. Each maps to roadma
 
 ### Quality
 
-- [ ] **QUAL-01**: Module passes PSScriptAnalyzer with standard rules (no errors or warnings)
-- [ ] **QUAL-02**: Module manifest includes LicenseUri, ProjectUri, Tags, and ReleaseNotes
-- [ ] **QUAL-03**: PSScriptAnalyzer settings file (.PSScriptAnalyzerSettings.psd1) is committed to repo
+- [x] **QUAL-01**: Module passes PSScriptAnalyzer with standard rules (no errors or warnings)
+- [x] **QUAL-02**: Module manifest includes LicenseUri, ProjectUri, Tags, and ReleaseNotes
+- [x] **QUAL-03**: PSScriptAnalyzer settings file (.PSScriptAnalyzerSettings.psd1) is committed to repo
 
 ### CI/CD
 
@@ -87,9 +87,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | TEST-04 | Phase 2 | Pending |
 | TEST-05 | Phase 2 | Pending |
 | TEST-06 | Phase 2 | Pending |
-| QUAL-01 | Phase 3 | Pending |
-| QUAL-02 | Phase 3 | Pending |
-| QUAL-03 | Phase 3 | Pending |
+| QUAL-01 | Phase 3 | Complete |
+| QUAL-02 | Phase 3 | Complete |
+| QUAL-03 | Phase 3 | Complete |
 | CICD-01 | Phase 4 | Pending |
 | CICD-02 | Phase 4 | Pending |
 | CICD-03 | Phase 4 | Pending |
