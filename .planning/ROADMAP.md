@@ -81,7 +81,7 @@ Plans:
 
 Plans:
 - [ ] 04-01-PLAN.md — Create `.github/workflows/ci.yml` (test + lint + coverage on push/PR to main)
-- [ ] 04-02-PLAN.md — Create `.github/workflows/publish.yml` (PSGallery publish on GitHub Release)
+- [x] 04-02-PLAN.md — Create `.github/workflows/publish.yml` (PSGallery publish on GitHub Release)
 - [ ] 04-03-PLAN.md — Integration verification gate (workflow structure checks + manual CI activation checkpoint)
 
 ## Progress
@@ -94,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Module Restructuring | 3/3 | Complete | 01-01 ✓, 01-02 ✓, 01-03 ✓ |
 | 2. Testing Infrastructure | 3/3 | Complete | 02-01 ✓, 02-02 ✓, 02-03 ✓ |
 | 3. Code Quality | 2/2 | Complete | 03-01 ✓, 03-02 ✓ |
-| 4. CI/CD Pipeline | 0/3 | Not started | — |
+| 4. CI/CD Pipeline | 1/3 | In Progress | 04-02 ✓ (04-01 pending, 04-03 pending) |
 
 ---
 *Roadmap created: 2026-03-04*
