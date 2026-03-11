@@ -65,8 +65,8 @@ Plans:
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: TBD
-- [ ] 03-02: TBD
+- [x] 03-01: PSScriptAnalyzer settings + fix 5 code violations (3 empty catch blocks, 1 unused variable, 1 unused parameter)
+- [ ] 03-02: Manifest metadata (LicenseUri, ProjectUri) + final QUAL-01/02/03 verification gate
 
 ### Phase 4: CI/CD Pipeline
 **Goal**: Every push and PR to main is automatically tested, linted, and coverage-reported via GitHub Actions
