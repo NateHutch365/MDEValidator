@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-and-lint:
+    name: Test and Lint
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Pester
+        shell: pwsh
+        run: Install-Module -Name Pester -MinimumVersion 5.7.1 -Force -Scope CurrentUser
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run Pester Tests
+        shell: pwsh
+        run: .\run-tests.ps1
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: Tests/Artifacts/test-results.xml
+
+      - name: Upload Coverage Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: Tests/Artifacts/coverage.xml
+
+      - name: JaCoCo Coverage Report on PR
+        if: github.event_name == 'pull_request'
+        uses: madrapps/jacoco-report@v1.7.2
+        with:
+          paths: ${{ github.workspace }}/Tests/Artifacts/coverage.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 60
+          title: Code Coverage Report
+          update-comment: true
+
+      - name: Run PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          $violations = Invoke-ScriptAnalyzer `
+            -Path .\MDEValidator `
+            -Recurse `
+            -Settings .\.PSScriptAnalyzerSettings.psd1 `
+            -Severity @('Error', 'Warning')
+
+          if ($violations) {
+            $violations | Format-Table ScriptName, Line, RuleName, Message -AutoSize
+            throw "PSScriptAnalyzer found $($violations.Count) violation(s). Build failed."
+          }
+
+          Write-Host "PSScriptAnalyzer: PASS (0 violations)" -ForegroundColor Green
