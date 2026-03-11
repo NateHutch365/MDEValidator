@@ -77,12 +77,12 @@ Plans:
   3. CI executes on a windows-latest runner
   4. CI publishes code coverage results from JaCoCo output
   5. A GitHub release/tag triggers automated PSGallery module publishing
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 04-01: TBD
-- [ ] 04-02: TBD
-- [ ] 04-03: TBD
+- [ ] 04-01-PLAN.md — Create `.github/workflows/ci.yml` (test + lint + coverage on push/PR to main)
+- [ ] 04-02-PLAN.md — Create `.github/workflows/publish.yml` (PSGallery publish on GitHub Release)
+- [ ] 04-03-PLAN.md — Integration verification gate (workflow structure checks + manual CI activation checkpoint)
 
 ## Progress
 
