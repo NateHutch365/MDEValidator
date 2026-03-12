@@ -1,8 +1,7 @@
 BeforeAll {
     . "$PSScriptRoot/../Helpers/TestBootstrap.ps1"
-    Initialize-MDEValidatorTest
-
     . "$PSScriptRoot/../Helpers/MockBuilders.ps1"
+    Initialize-MDEValidatorTest
 }
 
 Describe 'Test-MDESampleSubmission' {

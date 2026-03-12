@@ -77,28 +77,54 @@ function New-MpPreferenceMock {
         [int]$SignatureUpdateInterval          = 4,
         [bool]$DisableLocalAdminMerge          = $true,
         [bool]$EnableControlledFolderAccess    = $false,
-        [bool]$PUAProtection                   = $false
+        [bool]$PUAProtection                   = $false,
+        [string[]]$AttackSurfaceReductionRules_Ids     = @(),
+        [int[]]$AttackSurfaceReductionRules_Actions    = @(),
+        [bool]$EnableFileHashComputation       = $true,
+        [string]$TroubleshootingMode           = 'Disabled',
+        [int]$LowThreatDefaultAction           = 2,
+        [int]$ModerateThreatDefaultAction      = 2,
+        [int]$HighThreatDefaultAction          = 2,
+        [int]$SevereThreatDefaultAction        = 2,
+        [bool]$DisableAutoExclusions           = $false,
+        [string[]]$ExclusionExtension          = @(),
+        [bool]$HideExclusionsFromLocalAdmins   = $false,
+        [bool]$HideExclusionsFromLocalUsers    = $false,
+        [string]$SignatureFallbackOrder        = 'MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer'
     )
 
     [PSCustomObject]@{
-        DisableRealtimeMonitoring         = $DisableRealtimeMonitoring
-        DisableBehaviorMonitoring         = $DisableBehaviorMonitoring
-        DisableBlockAtFirstSeen           = $DisableBlockAtFirstSeen
-        MAPSReporting                     = $MAPSReporting
-        SubmitSamplesConsent              = $SubmitSamplesConsent
-        CloudBlockLevel                   = $CloudBlockLevel
-        CloudExtendedTimeout              = $CloudExtendedTimeout
-        AllowNetworkProtectionOnWinServer = $AllowNetworkProtectionOnWinServer
-        EnableNetworkProtection           = $EnableNetworkProtection
-        DisableScanningNetworkFiles       = $DisableScanningNetworkFiles
-        DisableArchiveScanning            = $DisableArchiveScanning
-        DisableCatchupQuickScan           = $DisableCatchupQuickScan
-        RealTimeScanDirection             = $RealTimeScanDirection
-        SignatureUpdateFallbackOrder      = $SignatureUpdateFallbackOrder
-        SignatureUpdateInterval           = $SignatureUpdateInterval
-        DisableLocalAdminMerge            = $DisableLocalAdminMerge
-        EnableControlledFolderAccess      = $EnableControlledFolderAccess
-        PUAProtection                     = $PUAProtection
+        DisableRealtimeMonitoring               = $DisableRealtimeMonitoring
+        DisableBehaviorMonitoring               = $DisableBehaviorMonitoring
+        DisableBlockAtFirstSeen                 = $DisableBlockAtFirstSeen
+        MAPSReporting                           = $MAPSReporting
+        SubmitSamplesConsent                    = $SubmitSamplesConsent
+        CloudBlockLevel                         = $CloudBlockLevel
+        CloudExtendedTimeout                    = $CloudExtendedTimeout
+        AllowNetworkProtectionOnWinServer       = $AllowNetworkProtectionOnWinServer
+        EnableNetworkProtection                 = $EnableNetworkProtection
+        DisableScanningNetworkFiles             = $DisableScanningNetworkFiles
+        DisableArchiveScanning                  = $DisableArchiveScanning
+        DisableCatchupQuickScan                 = $DisableCatchupQuickScan
+        RealTimeScanDirection                   = $RealTimeScanDirection
+        SignatureUpdateFallbackOrder            = $SignatureUpdateFallbackOrder
+        SignatureFallbackOrder                  = $SignatureFallbackOrder
+        SignatureUpdateInterval                 = $SignatureUpdateInterval
+        DisableLocalAdminMerge                  = $DisableLocalAdminMerge
+        EnableControlledFolderAccess            = $EnableControlledFolderAccess
+        PUAProtection                           = $PUAProtection
+        AttackSurfaceReductionRules_Ids         = $AttackSurfaceReductionRules_Ids
+        AttackSurfaceReductionRules_Actions     = $AttackSurfaceReductionRules_Actions
+        EnableFileHashComputation               = $EnableFileHashComputation
+        TroubleshootingMode                     = $TroubleshootingMode
+        LowThreatDefaultAction                  = $LowThreatDefaultAction
+        ModerateThreatDefaultAction             = $ModerateThreatDefaultAction
+        HighThreatDefaultAction                 = $HighThreatDefaultAction
+        SevereThreatDefaultAction               = $SevereThreatDefaultAction
+        DisableAutoExclusions                   = $DisableAutoExclusions
+        ExclusionExtension                      = $ExclusionExtension
+        HideExclusionsFromLocalAdmins           = $HideExclusionsFromLocalAdmins
+        HideExclusionsFromLocalUsers            = $HideExclusionsFromLocalUsers
     }
 }
 
@@ -160,7 +186,9 @@ function New-MpComputerStatusMock {
         [bool]$DefenderSignaturesOutOfDate  = $false,
         [bool]$TamperProtectionSource       = $true,
         [string]$AMProductVersion           = '4.18.24040.4',
-        [string]$AMEngineVersion            = '1.1.24040.4'
+        [string]$AMEngineVersion            = '1.1.24040.4',
+        [bool]$IsTamperProtected            = $true,
+        [string]$AMRunningMode              = 'Normal'
     )
 
     [PSCustomObject]@{
@@ -178,6 +206,8 @@ function New-MpComputerStatusMock {
         TamperProtectionSource      = $TamperProtectionSource
         AMProductVersion            = $AMProductVersion
         AMEngineVersion             = $AMEngineVersion
+        IsTamperProtected           = $IsTamperProtected
+        AMRunningMode               = $AMRunningMode
     }
 }
 
@@ -275,6 +305,3 @@ function New-ItemPropertyMock {
 
     [PSCustomObject]$Properties
 }
-
-
-Export-ModuleMember -Function New-MpPreferenceMock, New-MpComputerStatusMock, New-ServiceMock, New-ItemPropertyMock

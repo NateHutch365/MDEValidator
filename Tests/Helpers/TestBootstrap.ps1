@@ -5,16 +5,18 @@
 
 .DESCRIPTION
     Provides shared module import and setup for all test files.
-    All test files should dot-source this file and call Initialize-MDEValidatorTest
-    inside a BeforeAll block before running any test assertions.
+    Test files should dot-source this file, MockBuilders.ps1 (if needed),
+    and call Initialize-MDEValidatorTest inside a BeforeAll block.
 
-    MockBuilders.ps1 is auto-loaded at file scope so mock helper functions
-    (New-MpPreferenceMock, New-MpComputerStatusMock, etc.) are available in
-    the test's BeforeAll scope without a separate dot-source line.
+    MockBuilders.ps1 must be dot-sourced directly in the test file's BeforeAll
+    so the mock helper functions stay in the test scope. Dot-sourcing inside
+    Initialize-MDEValidatorTest would create them in a child scope that is
+    destroyed when the function returns.
 
 .EXAMPLE
     BeforeAll {
         . $PSScriptRoot/../Helpers/TestBootstrap.ps1
+        . $PSScriptRoot/../Helpers/MockBuilders.ps1   # only if test uses mock builders
         Initialize-MDEValidatorTest
     }
 #>
@@ -36,20 +38,13 @@ function Initialize-MDEValidatorTest {
     .EXAMPLE
         BeforeAll {
             . $PSScriptRoot/../Helpers/TestBootstrap.ps1
+            . $PSScriptRoot/../Helpers/MockBuilders.ps1
             Initialize-MDEValidatorTest
         }
     #>
     param()
 
-    # Resolve bootstrap directory from the function source file itself.
-    # This avoids file-scope context differences in CI vs local Pester runs.
     $bootstrapDir = Split-Path $MyInvocation.MyCommand.ScriptBlock.File -Parent
-
-    # Load mock helper builders at call time (inside BeforeAll) so the helpers
-    # are available in each test file scope without relying on file-scope state.
-    $mockBuildersPath = Join-Path $bootstrapDir 'MockBuilders.ps1'
-    . $mockBuildersPath
-
     $manifestPath = Resolve-Path (Join-Path $bootstrapDir '..\..\MDEValidator\MDEValidator.psd1')
     Import-Module $manifestPath -Force -ErrorAction Stop
     Get-Module MDEValidator

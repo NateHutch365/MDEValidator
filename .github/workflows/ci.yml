@@ -26,6 +26,20 @@ jobs:
         shell: pwsh
         run: Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
 
+      - name: CI Diagnostics
+        shell: pwsh
+        run: |
+          Write-Host "=== CI DIAGNOSTICS ==="
+          Write-Host "PS Version: $($PSVersionTable.PSVersion)"
+          Write-Host "OS: $([System.Runtime.InteropServices.RuntimeInformation]::OSDescription)"
+          Write-Host "CWD: $(Get-Location)"
+          Write-Host "Pester: $((Get-Module Pester -ListAvailable | Select-Object -First 1).Version)"
+          Write-Host "TestBootstrap exists: $(Test-Path ./Tests/Helpers/TestBootstrap.ps1)"
+          Write-Host "MockBuilders exists: $(Test-Path ./Tests/Helpers/MockBuilders.ps1)"
+          Write-Host "Module manifest exists: $(Test-Path ./MDEValidator/MDEValidator.psd1)"
+          Write-Host "Test files found: $((Get-ChildItem -Path ./Tests -Recurse -Filter *.Tests.ps1).Count)"
+          Write-Host "=== END DIAGNOSTICS ==="
+
       - name: Run Pester Tests
         shell: pwsh
         run: .\run-tests.ps1

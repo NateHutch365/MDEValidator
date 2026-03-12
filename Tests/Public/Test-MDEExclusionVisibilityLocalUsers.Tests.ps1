@@ -1,8 +1,6 @@
 BeforeAll {
     . "$PSScriptRoot/../Helpers/TestBootstrap.ps1"
     Initialize-MDEValidatorTest
-
-    . "$PSScriptRoot/../Helpers/MockBuilders.ps1"
 }
 
 Describe 'Test-MDEExclusionVisibilityLocalUsers' {
