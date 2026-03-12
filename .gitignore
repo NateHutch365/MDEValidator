@@ -8,3 +8,18 @@
 # IDE files
 .vscode/
 .idea/
+
+# GSD Framework (dev tooling - private repo only)
+.claude/
+.planning/
+.github/prompts/
+.github/instructions/
+
+# Dev-only scripts
+audit-module.ps1
+verify-workflows.ps1
+verify-restructuring.ps1
+
+# Generated test artifacts
+Tests/Artifacts/coverage.xml
+Tests/Artifacts/test-results.xml
