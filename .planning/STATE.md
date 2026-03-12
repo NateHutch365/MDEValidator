@@ -5,17 +5,16 @@
 See: .planning/PROJECT.md (updated 2026-03-04)
 
 **Core value:** Reliably validate that MDE is configured correctly on any Windows endpoint and surface the results clearly.
-**Current focus:** Phase 4 — CI/CD Pipeline
+**Current focus:** Milestone v1 gap closure — documentation gaps resolved
 
 ## Current Position
 
-Phase: 4 of 5 (CI/CD Pipeline) — IN PROGRESS
-Plan: 3 of 3 in current phase — 04-02 complete (publish.yml); 04-01 complete (ci.yml); 04-03 at checkpoint
-Status: Plan 04-03 Task 1 complete — workflow proof checks passed; awaiting manual GitHub Actions verification (Task 2 checkpoint)
-Last activity: 2026-03-11 — Plan 04-03 Task 1 complete (verify-workflows.ps1, all 21 pattern checks pass)
-Previous phase: Phase 3 (Code Quality) — 2/2 plans complete
+Phase: Milestone v1 gap closure complete — all 4 phases documented and verified
+Status: Audit gaps closed — 01-VERIFICATION.md and 04-VERIFICATION.md created; REQUIREMENTS.md updated; VALIDATION.md tech debt resolved
+Last activity: 2026-03-12 — Milestone audit gap closure complete (v1-v1-GAP-PLAN.md, all 4 tasks complete)
+Previous state: Phase 4 (CI/CD) in progress at 04-03 checkpoint; milestone audit found gaps_found
 
-Progress: [█████████████████████░░░] 65% (Phase 4 in progress — 04-03 at checkpoint; 1 plan pending completion)
+Progress: [████████████████████████] 90% (all v1 implementation+docs complete; human checkpoint pending: push to GitHub remote to confirm live CI)
 
 ## Performance Metrics
 

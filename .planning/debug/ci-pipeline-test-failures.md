@@ -1,6 +1,6 @@
 # Debug Session: ci-pipeline-test-failures
 
-**Status:** ACTIVE — INVESTIGATING  
+**Status:** ACTIVE — FIX APPLIED  
 **Slug:** ci-pipeline-test-failures  
 **Created:** 2026-03-12  
 **Last Updated:** 2026-03-12
@@ -101,19 +101,24 @@ e09ae6e  docs(04-01): complete ci.yml plan
 
 ## Pending Action
 
-**User is providing updated CI failure logs.** Analyze the new logs to:
-1. Determine if same root cause (BeforeAll crash) or different failure mode
-2. If FailedContainers reporting in `run-tests.ps1` now shows actual error messages in CI output
-3. Form new hypothesis and fix
+**Fix #2 applied — awaiting CI verification.** Push commit and check CI results.
 
 ---
 
 ## Investigation Log
 
+### 2026-03-12 — Fix #2
+- Analyzed second CI failure NUnit XML: 149/303 failures (down from 159)
+- Fix #1 recovered 10 tests in 2 files (Get-MDEPolicyRegistryPath, Get-MDEPolicySettingConfig)
+- KEY INSIGHT: The 2 passing per-function files don't use Mock/InModuleScope; all 46 failing files do
+- Root cause: file-scope `$PSScriptRoot` in TestBootstrap.ps1 also unreliable on CI
+- `.(Join-Path $PSScriptRoot 'MockBuilders.ps1')` fails → MockBuilders not loaded → BeforeAll crashes
+- Fix: replaced single `$PSScriptRoot` with 5-method fallback chain
+- Local verification: 303/0 in both script mode and interactive mode
+
 ### 2026-03-12 — Session Start
 - Phase 4 CI/CD pipeline complete, CI failed first time (159/303)
 - Root cause: `$PSScriptRoot` empty in Pester 5 BeforeAll on Server 2025
 - Fix applied and verified locally (303/0)
-- Pushed `2bd1f59` — CI still failing
-- **AWAITING:** User-provided CI logs for second failure
+- Pushed `2bd1f59` — CI still failing (149/303)
 

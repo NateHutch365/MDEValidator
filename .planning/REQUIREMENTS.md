@@ -9,20 +9,20 @@ Requirements for the restructured, tested, published module. Each maps to roadma
 
 ### Module Structure
 
-- [ ] **STRUCT-01**: Module uses function-per-file layout with Public/ and Private/ folders
-- [ ] **STRUCT-02**: Root .psm1 uses dot-source loader to import all function files
-- [ ] **STRUCT-03**: All 45 existing exported functions preserve their names, parameters, and output shapes
-- [ ] **STRUCT-04**: Private helper functions (Write-ValidationResult, ConvertTo-HtmlEncodedString, etc.) are in Private/ folder and not exported
-- [ ] **STRUCT-05**: Export-ModuleMember and .psd1 FunctionsToExport remain synchronized
+- [x] **STRUCT-01**: Module uses function-per-file layout with Public/ and Private/ folders
+- [x] **STRUCT-02**: Root .psm1 uses dot-source loader to import all function files
+- [x] **STRUCT-03**: All 45 existing exported functions preserve their names, parameters, and output shapes
+- [x] **STRUCT-04**: Private helper functions (Write-ValidationResult, ConvertTo-HtmlEncodedString, etc.) are in Private/ folder and not exported
+- [x] **STRUCT-05**: Export-ModuleMember and .psd1 FunctionsToExport remain synchronized
 
 ### Testing
 
-- [ ] **TEST-01**: Each public validation function has a corresponding Pester 5.x test file
-- [ ] **TEST-02**: Tests mock all external dependencies (Get-MpPreference, Get-MpComputerStatus, Get-Service, Get-ItemProperty)
-- [ ] **TEST-03**: Tests validate both pass and fail scenarios for each check
-- [ ] **TEST-04**: Tests can run without admin privileges and without Defender installed
-- [ ] **TEST-05**: Pester generates JaCoCo code coverage output
-- [ ] **TEST-06**: Private helper functions have test coverage via module-scoped mocking
+- [x] **TEST-01**: Each public validation function has a corresponding Pester 5.x test file
+- [x] **TEST-02**: Tests mock all external dependencies (Get-MpPreference, Get-MpComputerStatus, Get-Service, Get-ItemProperty)
+- [x] **TEST-03**: Tests validate both pass and fail scenarios for each check
+- [x] **TEST-04**: Tests can run without admin privileges and without Defender installed
+- [x] **TEST-05**: Pester generates JaCoCo code coverage output
+- [x] **TEST-06**: Private helper functions have test coverage via module-scoped mocking
 
 ### Quality
 
@@ -32,11 +32,11 @@ Requirements for the restructured, tested, published module. Each maps to roadma
 
 ### CI/CD
 
-- [ ] **CICD-01**: GitHub Actions workflow runs Pester tests on push and PR to main
-- [ ] **CICD-02**: GitHub Actions workflow runs PSScriptAnalyzer lint on push and PR to main
-- [ ] **CICD-03**: CI runs on windows-latest runner
-- [ ] **CICD-04**: Automated PSGallery publish triggered on GitHub release/tag
-- [ ] **CICD-05**: CI reports code coverage results
+- [x] **CICD-01**: GitHub Actions workflow runs Pester tests on push and PR to main
+- [x] **CICD-02**: GitHub Actions workflow runs PSScriptAnalyzer lint on push and PR to main
+- [x] **CICD-03**: CI runs on windows-latest runner
+- [x] **CICD-04**: Automated PSGallery publish triggered on GitHub release/tag
+- [x] **CICD-05**: CI reports code coverage results
 
 ### Publishing
 
@@ -76,25 +76,25 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| STRUCT-01 | Phase 1 | Pending |
-| STRUCT-02 | Phase 1 | Pending |
-| STRUCT-03 | Phase 1 | Pending |
-| STRUCT-04 | Phase 1 | Pending |
-| STRUCT-05 | Phase 1 | Pending |
-| TEST-01 | Phase 2 | Pending |
-| TEST-02 | Phase 2 | Pending |
-| TEST-03 | Phase 2 | Pending |
-| TEST-04 | Phase 2 | Pending |
-| TEST-05 | Phase 2 | Pending |
-| TEST-06 | Phase 2 | Pending |
+| STRUCT-01 | Phase 1 | Complete |
+| STRUCT-02 | Phase 1 | Complete |
+| STRUCT-03 | Phase 1 | Complete |
+| STRUCT-04 | Phase 1 | Complete |
+| STRUCT-05 | Phase 1 | Complete |
+| TEST-01 | Phase 2 | Complete |
+| TEST-02 | Phase 2 | Complete |
+| TEST-03 | Phase 2 | Complete |
+| TEST-04 | Phase 2 | Complete |
+| TEST-05 | Phase 2 | Complete |
+| TEST-06 | Phase 2 | Complete |
 | QUAL-01 | Phase 3 | Complete |
 | QUAL-02 | Phase 3 | Complete |
 | QUAL-03 | Phase 3 | Complete |
-| CICD-01 | Phase 4 | Pending |
-| CICD-02 | Phase 4 | Pending |
-| CICD-03 | Phase 4 | Pending |
-| CICD-04 | Phase 4 | Pending |
-| CICD-05 | Phase 4 | Pending |
+| CICD-01 | Phase 4 | Complete |
+| CICD-02 | Phase 4 | Complete |
+| CICD-03 | Phase 4 | Complete |
+| CICD-04 | Phase 4 | Complete |
+| CICD-05 | Phase 4 | Complete |
 | PUBL-01 | Phase 5 | Pending |
 | PUBL-02 | Phase 5 | Pending |
 | PUBL-03 | Phase 5 | Pending |

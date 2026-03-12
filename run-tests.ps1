@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 Write-Host "`n========== PESTER TEST EXECUTION ==========" -ForegroundColor Cyan
 
 # Ensure Tests/Artifacts directory exists for output files
-$artifactsDir = Join-Path $PSScriptRoot 'Tests' 'Artifacts'
+$artifactsDir = Join-Path (Join-Path $PSScriptRoot 'Tests') 'Artifacts'
 if (-not (Test-Path $artifactsDir)) {
     New-Item -ItemType Directory -Path $artifactsDir -Force | Out-Null
 }
