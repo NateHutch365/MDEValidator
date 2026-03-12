@@ -21,8 +21,10 @@ function Initialize-MDEValidatorTest {
         Imports the MDEValidator module with -Force for a clean test session.
 
     .DESCRIPTION
-        Resolves the module manifest path relative to this bootstrap file and
-        imports it. Called once per test file inside a BeforeAll block.
+        Resolves the module manifest path relative to this bootstrap file.
+        Uses $MyInvocation.MyCommand.ScriptBlock.File to reliably locate the
+        bootstrap file's directory, regardless of $PSScriptRoot availability
+        in Pester BeforeAll execution contexts.
 
     .OUTPUTS
         [PSModuleInfo] The imported module object returned by Get-Module.
@@ -35,9 +37,11 @@ function Initialize-MDEValidatorTest {
     #>
     param()
 
-    $manifestPath = Resolve-Path (Join-Path $PSScriptRoot '..\..\MDEValidator\MDEValidator.psd1')
+    # Use the function's own source file location instead of $PSScriptRoot.
+    # $PSScriptRoot can be empty or resolve to the wrong directory when called
+    # from within Pester 5 BeforeAll blocks after dot-sourcing.
+    $bootstrapDir = Split-Path $MyInvocation.MyCommand.ScriptBlock.File -Parent
+    $manifestPath = Resolve-Path (Join-Path $bootstrapDir '..\..\MDEValidator\MDEValidator.psd1')
     Import-Module $manifestPath -Force -ErrorAction Stop
     Get-Module MDEValidator
 }
-
-Export-ModuleMember -Function Initialize-MDEValidatorTest

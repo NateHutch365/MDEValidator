@@ -47,8 +47,16 @@ Write-Host "Failed:  $($result.FailedCount)" -ForegroundColor $(if ($result.Fail
 Write-Host "Skipped: $($result.SkippedCount)" -ForegroundColor Yellow
 Write-Host "Total:   $($result.TotalCount)`n" -ForegroundColor Cyan
 
+if ($result.FailedContainers.Count -gt 0) {
+    Write-Host "`nFAILED CONTAINERS (BeforeAll/AfterAll errors):" -ForegroundColor Red
+    foreach ($container in $result.FailedContainers) {
+        Write-Host "  x $($container.Item.Value)" -ForegroundColor Red
+        Write-Host "    $($container.ErrorRecord.Exception.Message)" -ForegroundColor Yellow
+    }
+}
+
 if ($result.FailedCount -gt 0) {
-    Write-Host "FAILED TESTS:" -ForegroundColor Red
+    Write-Host "`nFAILED TESTS:" -ForegroundColor Red
     foreach ($fail in $result.Failed) {
         Write-Host "  x $($fail.ExpandedName)" -ForegroundColor Red
         Write-Host "    $($fail.ErrorRecord)" -ForegroundColor Yellow
