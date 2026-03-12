@@ -2,26 +2,26 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-03-04)
+See: .planning/PROJECT.md (updated 2026-03-12)
 
 **Core value:** Reliably validate that MDE is configured correctly on any Windows endpoint and surface the results clearly.
-**Current focus:** Milestone v1 gap closure — documentation gaps resolved
+**Current focus:** v2 milestone planning — PSGallery publish + WPF desktop UI
 
 ## Current Position
 
-Phase: Milestone v1 gap closure complete — all 4 phases documented and verified
-Status: Audit gaps closed — 01-VERIFICATION.md and 04-VERIFICATION.md created; REQUIREMENTS.md updated; VALIDATION.md tech debt resolved
-Last activity: 2026-03-12 — Milestone audit gap closure complete (v1-v1-GAP-PLAN.md, all 4 tasks complete)
-Previous state: Phase 4 (CI/CD) in progress at 04-03 checkpoint; milestone audit found gaps_found
+Phase: Milestone v1 complete — all 4 phases shipped, archived 2026-03-12
+Status: Milestone archived — ROADMAP.md collapsed, REQUIREMENTS.md archived, PROJECT.md updated, git tag v1.0 created
+Last activity: 2026-03-12 — Milestone v1 archived (complete-milestone workflow)
+Previous state: Milestone v1 gap closure complete; all doc gaps resolved
 
-Progress: [████████████████████████] 90% (all v1 implementation+docs complete; human checkpoint pending: push to GitHub remote to confirm live CI)
+Progress: [████████████████████████] 100% v1 complete — next: v2 milestone planning
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
+- Total plans completed: 11 (Phases 1-4)
 - Average duration: ~6 minutes
-- Total execution time: ~41 minutes
+- Total execution time: ~8 days (2026-03-04 → 2026-03-12)
 
 **By Phase:**
 
@@ -30,54 +30,42 @@ Progress: [███████████████████████
 | 1. Module Restructuring | 3 | 3 | ~6 min |
 | 2. Testing Infrastructure | 3 | 3 | ~7 min |
 | 3. Code Quality | 2 | 2 | ~4 min |
-| 4. CI/CD Pipeline | 1 | — | ~2 min |
-
-**Recent Trend:**
-- Last 5 plans: 02-03 (✓), 03-01 (✓), 03-02 (✓), 04-02 (✓)
-- Trend: On schedule — Phase 1 complete, Phase 2 complete, Phase 3 complete, Phase 4 in progress
-
-*Updated after each plan completion*
+| 4. CI/CD Pipeline | 3 | 3 | ~3 min |
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
 
-- [Init]: Restructuring must preserve existing 45-function public API surface
-- [Init]: Desktop UI deferred to v2
-- [Init]: Mock-based testing to enable CI without live Defender
-- [P1-Discuss]: One file per function, named exactly after the function (e.g., Test-MDEServiceStatus.ps1)
-- [P1-Discuss]: Keep both Export-ModuleMember in .psm1 and FunctionsToExport in .psd1 (belt-and-suspenders)
-- [P1-Discuss]: Minimal test fixes in Phase 1 only if restructuring breaks them; full test work in Phase 2
-- [P2-01]: MockBuilders use named bool/int params (not switches) for cleaner override syntax in tests
-- [P2-01]: generate-mapping.ps1 paths resolved relative to script location for portability
-- [P2-03]: InModuleScope wraps each It block individually for private helper test isolation
-- [P2-03]: Mock New-Object with ParameterFilter for .NET class mocking inside InModuleScope
-- [P3-01]: Settings file Severity must be Error+Warning only — PSSA 1.24.0 settings Severity overrides command-line -Severity, Information setting exposes 744 unscoped violations
-- [P3-01]: Intentionally silent catch blocks require Write-Verbose statement (PSSA 1.24.0 flags comment-only blocks)
-- [P3-02]: Placeholder GitHub URLs used for LicenseUri and ProjectUri — must be verified/updated before actual PSGallery publish
-- [P4-02]: Release trigger (on: release: types: [published]) preferred over tag push — requires deliberate human action, prevents accidental PSGallery uploads
-- [P4-02]: NUGET_API_KEY injected via env block, accessed as $env:NUGET_API_KEY in run script — secrets never referenced directly inside run:
-- [P4-02]: No test step in publish.yml — CI gate on main already ensures code quality; duplicate test run is unnecessary overhead
+Key decisions from v1:
+- [P1]: One file per function, named exactly after the function
+- [P1]: AST parser for extraction (regex had brace-parsing issues)
+- [P1]: Load Private before Public in dot-source loader
+- [P2]: MockBuilders use named bool/int params (not switches)
+- [P2]: InModuleScope wraps each It block individually for private helper test isolation
+- [P3]: Settings file Severity: Error+Warning only (Information exposes 744 unscoped violations)
+- [P3]: Intentionally silent catch blocks require Write-Verbose statement
+- [P4]: Release trigger (on: release: types: [published]) for publish.yml
+- [P4]: No test step in publish.yml — CI gate on main already ensures quality
 
 ### Pending Todos
 
-- Execute Phase 4 plan 04-03 Task 2 checkpoint (resume once CI is confirmed green in GitHub Actions)
-- Publish module to PSGallery (after Phase 4) — see .planning/todos/pending/2026-03-11-publish-module-to-psgallery.md
-- Set NUGET_API_KEY secret in GitHub repo Settings → Secrets and variables → Actions before first release
+- Push to GitHub remote to confirm live CI run (human checkpoint from 04-03-PLAN.md)
+- Add NUGET_API_KEY secret to GitHub repo Settings → Secrets → Actions before first release
+- Update LicenseUri and ProjectUri in .psd1 with real GitHub repo URLs before PSGallery publish
+- Publish module to PSGallery — see .planning/todos/pending/2026-03-11-publish-module-to-psgallery.md
+- Start v2 milestone: `/gsd:new-milestone` (desktop UI + PSGallery publish)
 
 ### Blockers/Concerns
 
-None — all audit checks passed.
+None — milestone v1 fully archived. Human checkpoint pending for live CI confirmation.
 
 ## Session Continuity
 
-Last session: 2026-03-11 — Plan 04-03 Task 1 complete — workflow proof checks passed; checkpoint reached
-Resume file: .planning/phases/04-cicd/04-03-PLAN.md (Task 2 checkpoint — resume after CI confirmed green in GitHub Actions)
-Current phase directory: .planning/phases/04-cicd/
-Stopped at: Completed 04-cicd-02-PLAN.md
+Last session: 2026-03-12 — Milestone v1 archived (complete-milestone workflow)
+Resume: Start v2 with `/gsd:new-milestone` after confirming live CI run
+Next milestone focus: PSGallery publish (PUBL-01, PUBL-02, PUBL-03) + WPF desktop UI (UI-01 through UI-06)
 
 ---
 *State initialized: 2026-03-04*

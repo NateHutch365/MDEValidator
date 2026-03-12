@@ -2,100 +2,20 @@
 
 ## Overview
 
-Transform MDEValidator from a working monolithic ~2000-line .psm1 into a maintainable, tested, CI-gated module. Four phases move from restructuring the codebase, through testing and quality gates, to automated publishing — each delivering a verifiable capability that unblocks the next.
-
-## Phases
-
 **Phase Numbering:**
-- Integer phases (1, 2, 3): Planned milestone work
+- Integer phases (1, 2, 3, 4, ...): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [x] **Phase 1: Module Restructuring** - Split monolithic .psm1 into function-per-file layout preserving all 45 exports
-- [x] **Phase 2: Testing Infrastructure** - Mock-based Pester tests for every function, runnable without Defender or admin
-- [x] **Phase 3: Code Quality** - PSScriptAnalyzer compliance and publish-ready manifest metadata
-- [x] **Phase 4: CI/CD Pipeline** - GitHub Actions for automated testing, linting, coverage, and publish triggers
+## Shipped Milestones
 
-## Phase Details
+- [x] **v1 (2026-03-04 → 2026-03-12):** Module Modernization & CI/CD Foundation — Split monolithic .psm1 into 49 function-per-file layout, built 303-test Pester suite, achieved PSSA compliance, and added GitHub Actions CI/CD with PSGallery publish trigger. See [.planning/milestones/v1-ROADMAP.md](.planning/milestones/v1-ROADMAP.md).
 
-### Phase 1: Module Restructuring
-**Goal**: Module uses function-per-file layout while preserving the existing 45-function public API
-**Depends on**: Nothing (first phase)
-**Requirements**: STRUCT-01, STRUCT-02, STRUCT-03, STRUCT-04, STRUCT-05
-**Success Criteria** (what must be TRUE):
-  1. Every exported function lives in its own .ps1 file under a Public/ folder
-  2. Private helper functions (Write-ValidationResult, ConvertTo-HtmlEncodedString, etc.) live in separate .ps1 files under Private/ and are not exported
-  3. Running `Import-Module MDEValidator` loads all functions via dot-source loader without errors
-  4. All 45 exported function names, parameters, and output shapes are identical to the monolithic version
-  5. FunctionsToExport in .psd1 matches the actual exported function set exactly
-**Plans**: Completed 2026-03-04
+## Active Phases
 
-Plans:
-- [x] 01-01: Audit function inventory, confirm public/private classification, capture parameter baselines
-- [x] 01-02: Extract 49 functions to Public/ and Private/ files, replace .psm1 with dot-source loader
-- [x] 01-03: Verify exports match baseline, private helpers not exported, Pester tests pass
-
-### Phase 2: Testing Infrastructure
-**Goal**: Every validation function has mock-based Pester tests that run without Defender or admin privileges
-**Depends on**: Phase 1
-**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06
-**Success Criteria** (what must be TRUE):
-  1. Every public function and private helper has corresponding Pester 5.x test coverage
-  2. Tests mock all external dependencies (Get-MpPreference, Get-MpComputerStatus, Get-Service, Get-ItemProperty) — no live calls
-  3. Each test validates both passing and failing validation scenarios
-  4. Full test suite passes on a machine without Defender installed and without admin privileges
-  5. Pester run produces JaCoCo XML coverage report
-**Plans**: TBD
-
-Plans:
-- [x] 02-01: Create test folder structure, shared helpers (TestBootstrap, MockBuilders), Pester 5 runner, and mapping checklist
-- [x] 02-02: Create Pester 5 test files for all 45 public functions
-- [x] 02-03: Create test files for 4 private helpers + parity gate (full suite green)
-
-### Phase 3: Code Quality
-**Goal**: Module passes static analysis and has complete, publish-ready manifest metadata
-**Depends on**: Phase 1
-**Requirements**: QUAL-01, QUAL-02, QUAL-03
-**Success Criteria** (what must be TRUE):
-  1. PSScriptAnalyzer reports zero errors and zero warnings against the full module
-  2. Module manifest (.psd1) includes LicenseUri, ProjectUri, Tags, and ReleaseNotes
-  3. PSScriptAnalyzer settings file (.PSScriptAnalyzerSettings.psd1) is committed to the repo root
-**Plans**: TBD
-
-Plans:
-- [x] 03-01: PSScriptAnalyzer settings + fix 5 code violations (3 empty catch blocks, 1 unused variable, 1 unused parameter)
-- [x] 03-02: Manifest metadata (LicenseUri, ProjectUri) + final QUAL-01/02/03 verification gate
-
-### Phase 4: CI/CD Pipeline
-**Goal**: Every push and PR to main is automatically tested, linted, and coverage-reported via GitHub Actions
-**Depends on**: Phase 2, Phase 3
-**Requirements**: CICD-01, CICD-02, CICD-03, CICD-04, CICD-05
-**Success Criteria** (what must be TRUE):
-  1. GitHub Actions workflow runs the full Pester test suite on every push and PR to main
-  2. GitHub Actions workflow runs PSScriptAnalyzer and fails the build on any violation
-  3. CI executes on a windows-latest runner
-  4. CI publishes code coverage results from JaCoCo output
-  5. A GitHub release/tag triggers automated PSGallery module publishing
-**Plans**: 3 plans
-
-Plans:
-- [x] 04-01-PLAN.md — Create `.github/workflows/ci.yml` (test + lint + coverage on push/PR to main)
-- [x] 04-02-PLAN.md — Create `.github/workflows/publish.yml` (PSGallery publish on GitHub Release)
-- [x] 04-03-PLAN.md — Integration verification gate (workflow structure checks + manual CI activation checkpoint)
-
-## Progress
-
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. Module Restructuring | 3/3 | Complete | 01-01 ✓, 01-02 ✓, 01-03 ✓ |
-| 2. Testing Infrastructure | 3/3 | Complete | 02-01 ✓, 02-02 ✓, 02-03 ✓ |
-| 3. Code Quality | 2/2 | Complete | 03-01 ✓, 03-02 ✓ |
-| 4. CI/CD Pipeline | 3/3 | Complete | 04-01 ✓, 04-02 ✓, 04-03 ✓ |
+*(Next milestone phases go here)*
 
 ---
-*Roadmap created: 2026-03-04*
+*Roadmap created: 2026-03-04 | v1 archived: 2026-03-12*
 *Last updated: 2026-03-12*
