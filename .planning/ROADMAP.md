@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Module Restructuring** - Split monolithic .psm1 into function-per-file layout preserving all 45 exports
 - [x] **Phase 2: Testing Infrastructure** - Mock-based Pester tests for every function, runnable without Defender or admin
 - [x] **Phase 3: Code Quality** - PSScriptAnalyzer compliance and publish-ready manifest metadata
-- [ ] **Phase 4: CI/CD Pipeline** - GitHub Actions for automated testing, linting, coverage, and publish triggers
+- [x] **Phase 4: CI/CD Pipeline** - GitHub Actions for automated testing, linting, coverage, and publish triggers
 
 ## Phase Details
 
@@ -80,9 +80,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — Create `.github/workflows/ci.yml` (test + lint + coverage on push/PR to main)
+- [x] 04-01-PLAN.md — Create `.github/workflows/ci.yml` (test + lint + coverage on push/PR to main)
 - [x] 04-02-PLAN.md — Create `.github/workflows/publish.yml` (PSGallery publish on GitHub Release)
-- [ ] 04-03-PLAN.md — Integration verification gate (workflow structure checks + manual CI activation checkpoint)
+- [x] 04-03-PLAN.md — Integration verification gate (workflow structure checks + manual CI activation checkpoint)
 
 ## Progress
 
@@ -94,12 +94,8 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 | 1. Module Restructuring | 3/3 | Complete | 01-01 ✓, 01-02 ✓, 01-03 ✓ |
 | 2. Testing Infrastructure | 3/3 | Complete | 02-01 ✓, 02-02 ✓, 02-03 ✓ |
 | 3. Code Quality | 2/2 | Complete | 03-01 ✓, 03-02 ✓ |
-| 4. CI/CD Pipeline | 1/3 | In Progress | 04-02 ✓ (04-01 pending, 04-03 pending) |
+| 4. CI/CD Pipeline | 3/3 | Complete | 04-01 ✓, 04-02 ✓, 04-03 ✓ |
 
 ---
 *Roadmap created: 2026-03-04*
-*Last updated: 2026-03-11*
-
----
-*Roadmap created: 2026-03-04*
-*Last updated: 2026-03-11*
+*Last updated: 2026-03-12*
