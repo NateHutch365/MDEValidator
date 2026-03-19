@@ -12,13 +12,13 @@
     GUID = 'e8f9c7d6-5a4b-3c2d-1e0f-9a8b7c6d5e4f'
 
     # Author of this module
-    Author = 'MDEValidator Team'
+    Author = 'Nathan Hutchinson'
 
     # Company or vendor of this module
-    CompanyName = 'Community'
+    CompanyName = 'Nathan Hutchinson'
 
     # Copyright statement for this module
-    Copyright = '(c) 2024 MDEValidator Team. All rights reserved.'
+    Copyright = '(c) 2026 Nathan Hutchinson. All rights reserved.'
 
     # Description of the functionality provided by this module
     Description = 'PowerShell module to validate Microsoft Defender for Endpoint (MDE) configurations and security settings.'
@@ -94,13 +94,13 @@
             Tags = @('Security', 'Defender', 'MDE', 'Endpoint', 'Validation', 'Windows')
 
             # A URL to the license for this module
-            LicenseUri = 'https://github.com/mdavis-xyz/MDEValidator/blob/main/LICENSE'
+            LicenseUri = 'https://github.com/NateHutch365/MDEValidator/blob/main/LICENSE'
 
             # A URL to the main website for this project
-            ProjectUri = 'https://github.com/mdavis-xyz/MDEValidator'
+            ProjectUri = 'https://github.com/NateHutch365/MDEValidator'
 
             # ReleaseNotes of this module
-            ReleaseNotes = 'Initial release of MDEValidator module.'
+            ReleaseNotes = 'Initial public release. Validates 45 MDE configuration settings including service status, cloud protection, passive mode, network protection, attack surface reduction, tamper protection, exclusion visibility, and SmartScreen.'
         }
     }
 }

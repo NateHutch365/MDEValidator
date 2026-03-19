@@ -8,11 +8,83 @@ jobs:
   publish:
     name: Publish Module
     runs-on: windows-latest
+    if: startsWith(github.event.release.target_commitish, 'release/') || github.event.release.target_commitish == 'main'
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # REL-02 — Must be first: no point running other checks without an API key
+      - name: Check NUGET_API_KEY
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) {
+              Write-Error "NUGET_API_KEY secret is missing or blank. Add it to repo Settings > Secrets > Actions."
+              exit 1
+          }
+          Write-Host "NUGET_API_KEY: present" -ForegroundColor Green
+
+      # REL-03 — Tag vs manifest version alignment
+      - name: Verify tag matches manifest version
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          $tagVersion     = $env:RELEASE_TAG -replace '^v', ''
+          $manifest       = Test-ModuleManifest -Path ".\MDEValidator\MDEValidator.psd1" -ErrorAction Stop
+          $manifestVersion = $manifest.Version.ToString()
+          if ($tagVersion -ne $manifestVersion) {
+              Write-Error "Tag '$($env:RELEASE_TAG)' (stripped: '$tagVersion') != manifest ModuleVersion '$manifestVersion'. Update the manifest before releasing."
+              exit 1
+          }
+          Write-Host "Version alignment OK: $tagVersion == $manifestVersion" -ForegroundColor Green
+
+      # REL-04 — Manifest structural validation
+      - name: Validate module manifest
+        shell: pwsh
+        run: |
+          try {
+              $manifest = Test-ModuleManifest -Path ".\MDEValidator\MDEValidator.psd1" -ErrorAction Stop
+              Write-Host "Test-ModuleManifest: PASS (v$($manifest.Version), $($manifest.ExportedFunctions.Count) functions)" -ForegroundColor Green
+          } catch {
+              Write-Error "Test-ModuleManifest failed: $_"
+              exit 1
+          }
+
+      # REL-05 — Packaged import and export smoke test
+      - name: Smoke test packaged import and exports
+        shell: pwsh
+        run: |
+          $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) "MDEValidator-preflight-$(Get-Random)"
+          Copy-Item -Path ".\MDEValidator" -Destination $tempDir -Recurse -Force
+
+          try {
+              Import-Module "$tempDir\MDEValidator" -Force -ErrorAction Stop
+              Write-Host "Import-Module from temp path: PASS" -ForegroundColor Green
+          } catch {
+              Write-Error "Import-Module failed: $_"
+              Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+              exit 1
+          }
+
+          $expected = (Import-PowerShellDataFile ".\MDEValidator\MDEValidator.psd1").FunctionsToExport
+          $missing  = $expected | Where-Object {
+              -not (Get-Command $_ -Module MDEValidator -ErrorAction SilentlyContinue)
+          }
+          if ($missing.Count -gt 0) {
+              Write-Error "Missing $($missing.Count) exported command(s): $($missing -join ', ')"
+              Remove-Module MDEValidator -Force -ErrorAction SilentlyContinue
+              Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+              exit 1
+          }
+          Write-Host "Exports: PASS ($($expected.Count)/45 commands verified)" -ForegroundColor Green
+
+          Remove-Module MDEValidator -Force -ErrorAction SilentlyContinue
+          Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+
+      # Actual publish — only reached if all preflight steps pass
       - name: Publish to PSGallery
         shell: pwsh
         env:

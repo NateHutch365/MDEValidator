@@ -11,7 +11,6 @@
 
 # GSD Framework (dev tooling - private repo only)
 .claude/
-.planning/
 .github/prompts/
 .github/instructions/
 

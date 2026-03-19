@@ -1,46 +1,11 @@
 # MDEValidator
 
+[![PSGallery Version](https://img.shields.io/powershellgallery/v/MDEValidator?label=PSGallery&logo=powershell)](https://www.powershellgallery.com/packages/MDEValidator)
+[![PSGallery Downloads](https://img.shields.io/powershellgallery/dt/MDEValidator?label=Downloads)](https://www.powershellgallery.com/packages/MDEValidator)
+[![CI](https://github.com/NateHutch365/MDEValidator/actions/workflows/ci.yml/badge.svg)](https://github.com/NateHutch365/MDEValidator/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/NateHutch365/MDEValidator/blob/main/LICENSE)
+
 A PowerShell module to validate Microsoft Defender for Endpoint (MDE) configurations and security settings on Windows endpoints.
-
-## Overview
-
-MDEValidator provides a comprehensive set of validation checks for Microsoft Defender for Endpoint configurations, helping administrators and security teams verify that endpoints are properly configured for optimal protection.
-
-## Features
-
-- **Service Status Validation**: Checks if Windows Defender service is running and configured properly
-- **Passive Mode Detection**: Validates Windows Defender passive mode status
-- **Real-Time Protection**: Validates that real-time protection is enabled
-- **Cloud-Delivered Protection**: Verifies cloud-delivered protection (MAPS) settings
-- **Cloud Block Level**: Checks cloud block level configuration for immediate blocking
-- **Cloud Extended Timeout**: Validates extended cloud check timeout settings
-- **Automatic Sample Submission**: Checks sample submission configuration
-- **Behavior Monitoring**: Validates behavior monitoring status
-- **MDE Onboarding Status**: Verifies device onboarding to Microsoft Defender for Endpoint
-- **MDE Device Tags**: Lists any locally added MDE tags
-- **Network Protection**: Checks network protection configuration
-- **Network Protection (Windows Server)**: Validates network protection on Windows Server editions
-- **Datagram Processing (Windows Server)**: Checks datagram processing configuration on Windows Server
-- **Auto Exclusions for Servers**: Checks if DisableAutoExclusions is enabled on Windows Server (Pass if enabled, Warning if not)
-- **Attack Surface Reduction (ASR) Rules**: Validates ASR rules configuration
-- **Threat Default Actions**: Checks default actions for threat severity levels (Low, Moderate, High, Severe) showing both registry values and settings (e.g., 2 (Quarantine))
-- **Tamper Protection**: Validates tamper protection status
-- **Tamper Protection for Exclusions**: Checks if Tamper Protection for Exclusions is properly configured
-- **Exclusion Visibility**: Validates settings that control whether local users and administrators can view exclusions (configurable via Group Policy or Intune)
-- **Edge SmartScreen Policies**: Comprehensive validation of Microsoft Edge SmartScreen settings including:
-  - SmartScreen enablement
-  - Potentially Unwanted Applications (PUA) blocking
-  - User override controls for prompts
-  - User override controls for downloads
-  - Domain exclusions
-  - Application reputation exclusions
-- **Catchup Quick Scan**: Validates that catchup quick scan is enabled to ensure missed scheduled scans are performed
-- **Real-Time Scan Direction**: Checks scan direction settings (incoming/outgoing/both)
-- **Signature Update Settings**: Validates signature update fallback order and interval
-- **Disable Local Admin Merge**: Checks if local administrator exclusion merging is disabled
-- **File Hash Computation**: Validates file hash computation settings
-- **Policy Registry Verification**: Optional verification that Get-MpPreference settings match registry/policy entries based on management type (Intune, GPO, SCCM, SSM)
-- **Multiple Output Formats**: Console, HTML, and PowerShell object output options
 
 ## Requirements
 
@@ -51,43 +16,58 @@ MDEValidator provides a comprehensive set of validation checks for Microsoft Def
 
 ## Installation
 
-### Manual Installation
+### Install from PowerShell Gallery
 
-1. Download or clone this repository
-2. Copy the `MDEValidator` folder to one of your PowerShell module directories:
-   - User: `$HOME\Documents\PowerShell\Modules\`
-   - System: `$env:ProgramFiles\PowerShell\Modules\`
+MDEValidator is published to [PowerShell Gallery](https://www.powershellgallery.com/packages/MDEValidator).
 
 ```powershell
-# Clone the repository
-git clone https://github.com/NateHutch365/MDEValidator.git
-
-# Copy to user modules folder
-Copy-Item -Path ".\MDEValidator\MDEValidator" -Destination "$HOME\Documents\PowerShell\Modules\" -Recurse
+Install-Module -Name MDEValidator -Scope CurrentUser
 ```
 
-### Direct Import
+> **Scope:** `-Scope CurrentUser` installs for your account only and does not require administrator privileges.
+> To install for all users on a shared machine, use `-Scope AllUsers` from an elevated (Run as Administrator) PowerShell session:
+>
+> ```powershell
+> Install-Module -Name MDEValidator -Scope AllUsers
+> ```
 
-You can also import the module directly without installing:
+### Verify the Installation
+
+After installation, confirm the module is available:
 
 ```powershell
-Import-Module .\MDEValidator\MDEValidator.psd1
+Get-Module -Name MDEValidator -ListAvailable
+```
+
+You should see `MDEValidator` listed with its version number. If the module is not listed, open a new PowerShell session and run the command again.
+
+> If `Install-Module` fails, see [Troubleshooting](#troubleshooting) for common enterprise issues (NuGet provider, execution policy, TLS 1.2, repository trust, and scope).
+
+## Quick Start
+
+```powershell
+# Step 1: Import the module
+Import-Module MDEValidator
+
+# Step 2: Run your first validation report
+Get-MDEValidationReport
+```
+
+For additional options:
+
+```powershell
+# Include MDE onboarding status check
+Get-MDEValidationReport -IncludeOnboarding
+
+# Generate an HTML report
+Get-MDEValidationReport -OutputFormat HTML -OutputPath "C:\Reports\MDEReport.html"
+
+# Return results as PowerShell objects for automation
+$results = Get-MDEValidationReport -OutputFormat Object
+$results | Where-Object { $_.Status -eq 'Fail' }
 ```
 
 ## Usage
-
-### Quick Start
-
-```powershell
-# Import the module
-Import-Module MDEValidator
-
-# Run all validation tests and display console report
-Get-MDEValidationReport
-
-# Run all tests including MDE onboarding status
-Get-MDEValidationReport -IncludeOnboarding
-```
 
 ### Available Functions
 
@@ -263,7 +243,7 @@ HTML report output:
 
 ![MDE HTML Report](images/html_report_screenshot.png)
 
-## Test Status Values
+### Test Status Values
 
 | Status | Description |
 |--------|-------------|
@@ -273,21 +253,152 @@ HTML report output:
 | Info | Informational message about the configuration |
 | NotApplicable | The test is not applicable to this system |
 
-## Running Tests
+## Troubleshooting
 
-The module includes Pester tests for validation:
+### 1. NuGet Provider Not Installed
+
+**Symptom:** `Install-Module` prompts "NuGet provider is required" or fails in a non-interactive session.
+
+**Fix:** Install the NuGet provider explicitly before retrying:
+
+```powershell
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force -Scope CurrentUser
+```
+
+Then re-run `Install-Module -Name MDEValidator -Scope CurrentUser`.
+
+---
+
+### 2. Execution Policy Blocks Import
+
+**Symptom:** `Import-Module` fails with "running scripts is disabled on this system."
+
+**Fix:** Set the execution policy for your user account (does not require administrator):
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+---
+
+### 3. TLS 1.2 Connection Failure (Windows Server 2016 / PowerShell 5.1)
+
+**Symptom:** `Install-Module` fails with "Could not establish trust relationship" or "underlying connection was closed."
+
+**Fix:** Force TLS 1.2 for the current session, then retry the install:
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+Install-Module -Name MDEValidator -Scope CurrentUser
+```
+
+---
+
+### 4. Untrusted Repository Prompt
+
+**Symptom:** `Install-Module` asks "Are you sure you want to install from 'PSGallery'?" and you cannot respond interactively (automation, RDP, non-interactive session).
+
+**Fix (trust PSGallery for the current session):**
+
+```powershell
+Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+Install-Module -Name MDEValidator -Scope CurrentUser
+```
+
+**Alternative (single non-interactive command):**
+
+```powershell
+Install-Module -Name MDEValidator -Scope CurrentUser -Repository PSGallery -Force
+```
+
+---
+
+### 5. Scope: CurrentUser vs AllUsers
+
+**Symptom:** Module installed with `-Scope CurrentUser` is not available for other users on a shared machine. Or: `-Scope AllUsers` fails with "Access Denied."
+
+**Fix:** Use `-Scope AllUsers` from an elevated (Run as Administrator) PowerShell session:
+
+```powershell
+Install-Module -Name MDEValidator -Scope AllUsers
+```
+
+`-Scope CurrentUser` (the default recommendation) does not require elevation and installs only for the current user profile.
+
+## Updating and Uninstalling
+
+### Update to the Latest Version
+
+```powershell
+Update-Module -Name MDEValidator
+```
+
+### Uninstall
+
+```powershell
+Uninstall-Module -Name MDEValidator
+```
+
+## Features
+
+- **Service Status Validation**: Checks if Windows Defender service is running and configured properly
+- **Passive Mode Detection**: Validates Windows Defender passive mode status
+- **Real-Time Protection**: Validates that real-time protection is enabled
+- **Cloud-Delivered Protection**: Verifies cloud-delivered protection (MAPS) settings
+- **Cloud Block Level**: Checks cloud block level configuration for immediate blocking
+- **Cloud Extended Timeout**: Validates extended cloud check timeout settings
+- **Automatic Sample Submission**: Checks sample submission configuration
+- **Behavior Monitoring**: Validates behavior monitoring status
+- **MDE Onboarding Status**: Verifies device onboarding to Microsoft Defender for Endpoint
+- **MDE Device Tags**: Lists any locally added MDE tags
+- **Network Protection**: Checks network protection configuration
+- **Network Protection (Windows Server)**: Validates network protection on Windows Server editions
+- **Datagram Processing (Windows Server)**: Checks datagram processing configuration on Windows Server
+- **Auto Exclusions for Servers**: Checks if DisableAutoExclusions is enabled on Windows Server (Pass if enabled, Warning if not)
+- **Attack Surface Reduction (ASR) Rules**: Validates ASR rules configuration
+- **Threat Default Actions**: Checks default actions for threat severity levels (Low, Moderate, High, Severe) showing both registry values and settings (e.g., 2 (Quarantine))
+- **Tamper Protection**: Validates tamper protection status
+- **Tamper Protection for Exclusions**: Checks if Tamper Protection for Exclusions is properly configured
+- **Exclusion Visibility**: Validates settings that control whether local users and administrators can view exclusions (configurable via Group Policy or Intune)
+- **Edge SmartScreen Policies**: Comprehensive validation of Microsoft Edge SmartScreen settings including:
+  - SmartScreen enablement
+  - Potentially Unwanted Applications (PUA) blocking
+  - User override controls for prompts
+  - User override controls for downloads
+  - Domain exclusions
+  - Application reputation exclusions
+- **Catchup Quick Scan**: Validates that catchup quick scan is enabled to ensure missed scheduled scans are performed
+- **Real-Time Scan Direction**: Checks scan direction settings (incoming/outgoing/both)
+- **Signature Update Settings**: Validates signature update fallback order and interval
+- **Disable Local Admin Merge**: Checks if local administrator exclusion merging is disabled
+- **File Hash Computation**: Validates file hash computation settings
+- **Policy Registry Verification**: Optional verification that Get-MpPreference settings match registry/policy entries based on management type (Intune, GPO, SCCM, SSM)
+- **Multiple Output Formats**: Console, HTML, and PowerShell object output options
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+### Development Setup
+
+Clone the repository and import the module directly for local development:
+
+```powershell
+git clone https://github.com/NateHutch365/MDEValidator.git
+Import-Module .\MDEValidator\MDEValidator.psd1
+```
+
+### Running Tests
+
+The module includes Pester tests for all validation functions:
 
 ```powershell
 # Install Pester if not already installed
 Install-Module -Name Pester -Force -SkipPublisherCheck
 
-# Run tests
-Invoke-Pester -Path .\Tests\MDEValidator.Tests.ps1
+# Run the full test suite
+Invoke-Pester -Path .\Tests\
 ```
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
