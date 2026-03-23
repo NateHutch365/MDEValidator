@@ -90,7 +90,7 @@ function New-MpPreferenceMock {
         [string[]]$ExclusionExtension          = @(),
         [bool]$HideExclusionsFromLocalAdmins   = $false,
         [bool]$HideExclusionsFromLocalUsers    = $false,
-        [string]$SignatureFallbackOrder        = 'MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer'
+        [string]$SignatureFallbackOrder        = 'MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer'
     )
 
     [PSCustomObject]@{

@@ -16,17 +16,18 @@
         PSCustomObject with validation results.
     
     .NOTES
-        The recommended SignatureFallbackOrder is:
-        MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer
+        The check passes as long as MicrosoftUpdateServer and MMPC are both present and
+        MicrosoftUpdateServer appears before MMPC. Additional sources such as
+        InternalDefinitionUpdateServer may be present in any position without affecting the result.
         
-        This ensures that Microsoft Malware Protection Center (MMPC) is tried first,
-        followed by Microsoft Update Server, and then internal definition update servers.
+        The recommended SignatureFallbackOrder is:
+        MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer
     #>
     [CmdletBinding()]
     param()
     
     $testName = 'Signature Update Fallback Order'
-    $recommendedOrder = 'MMPC|MicrosoftUpdateServer|InternalDefinitionUpdateServer'
+    $recommendedOrder = 'MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer'
     
     try {
         $mpPreference = Get-MpPreference -ErrorAction Stop
@@ -42,14 +43,24 @@
         }
         
         $message = "Signature Update Fallback Order: $fallbackOrder"
+        $sources = $fallbackOrder -split '\|'
+        $muIndex   = [Array]::IndexOf($sources, 'MicrosoftUpdateServer')
+        $mmpcIndex = [Array]::IndexOf($sources, 'MMPC')
         
-        if ($fallbackOrder -eq $recommendedOrder) {
+        $bothPresent   = ($muIndex -ge 0) -and ($mmpcIndex -ge 0)
+        $correctOrder  = $bothPresent -and ($muIndex -lt $mmpcIndex)
+        
+        if ($correctOrder) {
             Write-ValidationResult -TestName $testName -Status 'Pass' `
-                -Message "$message. The recommended fallback order is configured."
+                -Message "$message. MicrosoftUpdateServer precedes MMPC as required."
+        } elseif (-not $bothPresent) {
+            Write-ValidationResult -TestName $testName -Status 'Warning' `
+                -Message "$message. One or both required sources (MicrosoftUpdateServer, MMPC) are missing." `
+                -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
         } else {
             Write-ValidationResult -TestName $testName -Status 'Warning' `
-                -Message "$message. This differs from the recommended order." `
-                -Recommendation "Consider configuring Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
+                -Message "$message. MicrosoftUpdateServer must appear before MMPC." `
+                -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
         }
     }
     catch {
