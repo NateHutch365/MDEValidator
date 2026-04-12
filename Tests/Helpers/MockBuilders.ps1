@@ -188,7 +188,10 @@ function New-MpComputerStatusMock {
         [string]$AMProductVersion           = '4.18.24040.4',
         [string]$AMEngineVersion            = '1.1.24040.4',
         [bool]$IsTamperProtected            = $true,
-        [string]$AMRunningMode              = 'Normal'
+        [string]$AMRunningMode              = 'Normal',
+        [bool]$NISEnabled                       = $true,
+        [string]$AntivirusSignatureVersion      = '1.1.24040.4',
+        [datetime]$AntivirusSignatureLastUpdated = (Get-Date).Date.AddDays(-1)
     )
 
     [PSCustomObject]@{
@@ -208,6 +211,9 @@ function New-MpComputerStatusMock {
         AMEngineVersion             = $AMEngineVersion
         IsTamperProtected           = $IsTamperProtected
         AMRunningMode               = $AMRunningMode
+        NISEnabled                  = $NISEnabled
+        AntivirusSignatureVersion   = $AntivirusSignatureVersion
+        AntivirusSignatureLastUpdated = $AntivirusSignatureLastUpdated
     }
 }
 
@@ -304,4 +310,42 @@ function New-ItemPropertyMock {
     )
 
     [PSCustomObject]$Properties
+}
+
+
+function New-WinEventMock {
+    <#
+    .SYNOPSIS
+        Returns an array of [PSCustomObject] objects representing Get-WinEvent results.
+
+    .DESCRIPTION
+        Used to mock the Application event log query for WDATPOnboarding provider events.
+
+    .PARAMETER Count
+        Number of fake events to return. Default 1.
+
+    .PARAMETER ProviderName
+        Event provider name. Default 'WDATPOnboarding'.
+
+    .PARAMETER LatestTimeCreated
+        TimeCreated of the most recent event. Default is current date/time.
+
+    .EXAMPLE
+        Mock Get-WinEvent -ModuleName MDEValidator { New-WinEventMock -Count 3 }
+    #>
+    [OutputType([PSCustomObject[]])]
+    param(
+        [int]$Count                      = 1,
+        [string]$ProviderName            = 'WDATPOnboarding',
+        [datetime]$LatestTimeCreated     = (Get-Date)
+    )
+
+    1..$Count | ForEach-Object {
+        [PSCustomObject]@{
+            TimeCreated  = $LatestTimeCreated.AddMinutes(-($_ - 1))
+            ProviderName = $ProviderName
+            Id           = 1
+            Message      = 'WDATPOnboarding event'
+        }
+    }
 }

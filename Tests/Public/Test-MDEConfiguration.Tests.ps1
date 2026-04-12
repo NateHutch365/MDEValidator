@@ -106,6 +106,23 @@ Describe 'Test-MDEConfiguration' {
                 [PSCustomObject]@{ TestName = 'Datagram WS'; Status = 'Pass' }
             }
             Mock Test-IsWindowsServer -ModuleName MDEValidator { $false }
+            Mock Test-MDEAntiSpywareEnabled -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Anti-Spyware Protection'; Status = 'Pass' }
+            }
+            Mock Test-MDEIoavProtectionEnabled -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'IOAV Protection'; Status = 'Pass' }
+            }
+            Mock Test-MDENISEnabled -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Network Inspection System (NIS)'; Status = 'Pass' }
+            }
+            Mock Test-MDESignatureAge -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Antivirus Signature Age'; Status = 'Pass' }
+                [PSCustomObject]@{ TestName = 'Antispyware Signature Age'; Status = 'Pass' }
+            }
+            Mock Test-MDESignatureInfo -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Antivirus Signature Version'; Status = 'Info' }
+                [PSCustomObject]@{ TestName = 'Antivirus Signature Last Updated'; Status = 'Info' }
+            }
 
             $result = Test-MDEConfiguration
 

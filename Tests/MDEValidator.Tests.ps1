@@ -122,6 +122,26 @@ Describe 'MDEValidator Module' {
         It 'Should export Test-MDESignatureUpdateFallbackOrder function' {
             Get-Command -Name 'Test-MDESignatureUpdateFallbackOrder' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+
+        It 'Should export Test-MDEAntiSpywareEnabled function' {
+            Get-Command -Name 'Test-MDEAntiSpywareEnabled' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should export Test-MDEIoavProtectionEnabled function' {
+            Get-Command -Name 'Test-MDEIoavProtectionEnabled' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should export Test-MDENISEnabled function' {
+            Get-Command -Name 'Test-MDENISEnabled' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should export Test-MDESignatureAge function' {
+            Get-Command -Name 'Test-MDESignatureAge' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
+
+        It 'Should export Test-MDESignatureInfo function' {
+            Get-Command -Name 'Test-MDESignatureInfo' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
     }
     
     Context 'Get-MDEOperatingSystemInfo' {
@@ -200,21 +220,83 @@ Describe 'MDEValidator Module' {
     }
     
     Context 'Test-MDEPassiveMode' {
-        It 'Should return a PSCustomObject with expected properties' {
+        It 'Should return PSCustomObjects with expected properties' {
             $result = Test-MDEPassiveMode
             $result | Should -Not -BeNullOrEmpty
-            $result.TestName | Should -Be 'Passive Mode / EDR Block Mode'
-            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
-            $result.Message | Should -Not -BeNullOrEmpty
-            $result.Timestamp | Should -Not -BeNullOrEmpty
+            $passiveResult = $result | Where-Object TestName -eq 'Passive Mode / EDR Block Mode'
+            $passiveResult | Should -Not -BeNullOrEmpty
+            $passiveResult.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $passiveResult.Message | Should -Not -BeNullOrEmpty
+            $passiveResult.Timestamp | Should -Not -BeNullOrEmpty
         }
         
         It 'Should mention passive mode or active mode in the message' {
             $result = Test-MDEPassiveMode
-            $result.Message | Should -Match '(Passive|Active|EDR Block|Unable to determine)'
+            $passiveResult = $result | Where-Object TestName -eq 'Passive Mode / EDR Block Mode'
+            $passiveResult.Message | Should -Match '(Passive|Active|EDR Block|Unable to determine)'
+        }
+        
+        It 'Should return AM Running Mode result' {
+            $result = Test-MDEPassiveMode
+            $amResult = $result | Where-Object TestName -eq 'AM Running Mode'
+            $amResult | Should -Not -BeNullOrEmpty
+            $amResult.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $amResult.Message | Should -Not -BeNullOrEmpty
         }
     }
     
+    Context 'Test-MDEAntiSpywareEnabled' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEAntiSpywareEnabled
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Anti-Spyware Protection'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'Test-MDEIoavProtectionEnabled' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDEIoavProtectionEnabled
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'IOAV Protection'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'Test-MDENISEnabled' {
+        It 'Should return a PSCustomObject with expected properties' {
+            $result = Test-MDENISEnabled
+            $result | Should -Not -BeNullOrEmpty
+            $result.TestName | Should -Be 'Network Inspection System (NIS)'
+            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            $result.Message | Should -Not -BeNullOrEmpty
+        }
+    }
+
+    Context 'Test-MDESignatureAge' {
+        It 'Should return two PSCustomObjects with expected properties' {
+            $result = Test-MDESignatureAge
+            $result | Should -Not -BeNullOrEmpty
+            @($result).Count | Should -Be 2
+            ($result | Where-Object TestName -eq 'Antivirus Signature Age') | Should -Not -BeNullOrEmpty
+            ($result | Where-Object TestName -eq 'Antispyware Signature Age') | Should -Not -BeNullOrEmpty
+            $result | ForEach-Object { $_.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable') }
+        }
+    }
+
+    Context 'Test-MDESignatureInfo' {
+        It 'Should return two informational PSCustomObjects' {
+            $result = Test-MDESignatureInfo
+            $result | Should -Not -BeNullOrEmpty
+            @($result).Count | Should -Be 2
+            ($result | Where-Object TestName -eq 'Antivirus Signature Version') | Should -Not -BeNullOrEmpty
+            ($result | Where-Object TestName -eq 'Antivirus Signature Last Updated') | Should -Not -BeNullOrEmpty
+            $result | ForEach-Object { $_.Status | Should -Be 'Info' }
+        }
+    }
+
     Context 'Test-MDEServiceStatus' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Test-MDEServiceStatus
@@ -267,8 +349,8 @@ Describe 'MDEValidator Module' {
         It 'Should return a PSCustomObject with expected properties' {
             $result = Test-MDEOnboardingStatus
             $result | Should -Not -BeNullOrEmpty
-            $result.TestName | Should -Be 'MDE Onboarding Status'
-            $result.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable')
+            ($result | Where-Object TestName -eq 'MDE Onboarding Status') | Should -Not -BeNullOrEmpty
+            $result | ForEach-Object { $_.Status | Should -BeIn @('Pass', 'Fail', 'Warning', 'Info', 'NotApplicable') }
         }
     }
     
@@ -756,12 +838,24 @@ Describe 'MDEValidator Module' {
             $testNames | Should -Contain 'Signature Update Interval'
             $testNames | Should -Contain 'Disable Local Admin Merge'
             $testNames | Should -Contain 'File Hash Computation'
+            $testNames | Should -Contain 'AM Running Mode'
+            $testNames | Should -Contain 'Anti-Spyware Protection'
+            $testNames | Should -Contain 'IOAV Protection'
+            $testNames | Should -Contain 'Network Inspection System (NIS)'
+            $testNames | Should -Contain 'Antivirus Signature Age'
+            $testNames | Should -Contain 'Antispyware Signature Age'
+            $testNames | Should -Contain 'Antivirus Signature Version'
+            $testNames | Should -Contain 'Antivirus Signature Last Updated'
         }
         
         It 'Should include onboarding test when -IncludeOnboarding is specified' {
             $results = Test-MDEConfiguration -IncludeOnboarding
             $testNames = $results.TestName
             $testNames | Should -Contain 'MDE Onboarding Status'
+            $testNames | Should -Contain 'MDE Onboarding Registry State'
+            $testNames | Should -Contain 'Connected User Experiences and Telemetry Service'
+            $testNames | Should -Contain 'MDE Organization ID'
+            $testNames | Should -Contain 'WDATPOnboarding Event Log'
         }
         
         It 'Should include policy verification sub-tests when -IncludePolicyVerification is specified' {

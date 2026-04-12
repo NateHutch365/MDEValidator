@@ -6,9 +6,9 @@ BeforeAll {
 
 Describe 'Test-MDEPassiveMode' {
 
-    Context 'Pass path' {
+    Context 'Pass path — Active Mode' {
 
-        It 'returns Pass when device is running in Active Mode' {
+        It 'returns Pass for Passive Mode check when device is running in Active Mode' {
             Mock Get-MpComputerStatus -ModuleName MDEValidator {
                 New-MpComputerStatusMock -AMRunningMode 'Normal'
             }
@@ -16,13 +16,25 @@ Describe 'Test-MDEPassiveMode' {
 
             $result = Test-MDEPassiveMode
 
-            $result.Status | Should -Be 'Pass'
+            ($result | Where-Object TestName -eq 'Passive Mode / EDR Block Mode').Status | Should -Be 'Pass'
+            Should -Invoke Get-MpComputerStatus -ModuleName MDEValidator -Times 1 -Exactly
+        }
+
+        It 'returns Pass for AM Running Mode check when AMRunningMode is Normal' {
+            Mock Get-MpComputerStatus -ModuleName MDEValidator {
+                New-MpComputerStatusMock -AMRunningMode 'Normal'
+            }
+            Mock Test-Path -ModuleName MDEValidator { $false }
+
+            $result = Test-MDEPassiveMode
+
+            ($result | Where-Object TestName -eq 'AM Running Mode').Status | Should -Be 'Pass'
         }
     }
 
-    Context 'Fail path' {
+    Context 'Warning path — Passive Mode' {
 
-        It 'returns Warning when device is running in Passive Mode' {
+        It 'returns Warning for Passive Mode check when device is running in Passive Mode' {
             Mock Get-MpComputerStatus -ModuleName MDEValidator {
                 New-MpComputerStatusMock -AMRunningMode 'Passive Mode'
             }
@@ -30,7 +42,18 @@ Describe 'Test-MDEPassiveMode' {
 
             $result = Test-MDEPassiveMode
 
-            $result.Status | Should -Be 'Warning'
+            ($result | Where-Object TestName -eq 'Passive Mode / EDR Block Mode').Status | Should -Be 'Warning'
+        }
+
+        It 'returns Warning for AM Running Mode check when AMRunningMode is not Normal' {
+            Mock Get-MpComputerStatus -ModuleName MDEValidator {
+                New-MpComputerStatusMock -AMRunningMode 'Passive Mode'
+            }
+            Mock Test-Path -ModuleName MDEValidator { $false }
+
+            $result = Test-MDEPassiveMode
+
+            ($result | Where-Object TestName -eq 'AM Running Mode').Status | Should -Be 'Warning'
         }
     }
 }

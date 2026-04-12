@@ -63,7 +63,12 @@
     # Run all validation tests
     $results += Test-MDEServiceStatus
     $results += Test-MDEPassiveMode
-    
+    $results += Test-MDEAntiSpywareEnabled
+    $results += Test-MDEIoavProtectionEnabled
+    $results += Test-MDENISEnabled
+    $results += Test-MDESignatureAge
+    $results += Test-MDESignatureInfo
+
     $results += Test-MDERealTimeProtection
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Real-Time Protection' `
