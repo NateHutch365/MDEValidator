@@ -77,7 +77,7 @@ function New-MpPreferenceMock {
         [int]$SignatureUpdateInterval          = 4,
         [bool]$DisableLocalAdminMerge          = $true,
         [bool]$EnableControlledFolderAccess    = $false,
-        [bool]$PUAProtection                   = $false,
+        [int]$PUAProtection                    = 1,
         [string[]]$AttackSurfaceReductionRules_Ids     = @(),
         [int[]]$AttackSurfaceReductionRules_Actions    = @(),
         [bool]$EnableFileHashComputation       = $true,

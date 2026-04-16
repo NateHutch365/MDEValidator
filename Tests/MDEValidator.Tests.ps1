@@ -142,6 +142,10 @@ Describe 'MDEValidator Module' {
         It 'Should export Test-MDESignatureInfo function' {
             Get-Command -Name 'Test-MDESignatureInfo' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
         }
+
+        It 'Should export Test-MDEPUAProtection function' {
+            Get-Command -Name 'Test-MDEPUAProtection' -Module 'MDEValidator' | Should -Not -BeNullOrEmpty
+        }
     }
     
     Context 'Get-MDEOperatingSystemInfo' {

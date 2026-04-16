@@ -80,7 +80,8 @@
         'Test-MDESignatureUpdateFallbackOrder',
         'Test-MDESignatureUpdateInterval',
         'Test-MDEDisableLocalAdminMerge',
-        'Test-MDEFileHashComputation'
+        'Test-MDEFileHashComputation',
+        'Test-MDEPUAProtection'
     )
 
     # Cmdlets to export from this module

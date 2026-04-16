@@ -106,6 +106,7 @@
     }
     
     $results += Test-MDENetworkProtection
+    $results += Test-MDEPUAProtection
     if ($IncludePolicyVerification) {
         $results += Test-MDEPolicyRegistryVerification -ParentTestName 'Network Protection' `
             -SettingKey 'NetworkProtection' -IsApplicableToSSM $true
