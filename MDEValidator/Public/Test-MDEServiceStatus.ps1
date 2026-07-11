@@ -26,21 +26,21 @@
         if ($service.Status -eq 'Running') {
             $startType = (Get-Service -Name 'WinDefend').StartType
             if ($startType -eq 'Automatic') {
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Running' -Actual 'Running' -Status 'Pass' `
                     -Message "Windows Defender service is running and set to start automatically."
             } else {
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Running' -Actual 'Running' -Status 'Warning' `
                     -Message "Windows Defender service is running but start type is '$startType'." `
                     -Recommendation "Set the service to start automatically for optimal protection."
             }
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Running' -Actual "$($service.Status)" -Status 'Fail' `
                 -Message "Windows Defender service is not running. Current status: $($service.Status)" `
                 -Recommendation "Start the Windows Defender service and ensure it's set to start automatically."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Running' -Status 'Fail' `
             -Message "Unable to query Windows Defender service: $_" `
             -Recommendation "Verify that Windows Defender is installed on this system."
     }

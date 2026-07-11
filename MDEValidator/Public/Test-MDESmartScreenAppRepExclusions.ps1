@@ -102,7 +102,7 @@
         
         # Determine status
         if ($exclusions.Count -eq 0) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'None' -Actual 'None' -Status 'Pass' `
                 -Message "No SmartScreen AppRep exclusions are configured. SmartScreen AppRep protection applies to all file types on all domains."
         } else {
             # Format: domainname1.com: msi, exe | domainname2.com: xlsx | *: vbe
@@ -110,13 +110,13 @@
                 "$($_.Key): $($_.Value -join ', ')"
             }) -join ' | '
             
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'None' -Actual 'Exclusions present' -Status 'Warning' `
                 -Message "SmartScreen AppRep exclusions are configured via $source. The following file types on these domains bypass SmartScreen AppRep protection: $exclusionList" `
                 -Recommendation "Review the configured AppRep exclusions to ensure they are necessary. Each exclusion bypasses SmartScreen application reputation warnings for the specified file types."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'None' -Status 'Fail' `
             -Message "Unable to query SmartScreen AppRep exclusions: $_" `
             -Recommendation "Ensure you have permissions to read Edge policy registry settings."
     }

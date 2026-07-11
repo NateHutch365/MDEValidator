@@ -29,9 +29,17 @@
         - Group Policy: Computer Configuration > Administrative Templates > Windows Components > 
           Microsoft Defender Antivirus > Exclusions
         - Intune: Endpoint Security > Antivirus > Microsoft Defender Antivirus > Exclusions
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Exclusion Visibility (Local Admins)'
     
@@ -43,7 +51,9 @@
         # When exclusions are hidden from local admins, the ExclusionExtension property returns
         # a string like "{N/A: Administrators are not allowed to view exclusions}"
         try {
-            $mpPreference = Get-MpPreference -ErrorAction Stop
+            if ($null -eq $MpPreference) {
+                $mpPreference = Get-MpPreference -ErrorAction Stop
+            }
             
             # Check if ExclusionExtension contains the "not allowed to view" message
             # This is a reliable indicator that HideExclusionsFromLocalAdmins is enabled
@@ -100,20 +110,20 @@
         $sourceInfo = if ([string]::IsNullOrEmpty($source)) { '' } else { " (via $source)" }
         
         if ($localAdminsHidden) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Actual 'Hidden' -Status 'Pass' `
                 -Message "Exclusions are hidden from local administrators.$sourceInfo"
         } elseif ($null -eq $hideFromLocalAdmins) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Actual 'Visible' -Status 'Warning' `
                 -Message "Exclusions visibility for local administrators is not configured (defaults to visible)." `
                 -Recommendation "Configure 'Hide exclusions from local admins' via Group Policy or Intune to prevent administrators from discovering exclusion paths."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Actual 'Visible' -Status 'Warning' `
                 -Message "Exclusions are visible to local administrators.$sourceInfo" `
                 -Recommendation "Configure 'Hide exclusions from local admins' via Group Policy or Intune to prevent administrators from discovering exclusion paths."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Status 'Fail' `
             -Message "Unable to query exclusion visibility settings for local administrators: $_" `
             -Recommendation "Ensure you have appropriate permissions to read Windows Defender registry settings."
     }

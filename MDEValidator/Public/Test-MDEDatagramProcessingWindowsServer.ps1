@@ -31,7 +31,7 @@
     
     # Check if running on Windows Server
     if (-not (Test-IsWindowsServer)) {
-        Write-ValidationResult -TestName $testName -Status 'NotApplicable' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Status 'NotApplicable' `
             -Message "This check only applies to Windows Server operating systems."
         return
     }
@@ -47,7 +47,7 @@
         }
         
         if ($null -ne $allowDatagramProcessing -and $allowDatagramProcessing -eq 1) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                 -Message "Datagram Processing for Windows Server is properly configured. AllowDatagramProcessingOnWinServer is enabled."
         } else {
             $recommendation = @"
@@ -56,13 +56,13 @@ Deploy the following registry key via Group Policy or another management tool:
   - AllowDatagramProcessingOnWinServer REG_DWORD 1
 "@
             
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Disabled or not configured' -Status 'Fail' `
                 -Message "Datagram Processing for Windows Server is not enabled. AllowDatagramProcessingOnWinServer is not configured or disabled." `
                 -Recommendation $recommendation
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query Datagram Processing Windows Server settings: $_" `
             -Recommendation "Ensure you have appropriate permissions to read Windows Defender registry settings."
     }

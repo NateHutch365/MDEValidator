@@ -37,19 +37,32 @@
         
         Co-managed devices (ManagedDefenderProductType = 7 with EnrollmentStatus = 3) do NOT
         support Tamper Protection for Exclusions.
+    .PARAMETER MpComputerStatus
+        Optional Get-MpComputerStatus snapshot. When supplied, the function uses it instead of
+        querying Get-MpComputerStatus itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpComputerStatus directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpComputerStatus
+    )
     
     $testName = 'Tamper Protection for Exclusions'
     
     try {
         # Check 1: Verify Tamper Protection is enabled
-        $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+        if ($null -eq $MpComputerStatus) {
+            $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+        }
+        else {
+            $mpStatus = $MpComputerStatus
+        }
         $isTamperProtected = $mpStatus.IsTamperProtected
         
         if (-not $isTamperProtected) {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Actual 'Disabled' -Status 'Fail' `
                 -Message "Tamper Protection is not enabled. Tamper Protection must be enabled for exclusions to be tamper protected." `
                 -Recommendation "Enable Tamper Protection via Microsoft Defender for Endpoint portal, Intune, or Configuration Manager before enabling Tamper Protection for Exclusions."
             return
@@ -59,7 +72,7 @@
         $platformVersion = $mpStatus.AMProductVersion
         
         if ($null -eq $platformVersion) {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Status 'Fail' `
                 -Message "Unable to determine Microsoft Defender platform version. Tamper Protection for Exclusions requires platform version 4.18.2211.5 or later." `
                 -Recommendation "Ensure Microsoft Defender platform is up to date. Run 'Update-MpSignature' to update to the latest version."
             return
@@ -92,14 +105,14 @@
                 }
                 
                 if (-not $meetsVersionRequirement) {
-                    Write-ValidationResult -TestName $testName -Status 'Fail' `
+                    Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Actual "$platformVersion" -Status 'Fail' `
                         -Message "Microsoft Defender platform version $platformVersion does not meet the minimum requirement of 4.18.2211.5 for Tamper Protection for Exclusions." `
                         -Recommendation "Update Microsoft Defender platform to version 4.18.2211.5 or later. Run 'Update-MpSignature' to update."
                     return
                 }
             }
             else {
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Status 'Warning' `
                     -Message "Unable to parse Microsoft Defender platform version '$platformVersion'. Cannot verify minimum version requirement." `
                     -Recommendation "Ensure Microsoft Defender platform version is 4.18.2211.5 or later."
                 return
@@ -107,7 +120,7 @@
         }
         catch {
             # Catch any exception during version parsing (e.g., non-numeric version parts)
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Status 'Warning' `
                 -Message "Error parsing Microsoft Defender platform version '$platformVersion': $_" `
                 -Recommendation "Ensure Microsoft Defender platform version is 4.18.2211.5 or later."
             return
@@ -126,7 +139,7 @@
                 $managementDetails += ")"
             }
             
-            Write-ValidationResult -TestName $testName -Status 'Info' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Status 'Info' `
                 -Message "Device is not managed by Intune only or Configuration Manager only. Tamper Protection for Exclusions is not supported. $managementDetails" `
                 -Recommendation "Tamper Protection for Exclusions requires the device to be managed by either Intune only (not co-managed) or Configuration Manager only. Co-managed devices are not supported for this feature."
             return
@@ -144,22 +157,22 @@
         }
         
         if ($tpExclusions -eq 1) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                 -Message "Tamper Protection for Exclusions is enabled and enforced. Exclusions are protected from tampering. Management: $($managedDefenderInfo.ManagementType). Platform version: $platformVersion."
         }
         elseif ($tpExclusions -eq 0) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Actual 'Disabled' -Status 'Warning' `
                 -Message "Tamper Protection for Exclusions is not currently protecting exclusions (TPExclusions = 0). All requirements appear to be met, but the feature is not enabled." `
                 -Recommendation "If all requirements are met and this state seems incorrect, contact Microsoft support. Verify that Tamper Protection policies are properly deployed via $($managedDefenderInfo.ManagementType)."
         }
         else {
-            Write-ValidationResult -TestName $testName -Status 'Info' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Actual 'Not found' -Status 'Info' `
                 -Message "TPExclusions registry value not found. All requirements for Tamper Protection for Exclusions are met (Tamper Protection enabled, platform version $platformVersion, management: $($managedDefenderInfo.ManagementType)), but TPExclusions is not configured." `
                 -Recommendation "Tamper Protection for Exclusions may not be fully deployed yet. Verify that Tamper Protection policies are properly configured in $($managedDefenderInfo.ManagementType). The TPExclusions registry key should be set to 1 when the feature is active."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query Tamper Protection for Exclusions status: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and the Defender PowerShell module is available."
     }

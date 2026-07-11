@@ -31,34 +31,44 @@
           Microsoft Defender Antivirus > Enable file hash computation feature
         - Intune/MEM: Endpoint Security > Antivirus
         - PowerShell: Set-MpPreference -EnableFileHashComputation $true
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'File Hash Computation'
     $enableRecommendation = "Enable File Hash Computation via Intune or Group Policy to enable file hash-based threat detection and IoC matching."
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         $enableFileHashComputation = $mpPreference.EnableFileHashComputation
         
         # Handle null as not configured (disabled by default)
         if ($null -eq $enableFileHashComputation) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Actual 'Not configured (disabled by default)' -Status 'Warning' `
                 -Message "File Hash Computation is not configured (disabled by default)." `
                 -Recommendation $enableRecommendation
         } elseif ($enableFileHashComputation -eq $true) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                 -Message "File Hash Computation is enabled. File hashes are computed for scanned files."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Actual 'Disabled' -Status 'Warning' `
                 -Message "File Hash Computation is disabled." `
                 -Recommendation $enableRecommendation
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query File Hash Computation setting: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

@@ -54,20 +54,20 @@
         
         # Determine status
         if ($null -eq $smartScreenPuaEnabled) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Not configured' -Status 'Warning' `
                 -Message "SmartScreen PUA protection is not configured." `
                 -Recommendation "Configure 'Configure Microsoft Defender SmartScreen to block potentially unwanted apps' via Group Policy or Intune. Set SmartScreenPuaEnabled to 1."
         } elseif ($smartScreenPuaEnabled -eq 1) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                 -Message "SmartScreen PUA protection is enabled via $source. Potentially unwanted apps will be blocked."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Disabled' -Status 'Warning' `
                 -Message "SmartScreen PUA protection is disabled via $source." `
                 -Recommendation "Enable 'Configure Microsoft Defender SmartScreen to block potentially unwanted apps' via Group Policy or Intune. Set SmartScreenPuaEnabled to 1."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query SmartScreen PUA protection status: $_" `
             -Recommendation "Ensure you have permissions to read Edge policy registry settings."
     }

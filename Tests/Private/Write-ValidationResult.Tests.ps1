@@ -48,6 +48,43 @@ Describe 'Write-ValidationResult' {
                 $result.PSObject.Properties.Name | Should -Contain 'Timestamp'
             }
         }
+
+        It 'result includes Category property' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass'
+                $result.PSObject.Properties.Name | Should -Contain 'Category'
+            }
+        }
+
+        It 'result includes Expected property' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass'
+                $result.PSObject.Properties.Name | Should -Contain 'Expected'
+            }
+        }
+
+        It 'result includes Actual property' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass'
+                $result.PSObject.Properties.Name | Should -Contain 'Actual'
+            }
+        }
+
+        It 'exposes exactly the expected property set in order' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass'
+                $result.PSObject.Properties.Name | Should -Be @(
+                    'TestName', 'Category', 'Status', 'Message', 'Expected', 'Actual', 'Recommendation', 'Timestamp'
+                )
+            }
+        }
+
+        It 'Timestamp is a [datetime]' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass'
+                $result.Timestamp | Should -BeOfType [datetime]
+            }
+        }
     }
 
     Context 'Status values' {
@@ -115,6 +152,36 @@ Describe 'Write-ValidationResult' {
             InModuleScope MDEValidator {
                 $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass'
                 $result.Recommendation | Should -Be ''
+            }
+        }
+
+        It 'stores provided Category value' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass' -Category 'Device State'
+                $result.Category | Should -Be 'Device State'
+            }
+        }
+
+        It 'stores provided Expected value' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass' -Expected 'Enabled'
+                $result.Expected | Should -Be 'Enabled'
+            }
+        }
+
+        It 'stores provided Actual value' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Fail' -Actual 'Disabled'
+                $result.Actual | Should -Be 'Disabled'
+            }
+        }
+
+        It 'defaults Category, Expected and Actual to empty string when not provided' {
+            InModuleScope MDEValidator {
+                $result = Write-ValidationResult -TestName 'SomeTest' -Status 'Pass'
+                $result.Category | Should -Be ''
+                $result.Expected | Should -Be ''
+                $result.Actual   | Should -Be ''
             }
         }
     }

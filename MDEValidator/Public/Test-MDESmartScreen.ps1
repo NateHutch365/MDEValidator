@@ -65,36 +65,36 @@
         # Determine overall status
         if ($null -ne $smartScreenEnabled) {
             if ($smartScreenEnabled -eq 1) {
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                     -Message "Edge SmartScreen is enabled via Group Policy or Intune. Test URL: https://smartscreentestratings2.net/"
             } else {
-                Write-ValidationResult -TestName $testName -Status 'Fail' `
+                Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Disabled' -Status 'Fail' `
                     -Message "Edge SmartScreen is disabled via $smartScreenSource." `
                     -Recommendation "Enable SmartScreen via Group Policy, Intune, or Edge settings. Set 'SmartScreenEnabled' to 1. Test with https://smartscreentestratings2.net/"
             }
         } elseif ($null -ne $defenderSmartScreen) {
             # Fall back to Windows Defender SmartScreen check
             if ($defenderSmartScreen -eq 'RequireAdmin' -or $defenderSmartScreen -eq 'Prompt' -or $defenderSmartScreen -eq 'On') {
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual "$defenderSmartScreen" -Status 'Pass' `
                     -Message "Windows Defender SmartScreen is enabled ('$defenderSmartScreen'). Edge inherits this setting. Test URL: https://smartscreentestratings2.net/"
             } elseif ($defenderSmartScreen -eq 'Off') {
-                Write-ValidationResult -TestName $testName -Status 'Fail' `
+                Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Disabled' -Status 'Fail' `
                     -Message "Windows Defender SmartScreen is disabled." `
                     -Recommendation "Enable SmartScreen via Windows Security settings, Group Policy, or Intune. Test with https://smartscreentestratings2.net/"
             } else {
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual "$defenderSmartScreen" -Status 'Warning' `
                     -Message "Windows Defender SmartScreen setting is '$defenderSmartScreen'. Unable to determine if fully enabled." `
                     -Recommendation "Verify SmartScreen is properly configured via Group Policy or Intune. Test manually by visiting https://smartscreentestratings2.net/"
             }
         } else {
             # No explicit settings found - SmartScreen is typically enabled by default in modern Windows/Edge
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Status 'Warning' `
                 -Message "No explicit SmartScreen policy found. SmartScreen may be using default settings (typically enabled)." `
                 -Recommendation "Configure SmartScreen explicitly via Group Policy or Intune for consistent protection. Test manually by visiting https://smartscreentestratings2.net/"
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query SmartScreen status: $_" `
             -Recommendation "Ensure you have permissions to read registry settings. Test SmartScreen manually by visiting https://smartscreentestratings2.net/"
     }

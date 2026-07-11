@@ -56,4 +56,32 @@ Describe 'Test-MDEPassiveMode' {
             ($result | Where-Object TestName -eq 'AM Running Mode').Status | Should -Be 'Warning'
         }
     }
+
+    Context 'MpComputerStatus snapshot parameter' {
+
+        It 'uses the supplied snapshot without calling Get-MpComputerStatus' {
+            Mock Get-MpComputerStatus -ModuleName MDEValidator {
+                New-MpComputerStatusMock -AMRunningMode 'Passive Mode'
+            }
+            Mock Test-Path -ModuleName MDEValidator { $false }
+            $snapshot = New-MpComputerStatusMock -AMRunningMode 'Normal'
+
+            $result = Test-MDEPassiveMode -MpComputerStatus $snapshot
+
+            ($result | Where-Object TestName -eq 'AM Running Mode').Status | Should -Be 'Pass'
+            Should -Invoke Get-MpComputerStatus -ModuleName MDEValidator -Times 0 -Exactly
+        }
+
+        It 'self-queries Get-MpComputerStatus when no snapshot is supplied' {
+            Mock Get-MpComputerStatus -ModuleName MDEValidator {
+                New-MpComputerStatusMock -AMRunningMode 'Normal'
+            }
+            Mock Test-Path -ModuleName MDEValidator { $false }
+
+            $result = Test-MDEPassiveMode
+
+            ($result | Where-Object TestName -eq 'AM Running Mode').Status | Should -Be 'Pass'
+            Should -Invoke Get-MpComputerStatus -ModuleName MDEValidator -Times 1 -Exactly
+        }
+    }
 }

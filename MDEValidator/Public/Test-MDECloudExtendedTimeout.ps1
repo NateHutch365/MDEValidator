@@ -24,14 +24,24 @@
         Recommended: 41-50 seconds for maximum cloud protection capability.
         This gives the cloud a total of 51-60 seconds (10 built-in + 41-50 extended) 
         to analyze suspicious files.
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Cloud Extended Timeout'
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         $cloudExtendedTimeout = $mpPreference.CloudExtendedTimeout
         
@@ -44,11 +54,11 @@
         
         if ($cloudExtendedTimeout -ge 41 -and $cloudExtendedTimeout -le 50) {
             # Pass: 41-50 seconds (total 51-60 seconds with built-in)
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '50 seconds' -Actual "$cloudExtendedTimeout seconds" -Status 'Pass' `
                 -Message "Cloud Extended Timeout is set to $cloudExtendedTimeout seconds (total: $($cloudExtendedTimeout + 10) seconds including built-in 10 seconds)."
         } elseif ($cloudExtendedTimeout -ge 21 -and $cloudExtendedTimeout -le 40) {
             # Warning: 21-40 seconds
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '50 seconds' -Actual "$cloudExtendedTimeout seconds" -Status 'Warning' `
                 -Message "Cloud Extended Timeout is set to $cloudExtendedTimeout seconds (total: $($cloudExtendedTimeout + 10) seconds including built-in 10 seconds)." `
                 -Recommendation "Consider increasing CloudExtendedTimeout to 50 seconds via Intune or Group Policy. $recommendationNote"
         } else {
@@ -58,13 +68,13 @@
             } else {
                 "Cloud Extended Timeout is set to $cloudExtendedTimeout seconds (total: $($cloudExtendedTimeout + 10) seconds including built-in 10 seconds)."
             }
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '50 seconds' -Actual "$cloudExtendedTimeout seconds" -Status 'Fail' `
                 -Message $message `
                 -Recommendation "Configure CloudExtendedTimeout to 50 seconds via Intune or Group Policy. $recommendationNote"
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '50 seconds' -Status 'Fail' `
             -Message "Unable to query Cloud Extended Timeout: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

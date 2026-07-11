@@ -43,4 +43,30 @@ Describe 'Test-MDECloudProtection' {
             Should -Invoke Get-MpPreference -ModuleName MDEValidator -Times 1 -Exactly
         }
     }
+
+    Context 'MpPreference snapshot parameter' {
+
+        It 'uses the supplied snapshot without calling Get-MpPreference' {
+            Mock Get-MpPreference -ModuleName MDEValidator {
+                New-MpPreferenceMock -MAPSReporting 0
+            }
+            $snapshot = New-MpPreferenceMock -MAPSReporting 2
+
+            $result = Test-MDECloudProtection -MpPreference $snapshot
+
+            $result.Status | Should -Be 'Pass'
+            Should -Invoke Get-MpPreference -ModuleName MDEValidator -Times 0 -Exactly
+        }
+
+        It 'self-queries Get-MpPreference when no snapshot is supplied' {
+            Mock Get-MpPreference -ModuleName MDEValidator {
+                New-MpPreferenceMock -MAPSReporting 2
+            }
+
+            $result = Test-MDECloudProtection
+
+            $result.Status | Should -Be 'Pass'
+            Should -Invoke Get-MpPreference -ModuleName MDEValidator -Times 1 -Exactly
+        }
+    }
 }

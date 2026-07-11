@@ -22,21 +22,31 @@
         
         The recommended SignatureFallbackOrder is:
         MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Signature Update Fallback Order'
     $recommendedOrder = 'MicrosoftUpdateServer|MMPC|InternalDefinitionUpdateServer'
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         $fallbackOrder = $mpPreference.SignatureFallbackOrder
         
         # Handle null or empty value as not configured
         if ([string]::IsNullOrEmpty($fallbackOrder)) {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Not configured' -Status 'Fail' `
                 -Message "Signature Update Fallback Order is not configured." `
                 -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
             return
@@ -51,20 +61,20 @@
         $correctOrder  = $bothPresent -and ($muIndex -lt $mmpcIndex)
         
         if ($correctOrder) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Configured' -Status 'Pass' `
                 -Message "$message. MicrosoftUpdateServer precedes MMPC as required."
         } elseif (-not $bothPresent) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Configured (missing required sources)' -Status 'Warning' `
                 -Message "$message. One or both required sources (MicrosoftUpdateServer, MMPC) are missing." `
                 -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Configured (wrong order)' -Status 'Warning' `
                 -Message "$message. MicrosoftUpdateServer must appear before MMPC." `
                 -Recommendation "Configure Signature Update Fallback Order to '$recommendedOrder' via Intune or Group Policy."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Status 'Fail' `
             -Message "Unable to query Signature Update Fallback Order: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

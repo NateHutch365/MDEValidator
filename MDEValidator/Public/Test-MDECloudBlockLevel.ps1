@@ -26,9 +26,17 @@
         Recommended: High (2), High+ (4), or Zero Tolerance (6) for enhanced protection.
         For Tier-0 assets such as Domain Controllers, Zero Tolerance or at minimum High+ 
         is recommended as these devices should typically run standard or native applications.
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Cloud Block Level'
     
@@ -42,7 +50,9 @@
     }
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         # Cast to int once for consistent comparison
         $cloudBlockLevelValue = [int]$mpPreference.CloudBlockLevel
@@ -58,42 +68,42 @@
         switch ($cloudBlockLevelValue) {
             0 {
                 # Default/Not Configured - Fail
-                Write-ValidationResult -TestName $testName -Status 'Fail' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'High' -Actual 'Not configured (0)' -Status 'Fail' `
                     -Message "$message. Cloud Block Level is not configured and using default settings." `
                     -Recommendation "Configure Cloud Block Level to High (2), High+ (4), or Zero Tolerance (6) via Group Policy or Intune. For Tier-0 assets such as Domain Controllers, aim for Zero Tolerance or at minimum High+ as these devices should typically run standard or native applications."
             }
             1 {
                 # Moderate - Fail (insufficient)
-                Write-ValidationResult -TestName $testName -Status 'Fail' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'High' -Actual 'Moderate (1)' -Status 'Fail' `
                     -Message "$message. Moderate protection level may not provide sufficient protection." `
                     -Recommendation "Increase Cloud Block Level to High (2), High+ (4), or Zero Tolerance (6) via Group Policy or Intune. For Tier-0 assets such as Domain Controllers, aim for Zero Tolerance or at minimum High+ as these devices should typically run standard or native applications."
             }
             2 {
                 # High - Pass
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'High' -Actual 'High (2)' -Status 'Pass' `
                     -Message "$message. High protection level is configured." `
                     -Recommendation "For Tier-0 assets such as Domain Controllers, consider increasing to High+ (4) or Zero Tolerance (6) as these devices should typically run standard or native applications."
             }
             4 {
                 # High+ - Pass
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'High' -Actual 'High+ (4)' -Status 'Pass' `
                     -Message "$message. High+ protection level is configured, providing enhanced cloud protection."
             }
             6 {
                 # Zero Tolerance - Pass
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'High' -Actual 'Zero Tolerance (6)' -Status 'Pass' `
                     -Message "$message. Zero Tolerance protection level is configured, providing maximum cloud protection."
             }
             default {
                 # Unknown value - Warning
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'High' -Actual "Unknown ($cloudBlockLevelValue)" -Status 'Warning' `
                     -Message "$message. Unknown Cloud Block Level value detected." `
                     -Recommendation "Verify Cloud Block Level configuration via Group Policy or Intune. Recommended values are High (2), High+ (4), or Zero Tolerance (6)."
             }
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'High' -Status 'Fail' `
             -Message "Unable to query Cloud Block Level: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

@@ -61,17 +61,17 @@
         
         # Determine status
         if ($domains.Count -eq 0) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'None' -Actual 'None' -Status 'Pass' `
                 -Message "No SmartScreen domain exclusions are configured. SmartScreen protection applies to all domains."
         } else {
             $domainList = $domains -join ', '
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'None' -Actual 'Exclusions present' -Status 'Warning' `
                 -Message "SmartScreen domain exclusions are configured via $source. The following domains bypass SmartScreen protection: $domainList" `
                 -Recommendation "Review the configured domain exclusions to ensure they are necessary. Each excluded domain bypasses SmartScreen protection. Domains: $domainList"
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'None' -Status 'Fail' `
             -Message "Unable to query SmartScreen domain exclusions: $_" `
             -Recommendation "Ensure you have permissions to read Edge policy registry settings."
     }

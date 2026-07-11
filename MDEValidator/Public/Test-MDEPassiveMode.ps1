@@ -24,9 +24,17 @@
         - Primary: Get-MpComputerStatus AMRunningMode property (Normal, Passive, EDR Block Mode, SxS Passive Mode)
         - Registry fallback for Passive Mode: HKLM:\SOFTWARE\Microsoft\Windows Defender\PassiveMode = 1
         - Registry for EDR Block Mode behavior: HKLM:\SOFTWARE\Microsoft\Windows Defender\Features\PassiveModeBehavior = 1
+    .PARAMETER MpComputerStatus
+        Optional Get-MpComputerStatus snapshot. When supplied, the function uses it instead of
+        querying Get-MpComputerStatus itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpComputerStatus directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpComputerStatus
+    )
     
     $testName = 'Passive Mode / EDR Block Mode'
     
@@ -37,7 +45,12 @@
         
         # Check for Passive Mode via Get-MpComputerStatus if available
         try {
-            $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+            if ($null -eq $MpComputerStatus) {
+                $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+            }
+            else {
+                $mpStatus = $MpComputerStatus
+            }
             if ($null -ne $mpStatus.AMRunningMode) {
                 # AMRunningMode can be: Normal, Passive, EDR Block Mode, SxS Passive Mode
                 $runningMode = $mpStatus.AMRunningMode
@@ -83,15 +96,15 @@
         
         # Determine the result
         if ($isEDRBlockMode) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Active or EDR Block' -Actual 'EDR Block Mode' -Status 'Warning' `
                 -Message "Device is running in EDR Block Mode. Defender is in passive mode but can take remediation actions via EDR." `
                 -Recommendation "EDR Block Mode is typically used when third-party antivirus is primary. Verify this is intentional and ensure the third-party AV provides adequate protection."
         } elseif ($isPassiveMode) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Active or EDR Block' -Actual 'Passive Mode' -Status 'Warning' `
                 -Message "Device is running in Passive Mode. Microsoft Defender Antivirus is not the primary antivirus solution." `
                 -Recommendation "Passive Mode means another antivirus is active. Verify the third-party AV provides adequate protection, or consider enabling EDR Block Mode for additional remediation capabilities."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Active or EDR Block' -Actual 'Active Mode' -Status 'Pass' `
                 -Message "Device is running in Active Mode. Microsoft Defender Antivirus is the primary antivirus solution."
         }
 
@@ -99,25 +112,25 @@
         $amTestName = 'AM Running Mode'
         if ($null -ne $runningMode) {
             if ($runningMode -eq 'Normal') {
-                Write-ValidationResult -TestName $amTestName -Status 'Pass' `
+                Write-ValidationResult -TestName $amTestName -Category 'Device State' -Expected 'Normal' -Actual "$runningMode" -Status 'Pass' `
                     -Message "AMRunningMode is 'Normal' — Microsoft Defender Antivirus is the primary active protection."
             }
             else {
-                Write-ValidationResult -TestName $amTestName -Status 'Warning' `
+                Write-ValidationResult -TestName $amTestName -Category 'Device State' -Expected 'Normal' -Actual "$runningMode" -Status 'Warning' `
                     -Message "AMRunningMode is '$runningMode' — Defender is not running in its primary active mode." `
                     -Recommendation "Verify the running mode is expected for this device configuration."
             }
         }
         else {
-            Write-ValidationResult -TestName $amTestName -Status 'Info' `
+            Write-ValidationResult -TestName $amTestName -Category 'Device State' -Expected 'Normal' -Status 'Info' `
                 -Message "AMRunningMode value could not be determined (Get-MpComputerStatus unavailable or not supported)."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Active or EDR Block' -Status 'Fail' `
             -Message "Unable to determine Passive Mode / EDR Block Mode status: $_" `
             -Recommendation "Ensure you have appropriate permissions to query Windows Defender status."
-        Write-ValidationResult -TestName 'AM Running Mode' -Status 'Fail' `
+        Write-ValidationResult -TestName 'AM Running Mode' -Category 'Device State' -Expected 'Normal' -Status 'Fail' `
             -Message "Unable to determine AM Running Mode: $_" `
             -Recommendation "Ensure you have appropriate permissions to query Windows Defender status."
     }

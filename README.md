@@ -65,6 +65,12 @@ Get-MDEValidationReport -OutputFormat HTML -OutputPath "C:\Reports\MDEReport.htm
 # Return results as PowerShell objects for automation
 $results = Get-MDEValidationReport -OutputFormat Object
 $results | Where-Object { $_.Status -eq 'Fail' }
+
+# Return the full report as a JSON string (includes metadata, summary, and results[])
+Get-MDEValidationReport -OutputFormat JSON
+
+# Run only specific test categories (skips other tests entirely — faster)
+Get-MDEValidationReport -Category 'Tamper Protection', 'Device State'
 ```
 
 ## Usage
@@ -73,19 +79,75 @@ $results | Where-Object { $_.Status -eq 'Fail' }
 
 #### Get-MDEValidationReport
 
-Runs all validation tests and generates a formatted report.
+Runs all validation tests and generates a formatted report. Supports four output formats: `Console` (default), `HTML`, `JSON`, and `Object`.
 
 ```powershell
 # Console output (default)
 Get-MDEValidationReport
 
-# HTML report
+# HTML report saved to file
 Get-MDEValidationReport -OutputFormat HTML -OutputPath "C:\Reports\MDEReport.html"
 
 # PowerShell objects for further processing
 $results = Get-MDEValidationReport -OutputFormat Object
 $results | Where-Object { $_.Status -eq 'Fail' }
+
+# JSON string returned to the pipeline
+$json = Get-MDEValidationReport -OutputFormat JSON
+
+# JSON written to file — returns the saved file path
+Get-MDEValidationReport -OutputFormat JSON -OutputPath "C:\Reports\MDEReport.json"
 ```
+
+**JSON envelope structure:**
+
+```json
+{
+  "metadata": {
+    "computerName": "WORKSTATION01",
+    "os": "Windows 11 Enterprise 23H2",
+    "managedBy": "Intune",
+    "mdeOnboarding": "Onboarded",
+    "generated": "2025-06-01T10:30:00.0000000+01:00",
+    "moduleVersion": "1.4.0"
+  },
+  "summary": {
+    "total": 38,
+    "pass": 30,
+    "fail": 2,
+    "warning": 4,
+    "info": 1,
+    "notApplicable": 1
+  },
+  "results": [
+    {
+      "TestName": "Real-Time Protection",
+      "Category": "Device State",
+      "Status": "Pass",
+      "Message": "Real-time protection is enabled.",
+      "Expected": "Enabled",
+      "Actual": "Enabled",
+      "Recommendation": "",
+      "Timestamp": "2025-06-01T10:30:01.1234567+01:00"
+    }
+  ]
+}
+```
+
+**Filtering:** Use `-Category` to run only specific test categories (tests are skipped before invocation for a performance win). Use `-ExcludeTest` to remove results by TestName wildcard pattern after the run.
+
+```powershell
+# Run only Tamper Protection and Device State checks
+Get-MDEValidationReport -Category 'Tamper Protection', 'Device State'
+
+# Exclude all SmartScreen tests
+Get-MDEValidationReport -OutputFormat Object -ExcludeTest '*SmartScreen*'
+
+# Combine category filter and specific exclusion
+Get-MDEValidationReport -Category 'Protection Settings' -ExcludeTest 'Antispyware Signature Age'
+```
+
+Valid `-Category` values: `Device State`, `Protection Settings`, `Onboarding`, `Network Protection`, `ASR Rules`, `Tamper Protection`, `Exclusion Settings`.
 
 #### Test-MDEConfiguration
 
@@ -103,6 +165,12 @@ $results = Test-MDEConfiguration -IncludePolicyVerification
 
 # Combine both options
 $results = Test-MDEConfiguration -IncludeOnboarding -IncludePolicyVerification
+
+# Run only specific categories (tests outside the category are not invoked)
+$results = Test-MDEConfiguration -Category 'ASR Rules', 'Network Protection'
+
+# Exclude specific tests after the run (wildcards supported)
+$results = Test-MDEConfiguration -ExcludeTest '*SmartScreen*', 'Antispyware Signature Age'
 ```
 
 **Note on -IncludePolicyVerification**: When `HideExclusionsFromLocalAdmins` is enabled via Intune, it restricts SYSTEM/Administrator access to the entire Intune policy registry path (`HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager`). This means policy verification sub-tests will not be able to access the registry to verify policy values when this security feature is enabled.
@@ -169,6 +237,49 @@ Test-MDEDisableLocalAdminMerge
 Test-MDEPolicyRegistryValue
 Test-MDEPolicyRegistryVerification
 ```
+
+### Result Object
+
+Every validation function returns a `PSCustomObject` with these properties:
+
+| Property | Type | Description |
+|---|---|---|
+| `TestName` | string | Human-readable test name (e.g. `Real-Time Protection`) |
+| `Category` | string | Test category — one of the 7 standard categories, or `Policy Verification` for policy registry sub-tests |
+| `Status` | string | `Pass`, `Fail`, `Warning`, `Info`, or `NotApplicable` |
+| `Message` | string | Describes the observed configuration state |
+| `Expected` | string | The recommended or expected value |
+| `Actual` | string | The observed value (may be empty if the check could not query) |
+| `Recommendation` | string | Remediation guidance — present only on `Fail`/`Warning` results |
+| `Timestamp` | datetime | When the check was executed |
+
+Example — show failures with expected vs actual:
+
+```powershell
+$results = Test-MDEConfiguration
+$results | Where-Object Status -eq 'Fail' |
+    Select-Object TestName, Expected, Actual, Recommendation |
+    Format-Table -AutoSize
+```
+
+### Interpreting Policy Verification Results
+
+When `-IncludePolicyVerification` is specified, each supported test gains an additional sub-test named `<TestName> - Policy Registry Verification`. These sub-tests confirm that `Get-MpPreference` settings are backed by a management policy in the registry.
+
+**Registry paths checked** (determined automatically by device management type):
+- **Intune:** `HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Policy Manager`
+- **GPO / SCCM / Security Settings Management (SSM):** `HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender`
+
+**Sub-test status meanings:**
+
+| Status | Meaning |
+|---|---|
+| `Pass` | Registry entry found at the expected path with the expected value |
+| `Warning` | Registry entry not found — policy may not be deployed, or a sync issue exists |
+| `NotApplicable` | Test is not applicable to SSM (e.g. Exclusion Visibility settings) — only Antivirus, ASR, EDR, and Firewall policies are supported by SSM |
+| `Info` | Device management type could not be determined; verification was skipped |
+
+Policy verification sub-tests always carry `Category = 'Policy Verification'` and appear after the 7 standard category sections in the HTML report.
 
 ### Output Example
 
@@ -252,6 +363,63 @@ HTML report output:
 | Warning | The configuration is partially compliant or could be improved |
 | Info | Informational message about the configuration |
 | NotApplicable | The test is not applicable to this system |
+
+## Automation
+
+### -AsExitCode — numeric exit codes for automated workflows
+
+Pass `-AsExitCode` to any `Get-MDEValidationReport` call to replace the normal return value with `[int]` — the count of `Fail` results (0 = fully compliant). All other side-effects (console output, file writes) still occur normally.
+
+```powershell
+# Basic usage — exit with the fail count
+exit (Get-MDEValidationReport -AsExitCode)
+
+# Write a JSON report AND exit with the fail count
+exit (Get-MDEValidationReport -OutputFormat JSON -OutputPath "C:\Reports\MDEReport.json" -AsExitCode)
+```
+
+#### Scheduled Task (detect non-compliant state)
+
+Use the following as the scheduled task action (Program: `powershell.exe`):
+
+```
+-NonInteractive -ExecutionPolicy Bypass -Command "Import-Module MDEValidator; exit (Get-MDEValidationReport -OutputFormat JSON -OutputPath 'C:\Logs\MDEReport.json' -AsExitCode)"
+```
+
+The task's last-run result will be non-zero when any test fails, making it easy to monitor via Task Scheduler or event log.
+
+#### Intune Proactive Remediation — detection script
+
+```powershell
+#Requires -Version 5.1
+Import-Module MDEValidator -ErrorAction Stop
+
+$failCount = Get-MDEValidationReport `
+    -OutputFormat JSON `
+    -OutputPath "$env:ProgramData\MDEValidator\report.json" `
+    -AsExitCode
+
+if ($failCount -gt 0) {
+    Write-Host "Non-compliant: $failCount test(s) failed."
+    exit 1   # Triggers the remediation script in Intune
+}
+
+Write-Host "Compliant: all tests passed."
+exit 0
+```
+
+#### CI pipeline (GitHub Actions / Azure DevOps)
+
+```yaml
+- name: Validate MDE configuration
+  shell: pwsh
+  run: |
+    Import-Module ./MDEValidator/MDEValidator.psd1
+    $fails = Get-MDEValidationReport -OutputFormat JSON -OutputPath mde-report.json -AsExitCode
+    exit $fails   # Non-zero exit fails the pipeline step
+```
+
+Upload `mde-report.json` as a pipeline artifact to preserve results across runs.
 
 ## Troubleshooting
 
@@ -373,11 +541,13 @@ Uninstall-Module -Name MDEValidator
 - **Disable Local Admin Merge**: Checks if local administrator exclusion merging is disabled
 - **File Hash Computation**: Validates file hash computation settings
 - **Policy Registry Verification**: Optional verification that Get-MpPreference settings match registry/policy entries based on management type (Intune, GPO, SCCM, SSM)
-- **Multiple Output Formats**: Console, HTML, and PowerShell object output options
+- **Multiple Output Formats**: Console, HTML, JSON (with structured envelope), and PowerShell object output options
+- **Category and Test Filtering**: Use `-Category` to restrict test invocation to specific categories (perf win) or `-ExcludeTest` with wildcards to exclude individual results
+- **Automation-Friendly Exit Codes**: `-AsExitCode` returns the Fail count as `[int]` for scheduled tasks, Intune Proactive Remediation, and CI pipelines
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for the full checklist when adding a new validation check, including test patterns, category wiring, and script analyser requirements.
 
 ### Development Setup
 
@@ -390,15 +560,17 @@ Import-Module .\MDEValidator\MDEValidator.psd1
 
 ### Running Tests
 
-The module includes Pester tests for all validation functions:
+The module includes Pester 5 tests for all validation functions:
 
 ```powershell
 # Install Pester if not already installed
 Install-Module -Name Pester -Force -SkipPublisherCheck
 
-# Run the full test suite
-Invoke-Pester -Path .\Tests\
+# Run the full test suite (coverage report written to Tests/Artifacts/)
+.\run-tests.ps1
 ```
+
+Individual test files live in `Tests/Public/<FunctionName>.Tests.ps1`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the test authoring guide.
 
 ## License
 

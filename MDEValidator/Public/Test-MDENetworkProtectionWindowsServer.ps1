@@ -34,7 +34,7 @@
     
     # Check if running on Windows Server
     if (-not (Test-IsWindowsServer)) {
-        Write-ValidationResult -TestName $testName -Status 'NotApplicable' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Block' -Status 'NotApplicable' `
             -Message "This check only applies to Windows Server operating systems."
         return
     }
@@ -64,7 +64,7 @@
         }
         
         if ($issues.Count -eq 0) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Block' -Actual 'Block' -Status 'Pass' `
                 -Message "Network Protection for Windows Server is properly configured. AllowNetworkProtectionOnWinServer and AllowNetworkProtectionDownLevel are both enabled."
         } else {
             $recommendation = @"
@@ -74,13 +74,13 @@ Deploy the following registry keys via Group Policy or another management tool:
   - AllowNetworkProtectionOnWinServer REG_DWORD 1
 "@
             
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Block' -Actual 'Not configured' -Status 'Fail' `
                 -Message "Network Protection for Windows Server is not properly configured. Issues: $($issues -join '; ')." `
                 -Recommendation $recommendation
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Block' -Status 'Fail' `
             -Message "Unable to query Network Protection Windows Server settings: $_" `
             -Recommendation "Ensure you have appropriate permissions to read Windows Defender registry settings."
     }

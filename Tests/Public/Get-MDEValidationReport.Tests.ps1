@@ -38,6 +38,179 @@ Describe 'Get-MDEValidationReport' {
         }
     }
 
+    Context 'JSON output format' {
+
+        BeforeAll {
+            Mock Test-MDEConfiguration -ModuleName MDEValidator {
+                @(
+                    [PSCustomObject]@{
+                        TestName       = 'Real-Time Protection'
+                        Category       = 'Device State'
+                        Status         = 'Pass'
+                        Message        = 'Enabled'
+                        Expected       = 'Enabled'
+                        Actual         = 'Enabled'
+                        Recommendation = ''
+                        Timestamp      = [datetime]'2026-01-15T10:00:00'
+                    },
+                    [PSCustomObject]@{
+                        TestName       = 'Cloud Block Level'
+                        Category       = 'Protection Settings'
+                        Status         = 'Fail'
+                        Message        = 'Low'
+                        Expected       = 'High'
+                        Actual         = 'Low'
+                        Recommendation = 'Set to High'
+                        Timestamp      = [datetime]'2026-01-15T10:00:01'
+                    },
+                    [PSCustomObject]@{
+                        TestName       = 'Network Protection'
+                        Category       = 'Network Protection'
+                        Status         = 'Warning'
+                        Message        = 'Audit only'
+                        Expected       = 'Block'
+                        Actual         = 'Audit'
+                        Recommendation = ''
+                        Timestamp      = [datetime]'2026-01-15T10:00:02'
+                    }
+                )
+            }
+            Mock Get-MDEOperatingSystemInfo -ModuleName MDEValidator { 'Windows 11 Enterprise' }
+            Mock Get-MDESecuritySettingsManagementStatus -ModuleName MDEValidator { 'Intune' }
+            Mock Get-MDEOnboardingStatusString -ModuleName MDEValidator { 'Onboarded' }
+        }
+
+        It 'returns valid JSON string when no OutputPath supplied' {
+            $output = Get-MDEValidationReport -OutputFormat JSON
+            { $output | ConvertFrom-Json } | Should -Not -Throw
+        }
+
+        It 'envelope has metadata, summary, and results top-level keys' {
+            $output = Get-MDEValidationReport -OutputFormat JSON
+            $parsed = $output | ConvertFrom-Json
+            $parsed.metadata | Should -Not -BeNullOrEmpty
+            $parsed.summary  | Should -Not -BeNullOrEmpty
+            $parsed.results  | Should -Not -BeNullOrEmpty
+        }
+
+        It 'metadata contains expected fields' {
+            $output = Get-MDEValidationReport -OutputFormat JSON
+            $parsed = $output | ConvertFrom-Json
+            $parsed.metadata.computerName  | Should -Not -BeNullOrEmpty
+            $parsed.metadata.os            | Should -Be 'Windows 11 Enterprise'
+            $parsed.metadata.managedBy     | Should -Be 'Intune'
+            $parsed.metadata.mdeOnboarding | Should -Be 'Onboarded'
+            # ConvertFrom-Json may deserialise the ISO-8601 string as [DateTime]; either is acceptable
+            $parsed.metadata.generated     | Should -Not -BeNullOrEmpty
+            $parsed.metadata.moduleVersion | Should -Not -BeNullOrEmpty
+        }
+
+        It 'summary counts match the mocked result set' {
+            $output = Get-MDEValidationReport -OutputFormat JSON
+            $parsed = $output | ConvertFrom-Json
+            $parsed.summary.total         | Should -Be 3
+            $parsed.summary.pass          | Should -Be 1
+            $parsed.summary.fail          | Should -Be 1
+            $parsed.summary.warning       | Should -Be 1
+            $parsed.summary.info          | Should -Be 0
+            $parsed.summary.notApplicable | Should -Be 0
+        }
+
+        It 'results array contains result objects with original property names' {
+            $output = Get-MDEValidationReport -OutputFormat JSON
+            $parsed = $output | ConvertFrom-Json
+            $parsed.results.Count | Should -Be 3
+            $parsed.results[0].TestName  | Should -Be 'Real-Time Protection'
+            $parsed.results[0].Category  | Should -Be 'Device State'
+            $parsed.results[0].Status    | Should -Be 'Pass'
+        }
+
+        It 'Timestamp is serialised as ISO 8601 round-trip string in raw JSON' {
+            $output = Get-MDEValidationReport -OutputFormat JSON
+            # Verify the raw JSON contains an ISO 8601 Timestamp string (ConvertFrom-Json
+            # may re-hydrate it as [DateTime], so check the raw output instead)
+            $output | Should -Match '"Timestamp"\s*:\s*"2026-01-15T'
+        }
+
+        It 'writes JSON file and returns path when -OutputPath supplied' {
+            $reportPath = Join-Path $TestDrive 'report.json'
+            $result = Get-MDEValidationReport -OutputFormat JSON -OutputPath $reportPath
+            $result | Should -Be $reportPath
+            Test-Path $reportPath | Should -BeTrue
+        }
+
+        It 'written JSON file contains valid JSON with correct envelope' {
+            $reportPath = Join-Path $TestDrive 'report2.json'
+            Get-MDEValidationReport -OutputFormat JSON -OutputPath $reportPath | Out-Null
+            $content = Get-Content $reportPath -Raw
+            $parsed = $content | ConvertFrom-Json
+            $parsed.summary.total | Should -Be 3
+        }
+    }
+
+    Context '-AsExitCode switch' {
+
+        BeforeAll {
+            Mock Get-MDEOperatingSystemInfo -ModuleName MDEValidator { 'Windows 11 Enterprise' }
+            Mock Get-MDESecuritySettingsManagementStatus -ModuleName MDEValidator { 'Intune' }
+            Mock Get-MDEOnboardingStatusString -ModuleName MDEValidator { 'Onboarded' }
+        }
+
+        It 'returns [int] 0 when no failures (Object format)' {
+            Mock Test-MDEConfiguration -ModuleName MDEValidator {
+                @(
+                    [PSCustomObject]@{ TestName = 'A'; Status = 'Pass'; Timestamp = Get-Date }
+                    [PSCustomObject]@{ TestName = 'B'; Status = 'Warning'; Timestamp = Get-Date }
+                )
+            }
+            $result = Get-MDEValidationReport -OutputFormat Object -AsExitCode
+            $result | Should -Be 0
+            $result | Should -BeOfType [int]
+        }
+
+        It 'returns [int] equal to fail count (Object format)' {
+            Mock Test-MDEConfiguration -ModuleName MDEValidator {
+                @(
+                    [PSCustomObject]@{ TestName = 'A'; Status = 'Pass'; Timestamp = Get-Date }
+                    [PSCustomObject]@{ TestName = 'B'; Status = 'Fail'; Timestamp = Get-Date }
+                    [PSCustomObject]@{ TestName = 'C'; Status = 'Fail'; Timestamp = Get-Date }
+                )
+            }
+            $result = Get-MDEValidationReport -OutputFormat Object -AsExitCode
+            $result | Should -Be 2
+            $result | Should -BeOfType [int]
+        }
+
+        It 'returns [int] fail count instead of file path (JSON format with OutputPath)' {
+            Mock Test-MDEConfiguration -ModuleName MDEValidator {
+                @(
+                    [PSCustomObject]@{
+                        TestName = 'A'; Category = 'Device State'; Status = 'Fail'
+                        Message = 'x'; Expected = 'y'; Actual = 'z'; Recommendation = ''
+                        Timestamp = Get-Date
+                    }
+                )
+            }
+            $reportPath = Join-Path $TestDrive 'exitcode.json'
+            $result = Get-MDEValidationReport -OutputFormat JSON -OutputPath $reportPath -AsExitCode
+            $result | Should -Be 1
+            $result | Should -BeOfType [int]
+            # File should still be written
+            Test-Path $reportPath | Should -BeTrue
+        }
+
+        It 'returns [int] fail count from Console format without suppressing output' {
+            Mock Test-MDEConfiguration -ModuleName MDEValidator {
+                @(
+                    [PSCustomObject]@{ TestName = 'X'; Status = 'Fail'; Message = 'bad'; Recommendation = ''; Timestamp = Get-Date }
+                )
+            }
+            $result = Get-MDEValidationReport -OutputFormat Console -AsExitCode
+            $result | Should -Be 1
+            $result | Should -BeOfType [int]
+        }
+    }
+
     Context 'HTML output format - modernised structure' {
 
         BeforeAll {
@@ -46,57 +219,81 @@ Describe 'Get-MDEValidationReport' {
                     # Device State - Pass
                     [PSCustomObject]@{
                         TestName       = 'Real-Time Protection'
+                        Category       = 'Device State'
                         Status         = 'Pass'
                         Message        = 'Enabled'
+                        Expected       = 'Enabled'
+                        Actual         = 'Enabled'
                         Recommendation = ''
                     },
                     # Protection Settings - Fail with Recommendation
                     [PSCustomObject]@{
                         TestName       = 'Cloud Block Level'
+                        Category       = 'Protection Settings'
                         Status         = 'Fail'
                         Message        = 'Low'
+                        Expected       = 'High'
+                        Actual         = 'Moderate (1)'
                         Recommendation = 'Set Cloud Block Level to High.'
                     },
                     # Network Protection - Warning
                     [PSCustomObject]@{
                         TestName       = 'Network Protection'
+                        Category       = 'Network Protection'
                         Status         = 'Warning'
                         Message        = 'Audit'
+                        Expected       = 'Block'
+                        Actual         = 'Audit'
                         Recommendation = ''
                     },
                     # Info row
                     [PSCustomObject]@{
                         TestName       = 'MDE Device Tags'
+                        Category       = 'Onboarding'
                         Status         = 'Info'
                         Message        = 'No tags configured'
+                        Expected       = 'Configured'
+                        Actual         = 'Not configured'
                         Recommendation = ''
                     },
                     # NotApplicable row
                     [PSCustomObject]@{
                         TestName       = 'Network Protection (Windows Server)'
+                        Category       = 'Network Protection'
                         Status         = 'NotApplicable'
                         Message        = 'Not a server SKU'
+                        Expected       = 'Block'
+                        Actual         = ''
                         Recommendation = ''
                     },
-                    # Policy Verification suffix row
+                    # Policy Verification suffix row (empty Category-independent Expected)
                     [PSCustomObject]@{
                         TestName       = 'Real-Time Protection - Policy Registry Verification'
+                        Category       = 'Policy Verification'
                         Status         = 'Pass'
                         Message        = 'Matches'
+                        Expected       = ''
+                        Actual         = '1'
                         Recommendation = ''
                     },
-                    # General / Other row (unmapped test name)
+                    # General / Other row (empty Category falls back to the 'General / Other' bucket)
                     [PSCustomObject]@{
                         TestName       = 'Some Unmapped Test'
+                        Category       = ''
                         Status         = 'Pass'
                         Message        = 'ok'
+                        Expected       = ''
+                        Actual         = ''
                         Recommendation = ''
                     },
                     # ASR row with expander data
                     [PSCustomObject]@{
                         TestName       = 'Attack Surface Reduction Rules'
+                        Category       = 'ASR Rules'
                         Status         = 'Warning'
                         Message        = '2 rules in audit'
+                        Expected       = 'All in Block mode'
+                        Actual         = '5 of 16 rules in Block mode'
                         Recommendation = ''
                         ASRSummary     = '5 of 16 rules in Block mode'
                         ASRRuleDetails = @('Rule A - Block', 'Rule B - Audit', 'Rule C - Block')
@@ -166,8 +363,8 @@ Describe 'Get-MDEValidationReport' {
             $script:html | Should -Not -Match '<th>Details</th>'
         }
 
-        It 'sources Expected column from the in-script lookup (REPT-06, D-05)' {
-            # 'Real-Time Protection' -> 'Enabled' per Plan 01 expectedValues
+        It 'sources Expected column from each result''s Expected property (REPT-06, D-05)' {
+            # 'Real-Time Protection' -> 'Enabled' from result.Expected
             $script:html | Should -Match '<td>Enabled</td>'
             # 'Cloud Block Level' -> 'High'
             $script:html | Should -Match '<td>High</td>'
@@ -193,6 +390,44 @@ Describe 'Get-MDEValidationReport' {
             $headStart = $script:html.IndexOf('<body>')
             $body = $script:html.Substring($headStart)
             $body | Should -Not -Match '<script'
+        }
+    }
+
+    Context '-Category and -ExcludeTest passthrough to Test-MDEConfiguration' {
+
+        It 'forwards -Category to Test-MDEConfiguration' {
+            Mock Test-MDEConfiguration -ModuleName MDEValidator -ParameterFilter {
+                $Category -contains 'ASR Rules'
+            } {
+                @([PSCustomObject]@{ TestName = 'Attack Surface Reduction Rules'; Status = 'Pass' })
+            }
+            Mock Get-MDEOperatingSystemInfo -ModuleName MDEValidator { 'Windows 11' }
+            Mock Get-MDESecuritySettingsManagementStatus -ModuleName MDEValidator { 'Intune' }
+            Mock Get-MDEOnboardingStatusString -ModuleName MDEValidator { 'Onboarded' }
+            
+            $result = Get-MDEValidationReport -OutputFormat Object -Category 'ASR Rules'
+            
+            Should -Invoke Test-MDEConfiguration -Times 1 -ModuleName MDEValidator -ParameterFilter {
+                $Category -contains 'ASR Rules'
+            }
+            $result[0].TestName | Should -Be 'Attack Surface Reduction Rules'
+        }
+
+        It 'forwards -ExcludeTest to Test-MDEConfiguration' {
+            Mock Test-MDEConfiguration -ModuleName MDEValidator -ParameterFilter {
+                $ExcludeTest -contains '*SmartScreen*'
+            } {
+                @([PSCustomObject]@{ TestName = 'Service Status'; Status = 'Pass' })
+            }
+            Mock Get-MDEOperatingSystemInfo -ModuleName MDEValidator { 'Windows 11' }
+            Mock Get-MDESecuritySettingsManagementStatus -ModuleName MDEValidator { 'Intune' }
+            Mock Get-MDEOnboardingStatusString -ModuleName MDEValidator { 'Onboarded' }
+            
+            Get-MDEValidationReport -OutputFormat Object -ExcludeTest '*SmartScreen*' | Out-Null
+            
+            Should -Invoke Test-MDEConfiguration -Times 1 -ModuleName MDEValidator -ParameterFilter {
+                $ExcludeTest -contains '*SmartScreen*'
+            }
         }
     }
 }

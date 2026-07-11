@@ -15,16 +15,29 @@
 
     .OUTPUTS
         Array of PSCustomObjects (one per property) with validation results.
+    .PARAMETER MpComputerStatus
+        Optional Get-MpComputerStatus snapshot. When supplied, the function uses it instead of
+        querying Get-MpComputerStatus itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpComputerStatus directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpComputerStatus
+    )
 
     try {
-        $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+        if ($null -eq $MpComputerStatus) {
+            $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+        }
+        else {
+            $mpStatus = $MpComputerStatus
+        }
 
         $signatureVersion = $mpStatus.AntivirusSignatureVersion
         $signatureVersionStr = if ($null -ne $signatureVersion) { $signatureVersion } else { 'Unknown' }
-        Write-ValidationResult -TestName 'Antivirus Signature Version' -Status 'Info' `
+        Write-ValidationResult -TestName 'Antivirus Signature Version' -Category 'Protection Settings' -Expected 'Latest' -Actual "$signatureVersionStr" -Status 'Info' `
             -Message "Current antivirus signature version: $signatureVersionStr"
 
         $lastUpdated = $mpStatus.AntivirusSignatureLastUpdated
@@ -34,14 +47,14 @@
         else {
             'Unknown'
         }
-        Write-ValidationResult -TestName 'Antivirus Signature Last Updated' -Status 'Info' `
+        Write-ValidationResult -TestName 'Antivirus Signature Last Updated' -Category 'Protection Settings' -Expected 'Recent' -Actual "$lastUpdatedStr" -Status 'Info' `
             -Message "Antivirus signatures last updated: $lastUpdatedStr"
     }
     catch {
-        Write-ValidationResult -TestName 'Antivirus Signature Version' -Status 'Fail' `
+        Write-ValidationResult -TestName 'Antivirus Signature Version' -Category 'Protection Settings' -Expected 'Latest' -Status 'Fail' `
             -Message "Unable to query signature information: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and the Defender PowerShell module is available."
-        Write-ValidationResult -TestName 'Antivirus Signature Last Updated' -Status 'Fail' `
+        Write-ValidationResult -TestName 'Antivirus Signature Last Updated' -Category 'Protection Settings' -Expected 'Recent' -Status 'Fail' `
             -Message "Unable to query signature information: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and the Defender PowerShell module is available."
     }

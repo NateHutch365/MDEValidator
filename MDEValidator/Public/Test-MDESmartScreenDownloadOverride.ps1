@@ -54,20 +54,20 @@
         
         # Determine status
         if ($null -eq $preventOverride) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Not configured' -Status 'Warning' `
                 -Message "SmartScreen download override prevention is not configured. Users may be able to bypass SmartScreen warnings about downloads." `
                 -Recommendation "Configure 'Prevent bypassing of Microsoft Defender SmartScreen warnings about downloads' via Group Policy or Intune. Set PreventSmartScreenPromptOverrideForFiles to 1."
         } elseif ($preventOverride -eq 1) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                 -Message "SmartScreen download override prevention is enabled via $source. Users cannot bypass SmartScreen warnings about downloads."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Actual 'Disabled' -Status 'Warning' `
                 -Message "SmartScreen download override prevention is disabled via $source. Users can bypass SmartScreen warnings about downloads." `
                 -Recommendation "Enable 'Prevent bypassing of Microsoft Defender SmartScreen warnings about downloads' via Group Policy or Intune. Set PreventSmartScreenPromptOverrideForFiles to 1."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Network Protection' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query SmartScreen download override prevention status: $_" `
             -Recommendation "Ensure you have permissions to read Edge policy registry settings."
     }

@@ -14,9 +14,17 @@
     
     .OUTPUTS
         PSCustomObject with validation results.
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Attack Surface Reduction Rules'
     
@@ -52,13 +60,15 @@
     }
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         $configuredRules = $mpPreference.AttackSurfaceReductionRules_Ids
         $ruleActions = $mpPreference.AttackSurfaceReductionRules_Actions
         
         if ($null -eq $configuredRules -or $configuredRules.Count -eq 0) {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'ASR Rules' -Expected 'All in Block mode' -Actual 'None configured' -Status 'Fail' `
                 -Message "No Attack Surface Reduction rules are configured." `
                 -Recommendation "Configure ASR rules via Group Policy or Intune for enhanced protection."
             return
@@ -110,14 +120,14 @@
         $fullMessage = "$summaryMessage`nRules:`n$detailedRules"
         
         if ($enabledCount -gt 0) {
-            $result = Write-ValidationResult -TestName $testName -Status 'Pass' `
+            $result = Write-ValidationResult -TestName $testName -Category 'ASR Rules' -Expected 'All in Block mode' -Actual "$enabledCount of $totalRules in Block mode" -Status 'Pass' `
                 -Message $fullMessage
         } elseif ($auditCount -gt 0 -or $warnCount -gt 0) {
-            $result = Write-ValidationResult -TestName $testName -Status 'Warning' `
+            $result = Write-ValidationResult -TestName $testName -Category 'ASR Rules' -Expected 'All in Block mode' -Actual 'No rules in Block mode' -Status 'Warning' `
                 -Message "$fullMessage. No rules are in Block mode." `
                 -Recommendation "Consider enabling Block mode for ASR rules after validating Audit mode results."
         } else {
-            $result = Write-ValidationResult -TestName $testName -Status 'Fail' `
+            $result = Write-ValidationResult -TestName $testName -Category 'ASR Rules' -Expected 'All in Block mode' -Actual 'All configured rules disabled' -Status 'Fail' `
                 -Message "$fullMessage. All configured rules are disabled." `
                 -Recommendation "Enable ASR rules for enhanced protection against common attack techniques."
         }
@@ -129,7 +139,7 @@
         return $result
     }
     catch {
-        return Write-ValidationResult -TestName $testName -Status 'Fail' `
+        return Write-ValidationResult -TestName $testName -Category 'ASR Rules' -Expected 'All in Block mode' -Status 'Fail' `
             -Message "Unable to query ASR rules status: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

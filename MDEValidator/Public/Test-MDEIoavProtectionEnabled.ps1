@@ -15,33 +15,46 @@
 
     .OUTPUTS
         PSCustomObject with validation results.
+    .PARAMETER MpComputerStatus
+        Optional Get-MpComputerStatus snapshot. When supplied, the function uses it instead of
+        querying Get-MpComputerStatus itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpComputerStatus directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpComputerStatus
+    )
 
     $testName = 'IOAV Protection'
 
     try {
-        $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+        if ($null -eq $MpComputerStatus) {
+            $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+        }
+        else {
+            $mpStatus = $MpComputerStatus
+        }
 
         $ioavEnabled = $mpStatus.IoavProtectionEnabled
         if ($null -eq $ioavEnabled) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Enabled' -Status 'Warning' `
                 -Message "IOAV protection status could not be determined." `
                 -Recommendation "Verify Get-MpComputerStatus returns IoavProtectionEnabled on this build."
         }
         elseif ($ioavEnabled -eq $true) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                 -Message "IOAV protection is enabled."
         }
         else {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Enabled' -Actual 'Disabled' -Status 'Warning' `
                 -Message "IOAV protection is disabled." `
                 -Recommendation "Enable IOAV protection via Intune or Group Policy to scan internet-sourced files on access."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Device State' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query IOAV protection status: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and the Defender PowerShell module is available."
     }

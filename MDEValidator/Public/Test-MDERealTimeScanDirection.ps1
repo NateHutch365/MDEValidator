@@ -22,9 +22,17 @@
         2 = Monitor outgoing files only
         
         Bi-directional monitoring provides the most comprehensive protection.
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Real Time Scan Direction'
     
@@ -36,13 +44,15 @@
     }
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         $scanDirection = $mpPreference.RealTimeScanDirection
         
         # Handle null value as not configured
         if ($null -eq $scanDirection) {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Both directions' -Actual 'Not configured' -Status 'Fail' `
                 -Message "Real Time Scan Direction is not configured." `
                 -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Intune or Group Policy."
             return
@@ -59,31 +69,31 @@
         switch ([int]$scanDirection) {
             0 {
                 # Bi-directional - Pass
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Both directions' -Actual 'Both directions' -Status 'Pass' `
                     -Message "$message. All file operations are monitored for threats."
             }
             1 {
                 # Incoming only - Warning
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Both directions' -Actual 'Incoming only' -Status 'Warning' `
                     -Message "$message. Only incoming files are monitored." `
                     -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Intune or Group Policy for comprehensive protection."
             }
             2 {
                 # Outgoing only - Warning
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Both directions' -Actual 'Outgoing only' -Status 'Warning' `
                     -Message "$message. Only outgoing files are monitored." `
                     -Recommendation "Configure Real Time Scan Direction to 'Monitor all files (bi-directional)' via Intune or Group Policy for comprehensive protection."
             }
             default {
                 # Unknown value - Warning
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Both directions' -Actual 'Unknown' -Status 'Warning' `
                     -Message "$message. Unknown Real Time Scan Direction value detected." `
                     -Recommendation "Verify Real Time Scan Direction configuration via Group Policy or Intune."
             }
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Both directions' -Status 'Fail' `
             -Message "Unable to query Real Time Scan Direction: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

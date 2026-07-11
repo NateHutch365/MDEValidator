@@ -23,14 +23,24 @@
         5-24 = Less frequent updates - Warning
         
         Recommended: Set to 1 to ensure delta updates are applied frequently.
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Signature Update Interval'
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         $signatureUpdateInterval = $mpPreference.SignatureUpdateInterval
         
@@ -43,27 +53,27 @@
         
         if ($signatureUpdateInterval -eq 0) {
             # Fail: Disabled
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '<= 4 hours' -Actual "$signatureUpdateInterval hour(s)" -Status 'Fail' `
                 -Message "$message. Automatic signature update checking is disabled." `
                 -Recommendation "Set Signature Update Interval to 1 hour via Intune or Group Policy to ensure delta updates are applied frequently."
         } elseif ($signatureUpdateInterval -ge 1 -and $signatureUpdateInterval -le 4) {
             # Pass: 1-4 hours
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '<= 4 hours' -Actual "$signatureUpdateInterval hour(s)" -Status 'Pass' `
                 -Message "$message. Signature updates are checked frequently."
         } elseif ($signatureUpdateInterval -ge 5 -and $signatureUpdateInterval -le 24) {
             # Warning: 5-24 hours
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '<= 4 hours' -Actual "$signatureUpdateInterval hour(s)" -Status 'Warning' `
                 -Message "$message. Signature updates are checked less frequently than recommended." `
                 -Recommendation "Set Signature Update Interval to 1 hour via Intune or Group Policy to ensure delta updates are applied frequently."
         } else {
             # Unknown/invalid value - Warning
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '<= 4 hours' -Actual "$signatureUpdateInterval hour(s)" -Status 'Warning' `
                 -Message "$message. Unexpected Signature Update Interval value." `
                 -Recommendation "Set Signature Update Interval to 1 hour via Intune or Group Policy to ensure delta updates are applied frequently."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected '<= 4 hours' -Status 'Fail' `
             -Message "Unable to query Signature Update Interval: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

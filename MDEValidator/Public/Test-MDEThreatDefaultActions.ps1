@@ -34,9 +34,25 @@
         8 = UserDefined - Fail
         9 = NoAction - Fail
         10 = Block - Pass
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
+    .PARAMETER MpComputerStatus
+        Optional Get-MpComputerStatus snapshot. When supplied, the function uses it instead of
+        querying Get-MpComputerStatus itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpComputerStatus directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference,
+
+        [Parameter()]
+        $MpComputerStatus
+    )
     
     $testName = 'Threat Default Actions'
     
@@ -56,7 +72,9 @@
     $failingActions = @(6, 8, 9)  # Allow (6), UserDefined (8), NoAction (9)
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         $threatActions = @{
             'LowThreatDefaultAction' = $mpPreference.LowThreatDefaultAction
@@ -94,7 +112,12 @@
         # Get Tamper Protection status (handle failure gracefully)
         $isTamperProtected = $false
         try {
-            $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+            if ($null -eq $MpComputerStatus) {
+                $mpStatus = Get-MpComputerStatus -ErrorAction Stop
+            }
+            else {
+                $mpStatus = $MpComputerStatus
+            }
             $isTamperProtected = $mpStatus.IsTamperProtected
         }
         catch {
@@ -105,30 +128,30 @@
         # Determine result based on logic
         if ($hasFailingActions) {
             # Explicit failure - any action set to NoAction, Allow, or UserDefined
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Configured with unsafe actions' -Status 'Fail' `
                 -Message "$message. Critical issues found: $($failingIssues -join '; ')." `
                 -Recommendation "Configure threat default actions to Clean (1), Quarantine (2), Remove (3), or Block (10) for all severity levels via Intune or Group Policy. Avoid NoAction (9), Allow (6), and UserDefined (8)."
         } elseif ($unknownCount -gt 0) {
             # Handle Unknown values based on Tamper Protection status
             if ($isTamperProtected) {
                 # Pass when Tamper Protection is enabled
-                Write-ValidationResult -TestName $testName -Status 'Pass' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Unknown actions (Tamper Protection enabled)' -Status 'Pass' `
                     -Message "$message. $unknownCount threat default action(s) show as Unknown, which is acceptable when Tamper Protection is enabled. Tamper Protection: Enabled."
             } else {
                 # Warning when Tamper Protection is not enabled
-                Write-ValidationResult -TestName $testName -Status 'Warning' `
+                Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Unknown actions (Tamper Protection disabled)' -Status 'Warning' `
                     -Message "$message. $unknownCount threat default action(s) show as Unknown. Tamper Protection: Disabled." `
                     -Recommendation "Unknown values should be investigated. Review threat default action settings in Group Policy or Intune to ensure they are configured correctly."
             }
         } else {
             # All actions are acceptable (Clean, Quarantine, Block, or Remove)
             # No failing actions detected - Pass
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Actual 'Configured' -Status 'Pass' `
                 -Message $message
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Configured' -Status 'Fail' `
             -Message "Unable to query threat default actions: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured."
     }

@@ -29,9 +29,17 @@
         - Group Policy: Computer Configuration > Administrative Templates > Windows Components > 
           Microsoft Defender Antivirus > Exclusions
         - Intune: Endpoint Security > Antivirus > Microsoft Defender Antivirus > Exclusions
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Exclusion Visibility (Local Users)'
     
@@ -64,7 +72,9 @@
         # Also try Get-MpPreference for these settings (if available)
         if ($null -eq $hideFromLocalUsers) {
             try {
-                $mpPreference = Get-MpPreference -ErrorAction Stop
+                if ($null -eq $MpPreference) {
+                    $mpPreference = Get-MpPreference -ErrorAction Stop
+                }
                 if ($null -ne $mpPreference.HideExclusionsFromLocalUsers) {
                     $hideFromLocalUsers = if ($mpPreference.HideExclusionsFromLocalUsers) { 1 } else { 0 }
                     if ([string]::IsNullOrEmpty($source)) { $source = 'MpPreference' }
@@ -81,20 +91,20 @@
         $sourceInfo = if ([string]::IsNullOrEmpty($source)) { '' } else { " (via $source)" }
         
         if ($localUsersHidden) {
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Actual 'Hidden' -Status 'Pass' `
                 -Message "Exclusions are hidden from local users.$sourceInfo"
         } elseif ($null -eq $hideFromLocalUsers) {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Actual 'Visible' -Status 'Fail' `
                 -Message "Exclusions visibility for local users is not configured (defaults to visible)." `
                 -Recommendation "Configure 'Hide exclusions from local users' via Group Policy or Intune to prevent standard users from discovering exclusion paths that could be exploited."
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Fail' `
+            Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Actual 'Visible' -Status 'Fail' `
                 -Message "Exclusions are visible to local users.$sourceInfo" `
                 -Recommendation "Configure 'Hide exclusions from local users' via Group Policy or Intune to prevent standard users from discovering exclusion paths that could be exploited."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Exclusion Settings' -Expected 'Hidden' -Status 'Fail' `
             -Message "Unable to query exclusion visibility settings for local users: $_" `
             -Recommendation "Ensure you have appropriate permissions to read Windows Defender registry settings."
     }

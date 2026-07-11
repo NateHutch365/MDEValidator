@@ -41,19 +41,19 @@
             $tagValue = $deviceTagReg.Group
             
             if (-not [string]::IsNullOrWhiteSpace($tagValue)) {
-                Write-ValidationResult -TestName $testName -Status 'Info' `
+                Write-ValidationResult -TestName $testName -Category 'Onboarding' -Expected 'Configured' -Actual 'Configured' -Status 'Info' `
                     -Message "Locally configured MDE device tag: $tagValue. Note: Tags assigned via the Defender XDR portal are not reflected here."
             } else {
-                Write-ValidationResult -TestName $testName -Status 'Info' `
+                Write-ValidationResult -TestName $testName -Category 'Onboarding' -Expected 'Configured' -Actual 'Not configured' -Status 'Info' `
                     -Message "No locally configured MDE device tags found. Note: Tags assigned via the Defender XDR portal are not reflected here."
             }
         } else {
-            Write-ValidationResult -TestName $testName -Status 'Info' `
+            Write-ValidationResult -TestName $testName -Category 'Onboarding' -Expected 'Configured' -Actual 'Not configured' -Status 'Info' `
                 -Message "No locally configured MDE device tags found. Note: Tags assigned via the Defender XDR portal are not reflected here."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Info' `
+        Write-ValidationResult -TestName $testName -Category 'Onboarding' -Expected 'Configured' -Status 'Info' `
             -Message "Unable to query MDE device tags: $_"
     }
 }

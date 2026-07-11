@@ -64,13 +64,13 @@
     
     # Check if this test is applicable based on management type
     if ($managementType -eq 'None') {
-        return Write-ValidationResult -TestName $testName -Status 'Info' `
+        return Write-ValidationResult -TestName $testName -Category 'Policy Verification' -Status 'Info' `
             -Message "Policy registry verification skipped - device management type could not be determined."
     }
     
     # Check if SSM-incompatible test on SSM-managed device
     if (-not $IsApplicableToSSM -and $managementType -eq 'SecuritySettingsManagement') {
-        return Write-ValidationResult -TestName $testName -Status 'NotApplicable' `
+        return Write-ValidationResult -TestName $testName -Category 'Policy Verification' -Status 'NotApplicable' `
             -Message "This setting cannot be enforced via Security Settings Management. Only Antivirus, ASR, EDR, and Firewall policies are supported."
     }
     
@@ -93,7 +93,7 @@
             "Value: $($regResult.Value)"
         }
         
-        return Write-ValidationResult -TestName $testName -Status 'Pass' `
+        return Write-ValidationResult -TestName $testName -Category 'Policy Verification' -Actual "$($regResult.Value)" -Status 'Pass' `
             -Message "Policy registry entry verified. $displayName found at $($regResult.Path)\$($regResult.SettingName). $valueInfo. Management type: $($regResult.ManagementType)."
     } else {
         $recommendation = @"
@@ -105,7 +105,7 @@ This may indicate:
 Verify the policy is correctly configured in your management solution ($($regResult.ManagementType)).
 "@
         
-        return Write-ValidationResult -TestName $testName -Status 'Warning' `
+        return Write-ValidationResult -TestName $testName -Category 'Policy Verification' -Actual 'Not found' -Status 'Warning' `
             -Message "Policy registry entry not found. Expected $displayName at $($regResult.Path)\$($regResult.SettingName). Management type: $($regResult.ManagementType)." `
             -Recommendation $recommendation
     }

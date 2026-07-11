@@ -96,6 +96,8 @@ Describe 'Test-MDEConfiguration' {
                 [PSCustomObject]@{ TestName = 'Device Tags'; Status = 'Info' }
             }
             Mock Test-IsElevated -ModuleName MDEValidator { $true }
+            Mock Get-MpPreference -ModuleName MDEValidator { [PSCustomObject]@{} }
+            Mock Get-MpComputerStatus -ModuleName MDEValidator { [PSCustomObject]@{} }
             Mock Test-MDENetworkProtectionWindowsServer -ModuleName MDEValidator {
                 [PSCustomObject]@{ TestName = 'Network Protection WS'; Status = 'Pass' }
             }
@@ -128,6 +130,112 @@ Describe 'Test-MDEConfiguration' {
 
             $result | Should -Not -BeNullOrEmpty
             $result | Should -BeOfType [PSCustomObject]
+        }
+    }
+
+    Context '-Category filter' {
+
+        BeforeAll {
+            Mock Test-IsElevated -ModuleName MDEValidator { $true }
+            Mock Get-MpPreference -ModuleName MDEValidator { [PSCustomObject]@{} }
+            Mock Get-MpComputerStatus -ModuleName MDEValidator { [PSCustomObject]@{} }
+            
+            # Provide return values for the two categories used in these tests
+            Mock Test-MDEAttackSurfaceReduction -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Attack Surface Reduction Rules'; Category = 'ASR Rules'; Status = 'Pass' }
+            }
+            Mock Test-MDEServiceStatus -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Service Status'; Category = 'Device State'; Status = 'Pass' }
+            }
+            Mock Test-MDESmartScreen -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'SmartScreen'; Category = 'Network Protection'; Status = 'Pass' }
+            }
+        }
+
+        It 'runs only ASR Rules tests and skips Device State tests' {
+            Test-MDEConfiguration -Category 'ASR Rules' | Out-Null
+            Should -Invoke Test-MDEAttackSurfaceReduction -Times 1 -ModuleName MDEValidator
+            Should -Invoke Test-MDEServiceStatus -Times 0 -ModuleName MDEValidator
+        }
+
+        It 'returns only results from the requested category' {
+            $result = Test-MDEConfiguration -Category 'ASR Rules'
+            $result | Should -Not -BeNullOrEmpty
+            $result | ForEach-Object { $_.Category | Should -Be 'ASR Rules' }
+        }
+
+        It 'runs tests from multiple categories when multiple values supplied' {
+            Mock Test-MDETamperProtection -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Tamper Protection'; Category = 'Tamper Protection'; Status = 'Pass' }
+            }
+            Mock Test-MDETamperProtectionForExclusions -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Tamper Protection for Exclusions'; Category = 'Tamper Protection'; Status = 'Pass' }
+            }
+            Mock Test-MDETroubleshootingMode -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Troubleshooting Mode'; Category = 'Tamper Protection'; Status = 'Pass' }
+            }
+            
+            Test-MDEConfiguration -Category 'ASR Rules', 'Tamper Protection' | Out-Null
+            Should -Invoke Test-MDEAttackSurfaceReduction -Times 1 -ModuleName MDEValidator
+            Should -Invoke Test-MDETamperProtection -Times 1 -ModuleName MDEValidator
+            Should -Invoke Test-MDESmartScreen -Times 0 -ModuleName MDEValidator
+        }
+    }
+
+    Context '-ExcludeTest filter' {
+
+        BeforeAll {
+            Mock Test-IsElevated -ModuleName MDEValidator { $true }
+            Mock Get-MpPreference -ModuleName MDEValidator { [PSCustomObject]@{} }
+            Mock Get-MpComputerStatus -ModuleName MDEValidator { [PSCustomObject]@{} }
+            Mock Test-MDETamperProtection -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Tamper Protection'; Category = 'Tamper Protection'; Status = 'Pass' }
+            }
+            Mock Test-MDETamperProtectionForExclusions -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Tamper Protection for Exclusions'; Category = 'Tamper Protection'; Status = 'Pass' }
+            }
+            Mock Test-MDETroubleshootingMode -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Troubleshooting Mode'; Category = 'Tamper Protection'; Status = 'Pass' }
+            }
+        }
+
+        It 'removes results whose TestName matches the wildcard' {
+            $result = Test-MDEConfiguration -Category 'Tamper Protection' -ExcludeTest '*Exclusion*'
+            ($result | Where-Object { $_.TestName -like '*Exclusion*' }) | Should -BeNullOrEmpty
+        }
+
+        It 'retains results that do not match any ExcludeTest pattern' {
+            $result = Test-MDEConfiguration -Category 'Tamper Protection' -ExcludeTest '*Exclusion*'
+            ($result | Where-Object { $_.TestName -eq 'Tamper Protection' }) | Should -Not -BeNullOrEmpty
+            ($result | Where-Object { $_.TestName -eq 'Troubleshooting Mode' }) | Should -Not -BeNullOrEmpty
+        }
+
+        It 'still invokes the test function even when all its results are excluded' {
+            # -ExcludeTest filters post-invocation; the function is always called when its category runs
+            Test-MDEConfiguration -Category 'Tamper Protection' -ExcludeTest '*Exclusion*' | Out-Null
+            Should -Invoke Test-MDETamperProtectionForExclusions -Times 1 -ModuleName MDEValidator
+        }
+
+        It 'supports multiple ExcludeTest patterns' {
+            $result = Test-MDEConfiguration -Category 'Tamper Protection' -ExcludeTest '*Exclusion*', 'Troubleshooting Mode'
+            $result.Count | Should -Be 1
+            $result[0].TestName | Should -Be 'Tamper Protection'
+        }
+    }
+
+    Context 'Write-Progress' {
+
+        It 'returns results without error (progress calls do not suppress output)' {
+            Mock Test-IsElevated -ModuleName MDEValidator { $true }
+            Mock Get-MpPreference -ModuleName MDEValidator { [PSCustomObject]@{} }
+            Mock Get-MpComputerStatus -ModuleName MDEValidator { [PSCustomObject]@{} }
+            Mock Test-MDEAttackSurfaceReduction -ModuleName MDEValidator {
+                [PSCustomObject]@{ TestName = 'Attack Surface Reduction Rules'; Category = 'ASR Rules'; Status = 'Pass' }
+            }
+            
+            $result = Test-MDEConfiguration -Category 'ASR Rules'
+            $result | Should -Not -BeNullOrEmpty
+            $result[0].TestName | Should -Be 'Attack Surface Reduction Rules'
         }
     }
 }

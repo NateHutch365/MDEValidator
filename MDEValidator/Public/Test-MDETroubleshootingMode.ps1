@@ -27,14 +27,24 @@
         Troubleshooting Mode is designed to be a temporary state for diagnostic purposes.
         When enabled, it may affect the reliability of certain reported configuration values,
         including threat default actions.
+    .PARAMETER MpPreference
+        Optional Get-MpPreference snapshot. When supplied, the function uses it instead of
+        querying Get-MpPreference itself, allowing the caller to share a single query across
+        multiple tests. When omitted, the function queries Get-MpPreference directly.
+    
     #>
     [CmdletBinding()]
-    param()
+    param(
+        [Parameter()]
+        $MpPreference
+    )
     
     $testName = 'Troubleshooting Mode'
     
     try {
-        $mpPreference = Get-MpPreference -ErrorAction Stop
+        if ($null -eq $MpPreference) {
+            $mpPreference = Get-MpPreference -ErrorAction Stop
+        }
         
         # Check TroubleshootingMode property
         $troubleshootingMode = $mpPreference.TroubleshootingMode
@@ -53,21 +63,21 @@
         
         if ($null -eq $troubleshootingMode) {
             # Property not available or not set - treat as disabled
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Off' -Actual 'Off' -Status 'Pass' `
                 -Message "Troubleshooting Mode is disabled (property not available or not set)."
         } elseif ($isEnabled) {
             # Troubleshooting Mode is enabled - Warning
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Off' -Actual 'On' -Status 'Warning' `
                 -Message "Troubleshooting Mode is enabled. This is intended to be a temporary state and may affect the reliability of reported Defender configuration values." `
                 -Recommendation "Disable Troubleshooting Mode when diagnostic work is complete. Prolonged use of Troubleshooting Mode is not recommended for production systems."
         } else {
             # Troubleshooting Mode is disabled - Pass
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Off' -Actual 'Off' -Status 'Pass' `
                 -Message "Troubleshooting Mode is disabled."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Tamper Protection' -Expected 'Off' -Status 'Fail' `
             -Message "Unable to query Troubleshooting Mode status: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured. The TroubleshootingMode property may not be available on all versions of Windows Defender."
     }

@@ -16,14 +16,26 @@
         [string]$Message = '',
         
         [Parameter()]
-        [string]$Recommendation = ''
+        [string]$Recommendation = '',
+        
+        [Parameter()]
+        [string]$Category = '',
+        
+        [Parameter()]
+        [string]$Expected = '',
+        
+        [Parameter()]
+        [string]$Actual = ''
     )
     
     [PSCustomObject]@{
         TestName = $TestName
+        Category = $Category
         Status = $Status
         Message = $Message
+        Expected = $Expected
+        Actual = $Actual
         Recommendation = $Recommendation
-        Timestamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+        Timestamp = Get-Date
     }
 }

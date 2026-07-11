@@ -99,24 +99,24 @@
         $sourceInfo = if ([string]::IsNullOrEmpty($source)) { '' } else { " (via $source)" }
         
         if ($null -eq $disableLocalAdminMerge) {
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Actual 'Not configured' -Status 'Warning' `
                 -Message "Disable Local Admin Merge is not configured. Local administrator exclusions may be applied." `
                 -Recommendation "Configure Disable Local Admin Merge via Group Policy or Intune to prevent local administrators from adding exclusions. Set DisableLocalAdminMerge to 1."
         }
         elseif ($disableLocalAdminMerge -eq 1) {
             # Pass: Disabled (local admin merge is disabled = exclusions are ignored)
-            Write-ValidationResult -TestName $testName -Status 'Pass' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Actual 'Enabled' -Status 'Pass' `
                 -Message "Disable Local Admin Merge is enabled. Local administrator exclusions are ignored.$sourceInfo"
         }
         else {
             # Warning: Enabled (local admin merge is enabled = exclusions are applied)
-            Write-ValidationResult -TestName $testName -Status 'Warning' `
+            Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Actual 'Disabled' -Status 'Warning' `
                 -Message "Disable Local Admin Merge is disabled. Local administrator exclusions may be applied.$sourceInfo" `
                 -Recommendation "Configure Disable Local Admin Merge via Group Policy or Intune to prevent local administrators from adding exclusions. Set DisableLocalAdminMerge to 1."
         }
     }
     catch {
-        Write-ValidationResult -TestName $testName -Status 'Fail' `
+        Write-ValidationResult -TestName $testName -Category 'Protection Settings' -Expected 'Enabled' -Status 'Fail' `
             -Message "Unable to query Disable Local Admin Merge setting: $_" `
             -Recommendation "Ensure Windows Defender is properly installed and configured, and that you have appropriate permissions to read registry settings."
     }
