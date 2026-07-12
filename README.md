@@ -69,6 +69,15 @@ $results | Where-Object { $_.Status -eq 'Fail' }
 # Return the full report as a JSON string (includes metadata, summary, and results[])
 Get-MDEValidationReport -OutputFormat JSON
 
+# Generate a PDF report (requires Microsoft Edge)
+Get-MDEValidationReport -OutputFormat PDF -OutputPath "C:\Reports\MDEReport.pdf"
+
+# Generate an Excel report (requires ImportExcel module)
+Get-MDEValidationReport -OutputFormat XLSX -OutputPath "C:\Reports\MDEReport.xlsx"
+
+# Generate a Word document (requires PSWriteWord module)
+Get-MDEValidationReport -OutputFormat DOCX -OutputPath "C:\Reports\MDEReport.docx"
+
 # Run only specific test categories (skips other tests entirely — faster)
 Get-MDEValidationReport -Category 'Tamper Protection', 'Device State'
 ```
@@ -79,7 +88,7 @@ Get-MDEValidationReport -Category 'Tamper Protection', 'Device State'
 
 #### Get-MDEValidationReport
 
-Runs all validation tests and generates a formatted report. Supports four output formats: `Console` (default), `HTML`, `JSON`, and `Object`.
+Runs all validation tests and generates a formatted report. Supports seven output formats: `Console` (default), `HTML`, `JSON`, `Object`, `PDF`, `XLSX`, and `DOCX`.
 
 ```powershell
 # Console output (default)
@@ -97,6 +106,15 @@ $json = Get-MDEValidationReport -OutputFormat JSON
 
 # JSON written to file — returns the saved file path
 Get-MDEValidationReport -OutputFormat JSON -OutputPath "C:\Reports\MDEReport.json"
+
+# PDF report (requires Microsoft Edge, pre-installed on Windows 10/11)
+Get-MDEValidationReport -OutputFormat PDF -OutputPath "C:\Reports\MDEReport.pdf"
+
+# Excel report with summary + detail sheets (requires ImportExcel module)
+Get-MDEValidationReport -OutputFormat XLSX -OutputPath "C:\Reports\MDEReport.xlsx"
+
+# Word document report (requires PSWriteWord module)
+Get-MDEValidationReport -OutputFormat DOCX -OutputPath "C:\Reports\MDEReport.docx"
 ```
 
 **JSON envelope structure:**
@@ -148,6 +166,20 @@ Get-MDEValidationReport -Category 'Protection Settings' -ExcludeTest 'Antispywar
 ```
 
 Valid `-Category` values: `Device State`, `Protection Settings`, `Onboarding`, `Network Protection`, `ASR Rules`, `Tamper Protection`, `Exclusion Settings`.
+
+**Optional Dependencies for Extended Formats:**
+
+| Format | Dependency | Install Command |
+|--------|-----------|-----------------|
+| PDF | Microsoft Edge (pre-installed on Windows 10/11) | No action needed |
+| XLSX | [ImportExcel](https://github.com/dfinke/ImportExcel) module | `Install-Module -Name ImportExcel` |
+| DOCX | [PSWriteWord](https://github.com/EvotecIT/PSWriteWord) module | `Install-Module -Name PSWriteWord` |
+
+> **Note:** The `Console`, `HTML`, `JSON`, and `Object` formats have no external dependencies. The PDF, XLSX, and DOCX formats will display a helpful error message if their dependency is not available.
+
+**Interactive HTML Report Filtering:**
+
+The HTML report includes clickable summary cards at the top. Click any status card (Passed, Failed, Warnings, Informational) to filter the report to show only results with that status. Click the same card again or use the "Show all" link to reset the view. This works entirely client-side with no additional dependencies.
 
 #### Test-MDEConfiguration
 

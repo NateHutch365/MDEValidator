@@ -8,13 +8,17 @@
         in the specified format.
     
     .PARAMETER OutputFormat
-        The format of the output report. Valid values are 'Console', 'HTML', 'JSON', or 'Object'.
-        Default is 'Console'.
+        The format of the output report. Valid values are 'Console', 'HTML', 'JSON', 'Object',
+        'PDF', 'XLSX', or 'DOCX'. Default is 'Console'.
+        
+        PDF requires Microsoft Edge (pre-installed on Windows 10/11).
+        XLSX requires the ImportExcel module (Install-Module -Name ImportExcel).
+        DOCX requires the PSWriteWord module (Install-Module -Name PSWriteWord).
     
     .PARAMETER OutputPath
-        The path to save the HTML or JSON report. Used when OutputFormat is 'HTML' or 'JSON'.
-        When OutputFormat is 'JSON' and -OutputPath is omitted, the JSON string is returned to
-        the pipeline instead.
+        The path to save the report file. Used when OutputFormat is 'HTML', 'JSON', 'PDF',
+        'XLSX', or 'DOCX'. When OutputFormat is 'JSON' and -OutputPath is omitted, the JSON
+        string is returned to the pipeline instead.
     
     .PARAMETER IncludeOnboarding
         Include MDE onboarding status check (requires elevated privileges).
@@ -86,15 +90,31 @@
         
         Returns result objects for all tests except those with SmartScreen in their TestName.
     
+    .EXAMPLE
+        Get-MDEValidationReport -OutputFormat PDF -OutputPath "C:\Reports\MDEReport.pdf"
+        
+        Generates a PDF report using Microsoft Edge headless printing. Requires Edge.
+    
+    .EXAMPLE
+        Get-MDEValidationReport -OutputFormat XLSX -OutputPath "C:\Reports\MDEReport.xlsx"
+        
+        Generates an Excel report with summary and detail sheets. Requires ImportExcel module.
+    
+    .EXAMPLE
+        Get-MDEValidationReport -OutputFormat DOCX -OutputPath "C:\Reports\MDEReport.docx"
+        
+        Generates a Word document report. Requires PSWriteWord module.
+    
     .OUTPUTS
         Console output, HTML file path (string), JSON file path (string), JSON string,
+        PDF file path (string), XLSX file path (string), DOCX file path (string),
         [int] fail count (when -AsExitCode is set), or array of PSCustomObjects depending
         on OutputFormat and switches.
     #>
     [CmdletBinding()]
     param(
         [Parameter()]
-        [ValidateSet('Console', 'HTML', 'JSON', 'Object')]
+        [ValidateSet('Console', 'HTML', 'JSON', 'Object', 'PDF', 'XLSX', 'DOCX')]
         [string]$OutputFormat = 'Console',
         
         [Parameter()]
@@ -287,6 +307,72 @@
             else {
                 $reportOutput = $jsonOutput
             }
+        }
+        
+        'PDF' {
+            if ([string]::IsNullOrEmpty($OutputPath)) {
+                $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+                $OutputPath = Join-Path $tempDir "MDEValidationReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').pdf"
+            }
+            
+            $OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
+            
+            # Generate the HTML report to a temp file first
+            $tempHtmlPath = Join-Path ([System.IO.Path]::GetTempPath()) "MDEValidator_temp_$(Get-Date -Format 'yyyyMMdd_HHmmss').html"
+            $htmlContent = ConvertTo-MDEHtmlReport -Results $results -ComputerName $env:COMPUTERNAME -OSInfo $osInfo -ManagedByStatus $managedByStatus -OnboardingStatus $onboardingStatus
+            $htmlContent | Out-File -FilePath $tempHtmlPath -Encoding UTF8
+            
+            try {
+                $pdfPath = ConvertTo-MDEPdfReport -HtmlPath $tempHtmlPath -OutputPath $OutputPath
+                Write-Host "PDF report saved to: $pdfPath" -ForegroundColor Green
+                $reportOutput = $pdfPath
+            }
+            finally {
+                # Clean up temp HTML file
+                if (Test-Path -Path $tempHtmlPath) {
+                    Remove-Item -Path $tempHtmlPath -Force -ErrorAction SilentlyContinue
+                }
+            }
+        }
+        
+        'XLSX' {
+            if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
+                Write-Error "The 'ImportExcel' module is required for XLSX export but is not installed. Install it with: Install-Module -Name ImportExcel"
+                return
+            }
+            
+            if ([string]::IsNullOrEmpty($OutputPath)) {
+                $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+                $OutputPath = Join-Path $tempDir "MDEValidationReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').xlsx"
+            }
+            
+            $OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
+            
+            $xlsxPath = ConvertTo-MDEExcelReport -Results $results -OutputPath $OutputPath `
+                -ComputerName $env:COMPUTERNAME -OSInfo $osInfo `
+                -ManagedByStatus $managedByStatus -OnboardingStatus $onboardingStatus
+            Write-Host "XLSX report saved to: $xlsxPath" -ForegroundColor Green
+            $reportOutput = $xlsxPath
+        }
+        
+        'DOCX' {
+            if (-not (Get-Module -ListAvailable -Name PSWriteWord)) {
+                Write-Error "The 'PSWriteWord' module is required for DOCX export but is not installed. Install it with: Install-Module -Name PSWriteWord"
+                return
+            }
+            
+            if ([string]::IsNullOrEmpty($OutputPath)) {
+                $tempDir = if ($env:TEMP) { $env:TEMP } elseif ($env:TMPDIR) { $env:TMPDIR } else { '/tmp' }
+                $OutputPath = Join-Path $tempDir "MDEValidationReport_$(Get-Date -Format 'yyyyMMdd_HHmmss').docx"
+            }
+            
+            $OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
+            
+            $docxPath = ConvertTo-MDEWordReport -Results $results -OutputPath $OutputPath `
+                -ComputerName $env:COMPUTERNAME -OSInfo $osInfo `
+                -ManagedByStatus $managedByStatus -OnboardingStatus $onboardingStatus
+            Write-Host "DOCX report saved to: $docxPath" -ForegroundColor Green
+            $reportOutput = $docxPath
         }
     }
     

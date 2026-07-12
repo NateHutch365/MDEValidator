@@ -94,7 +94,12 @@
         .header .meta { display: flex; flex-wrap: wrap; gap: 1.5rem; margin-top: 1rem; font-size: 0.85rem; opacity: 0.9; }
         .header-logo { width: 96px; height: 96px; flex-shrink: 0; }
         .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-        .summary-card { background: white; border-radius: 10px; padding: 1.25rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-top: 3px solid #e0e0e0; }
+        .summary-card { background: white; border-radius: 10px; padding: 1.25rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); border-top: 3px solid #e0e0e0; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; user-select: none; }
+        .summary-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+        .summary-card.active { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.18); outline: 2px solid currentColor; outline-offset: 2px; }
+        .filter-hint { text-align: center; font-size: 0.78rem; color: #888; margin-bottom: 1rem; }
+        .filter-hint .reset-link { color: #0f3460; cursor: pointer; text-decoration: underline; margin-left: 0.5rem; }
+        .section.hidden-section { display: none; }
         .summary-card.pass { border-top-color: #22c55e; }
         .summary-card.pass .count { color: #22c55e; }
         .summary-card.fail { border-top-color: #ef4444; }
@@ -145,6 +150,51 @@
                 expander.classList.add('expanded');
             }
         }
+
+        let activeFilter = null;
+
+        function filterByStatus(status) {
+            const cards = document.querySelectorAll('.summary-card');
+            const rows = document.querySelectorAll('tr[data-status]');
+            const sections = document.querySelectorAll('.section');
+            const hint = document.getElementById('filter-hint');
+
+            if (activeFilter === status) {
+                // Toggle off - show all
+                resetFilter();
+                return;
+            }
+
+            activeFilter = status;
+            cards.forEach(c => c.classList.toggle('active', c.dataset.filter === status));
+
+            rows.forEach(row => {
+                row.style.display = row.dataset.status === status ? '' : 'none';
+            });
+
+            // Hide sections where all rows are hidden
+            sections.forEach(sec => {
+                const visibleRows = sec.querySelectorAll('tr[data-status][style=""]');
+                const allRows = sec.querySelectorAll('tr[data-status]');
+                const hasVisible = Array.from(allRows).some(r => r.style.display !== 'none');
+                sec.classList.toggle('hidden-section', !hasVisible);
+            });
+
+            if (hint) {
+                const count = document.querySelectorAll('tr[data-status="' + status + '"]').length;
+                hint.innerHTML = 'Showing <strong>' + count + '</strong> ' + status.toLowerCase() + ' result(s). <span class="reset-link" onclick="resetFilter()">Show all</span>';
+                hint.style.display = 'block';
+            }
+        }
+
+        function resetFilter() {
+            activeFilter = null;
+            document.querySelectorAll('.summary-card').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('tr[data-status]').forEach(r => r.style.display = '');
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('hidden-section'));
+            const hint = document.getElementById('filter-hint');
+            if (hint) hint.style.display = 'none';
+        }
     </script>
 </head>
 <body>
@@ -164,11 +214,12 @@
             <img class="header-logo" src="data:image/png;base64,$defenderLogoBase64" alt="Microsoft Defender">
         </div>
         <div class="summary-grid">
-            <div class="summary-card pass"><div class="count">$passCount</div><div class="label">Passed</div></div>
-            <div class="summary-card fail"><div class="count">$failCount</div><div class="label">Failed</div></div>
-            <div class="summary-card warn"><div class="count">$warnCount</div><div class="label">Warnings</div></div>
-            <div class="summary-card info"><div class="count">$infoCount</div><div class="label">Informational</div></div>
+            <div class="summary-card pass" data-filter="Pass" onclick="filterByStatus('Pass')"><div class="count">$passCount</div><div class="label">Passed</div></div>
+            <div class="summary-card fail" data-filter="Fail" onclick="filterByStatus('Fail')"><div class="count">$failCount</div><div class="label">Failed</div></div>
+            <div class="summary-card warn" data-filter="Warning" onclick="filterByStatus('Warning')"><div class="count">$warnCount</div><div class="label">Warnings</div></div>
+            <div class="summary-card info" data-filter="Info" onclick="filterByStatus('Info')"><div class="count">$infoCount</div><div class="label">Informational</div></div>
         </div>
+        <div id="filter-hint" class="filter-hint" style="display:none;"></div>
 "@
 
             # Group results by their Category property (the single source of truth).
@@ -267,7 +318,7 @@
                         $rulesList = $rulesListItems -join "`n"
 
                         $htmlContent += @"
-                <tr>
+                <tr data-status="$($result.Status)">
                     <td>$encodedTestName</td>
                     <td>$encodedExpected</td>
                     <td>$encodedSummary
@@ -286,7 +337,7 @@ $rulesList
                         # Normal result row
                         $encodedMessage = ConvertTo-HtmlEncodedString $result.Message
                         $htmlContent += @"
-                <tr>
+                <tr data-status="$($result.Status)">
                     <td>$encodedTestName</td>
                     <td>$encodedExpected</td>
                     <td>$encodedMessage$recommendationHtml</td>
