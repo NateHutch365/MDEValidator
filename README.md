@@ -384,8 +384,7 @@ Console output:
 
 HTML report output:
 
-<img width="913" height="904" alt="image" src="https://github.com/user-attachments/assets/06d8dfcc-f069-48ab-abbd-00c2ea8d20d9" />
-
+<img width="913" height="904" alt="image" src="https://github.com/user-attachments/assets/157b4f72-db3a-4b7b-81d2-483693ecf5e6" />
 
 ### Test Status Values
 
