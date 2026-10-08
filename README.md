@@ -7,6 +7,8 @@
 
 A PowerShell module to validate Microsoft Defender for Endpoint (MDE) configurations and security settings on Windows endpoints.
 
+<img width="1920" height="1080" alt="MDEValidator" src="https://github.com/user-attachments/assets/a6367baf-5861-4ba6-b6d8-9f5e87a50489" />
+
 ## Requirements
 
 - Windows 10/11 or Windows Server 2016+
